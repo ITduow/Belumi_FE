@@ -1,42 +1,58 @@
 import '../../../core/network/dio_api_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
-import 'firebase_auth_service.dart';
+import 'admin_auth_service.dart';
+import 'auth_service.dart';
+import 'role_service.dart';
 
 class AuthRepository {
   AuthRepository({
     required DioApiService api,
     required TokenStorage tokenStorage,
-    required FirebaseAuthService firebaseAuthService,
+    required AuthService authService,
+    required RoleService roleService,
+    required AdminAuthService adminAuthService,
   }) : _api = api,
        _tokenStorage = tokenStorage,
-       _firebaseAuthService = firebaseAuthService;
+       _authService = authService,
+       _roleService = roleService,
+       _adminAuthService = adminAuthService;
 
   final DioApiService _api;
   final TokenStorage _tokenStorage;
-  final FirebaseAuthService _firebaseAuthService;
+  final AuthService _authService;
+  final RoleService _roleService;
+  final AdminAuthService _adminAuthService;
 
   Future<AppUser> login({
     required String email,
     required String password,
   }) async {
-    final data =
-        await _api.post('/auth/login', {'email': email, 'password': password})
-            as Map<String, dynamic>;
-    return _saveUser(AppUser.fromJson(data));
+    final session = await _authService.signInWithEmailPassword(email, password);
+    await _roleService.ensureUserDocument(
+      uid: session.uid,
+      email: session.email,
+    );
+    return _syncFirebaseSession(session, fallbackRole: 'user');
   }
 
   Future<AppUser> adminLogin({
     required String email,
     required String password,
   }) async {
-    final data =
-        await _api.post('/auth/admin-login', {
-              'email': email,
-              'password': password,
-            })
-            as Map<String, dynamic>;
-    return _saveUser(AppUser.fromJson(data));
+    final session = await _adminAuthService.signInAdmin(
+      email: email,
+      password: password,
+    );
+    final user = AppUser(
+      id: session.uid,
+      email: session.email,
+      fullName: session.displayName ?? 'Belumi Admin',
+      role: 'admin',
+      token: session.idToken,
+    );
+    await _tokenStorage.saveToken(user.token);
+    return user;
   }
 
   Future<AppUser> register({
@@ -45,33 +61,48 @@ class AuthRepository {
     required String fullName,
     required String phone,
   }) async {
-    final data =
-        await _api.post('/auth/register', {
-              'email': email,
-              'password': password,
-              'fullName': fullName,
-              'phone': phone,
-            })
-            as Map<String, dynamic>;
-    return _saveUser(AppUser.fromJson(data));
+    final session = await _authService.registerWithEmailPassword(
+      email: email,
+      password: password,
+      fullName: fullName,
+    );
+    await _roleService.ensureUserDocument(
+      uid: session.uid,
+      email: session.email,
+    );
+    return _syncFirebaseSession(session, fallbackRole: 'user', phone: phone);
   }
 
   Future<AppUser> signInWithGoogle() async {
-    final firebaseIdToken = await _firebaseAuthService
-        .signInWithGoogleAndGetIdToken();
-
-    final data =
-        await _api.post('/auth/firebase-login', {'idToken': firebaseIdToken})
-            as Map<String, dynamic>;
-    return _saveUser(AppUser.fromJson(data));
+    final session = await _authService.signInWithGoogle();
+    await _roleService.ensureUserDocument(
+      uid: session.uid,
+      email: session.email,
+    );
+    return _syncFirebaseSession(session, fallbackRole: 'user');
   }
 
   Future<void> logout() async {
-    await _firebaseAuthService.signOut();
+    await _authService.signOut();
     await _tokenStorage.clearToken();
   }
 
-  Future<AppUser> _saveUser(AppUser user) async {
+  Future<AppUser> _syncFirebaseSession(
+    FirebaseAuthSession session, {
+    required String fallbackRole,
+    String? phone,
+  }) async {
+    final data =
+        await _api.post('/auth/firebase-login', {'idToken': session.idToken})
+            as Map<String, dynamic>;
+    final user = AppUser.fromJson(data).copyWith(
+      id: session.uid,
+      email: session.email,
+      fullName: session.displayName,
+      role: fallbackRole,
+      token: session.idToken,
+      phone: phone,
+    );
     await _tokenStorage.saveToken(user.token);
     return user;
   }

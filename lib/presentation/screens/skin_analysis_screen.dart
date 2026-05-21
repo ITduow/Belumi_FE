@@ -198,7 +198,9 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
 
     try {
       if (!widget.repository.isLoggedIn) {
-        await widget.repository.googleMockLogin();
+        throw Exception(
+          'Vui lòng đăng nhập bằng Firebase trước khi phân tích.',
+        );
       }
       final mergedConcerns = [
         ...concerns,

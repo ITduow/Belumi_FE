@@ -84,7 +84,7 @@ class _ShellScreenState extends State<ShellScreen> {
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   try {
-                    final loggedIn = await repository.googleMockLogin();
+                    final loggedIn = await repository.googleLogin();
                     setState(() => user = loggedIn);
                     messenger.showSnackBar(
                       SnackBar(content: Text('Xin chao ${loggedIn.fullName}')),

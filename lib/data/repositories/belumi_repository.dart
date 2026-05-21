@@ -13,51 +13,21 @@ class BelumiRepository {
   bool get isAdmin => currentUser?.isAdmin ?? false;
   bool get isPro => currentPlan == 'pro';
 
-  Future<AuthUser> login(String email, String password) async {
-    final data =
-        await api.post('/auth/login', {'email': email, 'password': password})
-            as Map<String, dynamic>;
-    return _setUser(AuthUser.fromJson(data));
-  }
+  Future<AuthUser> login(String email, String password) =>
+      throw UnsupportedError('Use Firebase AuthService for email login.');
 
   Future<AuthUser> register(
     String email,
     String password,
     String fullName,
     String phone,
-  ) async {
-    final data =
-        await api.post('/auth/register', {
-              'email': email,
-              'password': password,
-              'fullName': fullName,
-              'phone': phone,
-            })
-            as Map<String, dynamic>;
-    return _setUser(AuthUser.fromJson(data));
-  }
+  ) => throw UnsupportedError('Use Firebase AuthService for registration.');
 
-  Future<AuthUser> googleMockLogin() async {
-    final data =
-        await api.post('/auth/google-mock', {
-              'email': 'customer@belumi.com',
-              'password': 'GoogleMock@2026',
-              'fullName': 'Belumi Customer',
-              'phone': '0909000000',
-            })
-            as Map<String, dynamic>;
-    return _setUser(AuthUser.fromJson(data));
-  }
+  Future<AuthUser> googleLogin() =>
+      throw UnsupportedError('Use Firebase Google login.');
 
-  Future<AuthUser> adminLogin(String email, String password) async {
-    final data =
-        await api.post('/auth/admin-login', {
-              'email': email,
-              'password': password,
-            })
-            as Map<String, dynamic>;
-    return _setUser(AuthUser.fromJson(data));
-  }
+  Future<AuthUser> adminLogin(String email, String password) =>
+      throw UnsupportedError('Use Firebase AdminAuthService.');
 
   void logout() {
     currentUser = null;
@@ -67,12 +37,6 @@ class BelumiRepository {
 
   void activatePlan(String planCode) {
     currentPlan = planCode;
-  }
-
-  AuthUser _setUser(AuthUser user) {
-    currentUser = user;
-    api.token = user.token;
-    return user;
   }
 
   Future<List<Product>> products() async {

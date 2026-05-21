@@ -134,14 +134,14 @@ class _UserAuthScreenState extends State<UserAuthScreen> {
                       error = null;
                     });
                     try {
-                      final user = await widget.repository.googleMockLogin();
+                      final user = await widget.repository.googleLogin();
                       widget.onAuthenticated(user);
                       if (context.mounted) Navigator.pop(context);
                     } catch (_) {
                       setState(() {
                         error = t(
-                          'Google mock login thất bại. Kiểm tra backend.',
-                          'Google mock login failed. Check backend.',
+                          'Google login thất bại. Kiểm tra Firebase.',
+                          'Google login failed. Check Firebase.',
                         );
                       });
                     } finally {
@@ -149,7 +149,7 @@ class _UserAuthScreenState extends State<UserAuthScreen> {
                     }
                   },
             icon: const Icon(Icons.g_mobiledata),
-            label: Text(t('Đăng nhập Google mock', 'Google mock login')),
+            label: Text(t('Đăng nhập Google', 'Google login')),
           ),
           const SizedBox(height: 18),
           Card(

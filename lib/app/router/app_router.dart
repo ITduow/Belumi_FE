@@ -48,11 +48,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authRoute =
           state.uri.path == '/login' || state.uri.path == '/register';
       final privateRoute = state.uri.path == '/wishlist';
-      final adminRoute = state.uri.path == '/admin';
+      final adminRoute =
+          state.uri.path == '/admin' || state.uri.path == '/admin-dashboard';
 
       if (!loggedIn && privateRoute) return '/login';
+      if (adminRoute && !loggedIn) return '/login';
       if (adminRoute && user?.role.toLowerCase() != 'admin') {
-        return '/admin-login';
+        return '/home';
       }
       if (loggedIn && authRoute) return '/home';
       return null;
@@ -70,6 +72,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin',
+        builder: (context, state) =>
+            AdminPanelScreen(repository: legacyRepository),
+      ),
+      GoRoute(
+        path: '/admin-dashboard',
         builder: (context, state) =>
             AdminPanelScreen(repository: legacyRepository),
       ),

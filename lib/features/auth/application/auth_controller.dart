@@ -1,19 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/core_providers.dart';
+import '../data/admin_auth_service.dart';
+import '../data/auth_service.dart';
 import '../data/auth_repository.dart';
-import '../data/firebase_auth_service.dart';
+import '../data/role_service.dart';
 import '../domain/app_user.dart';
 
-final firebaseAuthServiceProvider = Provider<FirebaseAuthService>(
-  (ref) => FirebaseAuthService(),
+final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+
+final roleServiceProvider = Provider<RoleService>((ref) => RoleService());
+
+final adminAuthServiceProvider = Provider<AdminAuthService>(
+  (ref) => AdminAuthService(
+    authService: ref.watch(authServiceProvider),
+    roleService: ref.watch(roleServiceProvider),
+  ),
 );
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
     api: ref.watch(apiServiceProvider),
     tokenStorage: ref.watch(tokenStorageProvider),
-    firebaseAuthService: ref.watch(firebaseAuthServiceProvider),
+    authService: ref.watch(authServiceProvider),
+    roleService: ref.watch(roleServiceProvider),
+    adminAuthService: ref.watch(adminAuthServiceProvider),
   );
 });
 
@@ -34,11 +45,13 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
     );
   }
 
-  Future<void> adminLogin(String email, String password) async {
+  Future<AppUser?> adminLogin(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final nextState = await AsyncValue.guard(
       () => _repository.adminLogin(email: email, password: password),
     );
+    state = nextState;
+    return nextState.valueOrNull;
   }
 
   Future<void> register({

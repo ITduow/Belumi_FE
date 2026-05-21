@@ -17,6 +17,24 @@ class AppUser {
 
   bool get isAdmin => role.toLowerCase() == 'admin';
 
+  AppUser copyWith({
+    String? id,
+    String? email,
+    String? fullName,
+    String? role,
+    String? token,
+    String? phone,
+  }) {
+    return AppUser(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      role: role ?? this.role,
+      token: token ?? this.token,
+      phone: phone ?? this.phone,
+    );
+  }
+
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
       id: json['userId']?.toString() ?? json['id']?.toString() ?? '',
