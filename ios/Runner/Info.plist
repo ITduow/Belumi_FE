@@ -16,6 +16,10 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>belumi_app</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Belumi uses the camera to capture a selfie for skin analysis.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Belumi uses your selected photo for skin analysis.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

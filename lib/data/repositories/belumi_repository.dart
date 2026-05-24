@@ -69,17 +69,33 @@ class BelumiRepository {
     String? imageUrl,
   }) async {
     try {
+      if (imageUrl == null || imageUrl.isEmpty) {
+        throw ArgumentError('Skin analysis requires an image.');
+      }
+
+      final normalizedSkinType = _normalizeSkinType(skinType);
       final data =
-          await api.post('/skin-analysis', {
-                'imageUrl': imageUrl,
-                'skinType': skinType,
-                'concerns': concerns,
-                'goal': goal,
-                'planCode': planCode,
-              })
+          await api.postMultipart(
+                '/skin/analyze',
+                fields: {
+                  'skin_type': normalizedSkinType,
+                  'image_base64': imageUrl,
+                },
+              )
               as Map<String, dynamic>;
-      return SkinAnalysisResult.fromJson(data);
-    } catch (_) {
+
+      final result = data['result'];
+      if (data['status'] != 'success' || result is! Map<String, dynamic>) {
+        throw Exception(data['message'] as String? ?? 'Skin analysis failed.');
+      }
+
+      return SkinAnalysisResult.fromApiJson(
+        result,
+        skinType: _displaySkinType(normalizedSkinType),
+      );
+    } catch (error) {
+      if (imageUrl != null && imageUrl.isNotEmpty) rethrow;
+
       final concernText = concerns.isEmpty
           ? 'Routine consistency'
           : concerns.join(', ');
@@ -91,6 +107,36 @@ class BelumiRepository {
         score: planCode == 'pro' ? 90 : 82,
       );
     }
+  }
+
+  String _normalizeSkinType(String value) {
+    final normalized = value.toLowerCase().trim();
+    if (normalized.contains('oily') || normalized.contains('dau')) {
+      return 'oily';
+    }
+    if (normalized.contains('dry') || normalized.contains('kho')) {
+      return 'dry';
+    }
+    if (normalized.contains('combination') || normalized.contains('hon hop')) {
+      return 'combination';
+    }
+    if (normalized.contains('sensitive') || normalized.contains('nhay cam')) {
+      return 'sensitive';
+    }
+    if (normalized.contains('normal') || normalized.contains('thuong')) {
+      return 'normal';
+    }
+    return 'normal';
+  }
+
+  String _displaySkinType(String value) {
+    return switch (value) {
+      'oily' => 'Oily',
+      'dry' => 'Dry',
+      'combination' => 'Combination',
+      'sensitive' => 'Sensitive',
+      _ => 'Normal',
+    };
   }
 
   Future<IngredientResult> lookupIngredient(String textOrImageUrl) async {

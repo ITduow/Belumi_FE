@@ -14,6 +14,26 @@ class ApiClient {
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, Map<String, dynamic> body) =>
       _send('POST', path, body: body);
+  Future<dynamic> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri)..fields.addAll(fields);
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw http.ClientException(response.body, uri);
+    }
+
+    return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
   Future<dynamic> put(String path, Map<String, dynamic> body) =>
       _send('PUT', path, body: body);
   Future<dynamic> delete(String path) => _send('DELETE', path);

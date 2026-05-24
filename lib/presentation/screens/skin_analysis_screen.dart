@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,6 @@ import '../../core/platform/skin_image_picker.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
-import 'pricing_screen.dart';
 
 class SkinAnalysisScreen extends ConsumerStatefulWidget {
   const SkinAnalysisScreen({super.key, required this.repository});
@@ -22,7 +22,6 @@ class SkinAnalysisScreen extends ConsumerStatefulWidget {
 
 class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   int step = 0;
-  int quizStep = 0;
   bool consent = false;
   bool deleteAfter = true;
   bool loading = false;
@@ -31,15 +30,12 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   SkinAnalysisResult? result;
 
   String skinType = '';
-  String sensitivity = '';
-  String routine = '';
-  final Set<String> concerns = {};
-  final Set<String> allergies = {};
 
   bool get isPlusOrPro =>
       widget.repository.currentPlan == 'plus' ||
       widget.repository.currentPlan == 'pro';
   bool get isPro => widget.repository.currentPlan == 'pro';
+  bool get canUsePhotoAnalysis => true;
 
   bool get isVi => ref.read(appLocaleProvider) == 'vi';
 
@@ -67,32 +63,22 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
         2 => _PhotoStep(
           key: const ValueKey('photo'),
           locale: locale,
-          isPro: isPro,
+          canUsePhotoAnalysis: canUsePhotoAnalysis,
           image: pickedImage,
-          onCamera: isPro ? () => _pickImage(true) : _openPricing,
-          onUpload: isPro ? () => _pickImage(false) : _openPricing,
+          onCamera: () => _pickImage(true),
+          onUpload: () => _pickImage(false),
           onClear: () => setState(() => pickedImage = null),
           onBack: _back,
-          onNext: _next,
+          onNext: pickedImage == null ? null : _next,
         ),
         3 => _QuizStep(
-          key: ValueKey('quiz-$quizStep'),
+          key: const ValueKey('quiz'),
           locale: locale,
-          quizStep: quizStep,
           skinType: skinType,
-          sensitivity: sensitivity,
-          routine: routine,
-          concerns: concerns,
-          allergies: allergies,
           loading: loading,
           error: error,
           onBack: _quizBack,
           onSelectSkinType: (value) => setState(() => skinType = value),
-          onSelectSensitivity: (value) => setState(() => sensitivity = value),
-          onToggleConcern: _toggleConcern,
-          onSelectRoutine: (value) => setState(() => routine = value),
-          onToggleAllergy: _toggleAllergy,
-          onNext: _quizNext,
           onAnalyze: _analyze,
         ),
         _ => _ResultStep(
@@ -120,45 +106,14 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   void _back() => setState(() => step--);
 
   void _quizBack() {
-    if (quizStep == 0) {
-      _back();
-      return;
-    }
-    setState(() => quizStep--);
-  }
-
-  void _quizNext() {
-    if (quizStep < 4) {
-      setState(() => quizStep++);
-    }
+    _back();
   }
 
   void _restart() {
     setState(() {
       step = 0;
-      quizStep = 0;
       error = null;
       result = null;
-    });
-  }
-
-  void _toggleConcern(String value) {
-    setState(() {
-      if (concerns.contains(value)) {
-        concerns.remove(value);
-      } else if (concerns.length < 3) {
-        concerns.add(value);
-      }
-    });
-  }
-
-  void _toggleAllergy(String value) {
-    setState(() {
-      if (allergies.contains(value)) {
-        allergies.remove(value);
-      } else {
-        allergies.add(value);
-      }
     });
   }
 
@@ -182,14 +137,6 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
     }
   }
 
-  void _openPricing() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PricingScreen(repository: widget.repository),
-      ),
-    );
-  }
-
   Future<void> _analyze() async {
     setState(() {
       loading = true;
@@ -202,27 +149,25 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
           'Vui lòng đăng nhập bằng Firebase trước khi phân tích.',
         );
       }
-      final mergedConcerns = [
-        ...concerns,
-        if (sensitivity.isNotEmpty) 'Nhay cam: $sensitivity',
-        if (routine.isNotEmpty) 'Routine: $routine',
-        if (allergies.isNotEmpty) 'Di ung: ${allergies.join(', ')}',
-      ];
+      if (pickedImage == null) {
+        throw Exception('Vui long chon anh truoc khi phan tich.');
+      }
+
       final data = await widget.repository.analyzeSkin(
-        skinType: skinType.isEmpty ? 'Khong chac' : skinType,
-        concerns: mergedConcerns,
+        skinType: skinType,
+        concerns: [skinType],
         goal: 'Tu van quy trinh cham soc da ca nhan hoa',
         planCode: widget.repository.currentPlan,
-        imageUrl: isPro ? pickedImage?.dataUrl : null,
+        imageUrl: pickedImage!.dataUrl,
       );
       if (!mounted) return;
       setState(() {
         result = data;
         step = 4;
       });
-    } catch (_) {
+    } catch (exception) {
       setState(() {
-        error = 'Khong goi duoc API skin-analysis. Kiem tra backend.';
+        error = exception.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       if (mounted) setState(() => loading = false);
@@ -462,7 +407,7 @@ class _PhotoStep extends StatelessWidget {
   const _PhotoStep({
     super.key,
     required this.locale,
-    required this.isPro,
+    required this.canUsePhotoAnalysis,
     required this.image,
     required this.onCamera,
     required this.onUpload,
@@ -472,13 +417,13 @@ class _PhotoStep extends StatelessWidget {
   });
 
   final String locale;
-  final bool isPro;
+  final bool canUsePhotoAnalysis;
   final PickedSkinImage? image;
   final VoidCallback onCamera;
   final VoidCallback onUpload;
   final VoidCallback onClear;
   final VoidCallback onBack;
-  final VoidCallback onNext;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -546,11 +491,11 @@ class _PhotoStep extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      image!.dataUrl,
+                    child: Container(
                       height: 330,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      color: const Color(0xFFF6FCFF),
+                      child: _PickedImagePreview(image: image!),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -581,7 +526,7 @@ class _PhotoStep extends StatelessWidget {
                   Expanded(
                     child: _PhotoAction(
                       icon: Icons.camera_alt_outlined,
-                      title: isPro
+                      title: canUsePhotoAnalysis
                           ? l.t('Dùng camera', 'Use camera')
                           : l.t('Mở khóa camera', 'Unlock camera'),
                       onTap: onCamera,
@@ -591,7 +536,7 @@ class _PhotoStep extends StatelessWidget {
                   Expanded(
                     child: _PhotoAction(
                       icon: Icons.upload_file,
-                      title: isPro
+                      title: canUsePhotoAnalysis
                           ? l.t('Tải ảnh lên', 'Upload image')
                           : l.t('Mở khóa upload', 'Unlock upload'),
                       onTap: onUpload,
@@ -599,7 +544,7 @@ class _PhotoStep extends StatelessWidget {
                   ),
                 ],
               ),
-            if (!isPro) ...[
+            if (!canUsePhotoAnalysis) ...[
               const SizedBox(height: 14),
               _PaywallNote(locale: locale),
             ],
@@ -621,85 +566,66 @@ class _QuizStep extends StatelessWidget {
   const _QuizStep({
     super.key,
     required this.locale,
-    required this.quizStep,
     required this.skinType,
-    required this.sensitivity,
-    required this.routine,
-    required this.concerns,
-    required this.allergies,
     required this.loading,
     required this.error,
     required this.onBack,
     required this.onSelectSkinType,
-    required this.onSelectSensitivity,
-    required this.onToggleConcern,
-    required this.onSelectRoutine,
-    required this.onToggleAllergy,
-    required this.onNext,
     required this.onAnalyze,
   });
 
   final String locale;
-  final int quizStep;
   final String skinType;
-  final String sensitivity;
-  final String routine;
-  final Set<String> concerns;
-  final Set<String> allergies;
   final bool loading;
   final String? error;
   final VoidCallback onBack;
   final ValueChanged<String> onSelectSkinType;
-  final ValueChanged<String> onSelectSensitivity;
-  final ValueChanged<String> onToggleConcern;
-  final ValueChanged<String> onSelectRoutine;
-  final ValueChanged<String> onToggleAllergy;
-  final VoidCallback onNext;
   final VoidCallback onAnalyze;
 
   @override
   Widget build(BuildContext context) {
     final l = _L(locale);
-    final config = _config();
-    final canContinue = switch (quizStep) {
-      0 => skinType.isNotEmpty,
-      1 => sensitivity.isNotEmpty,
-      2 => concerns.isNotEmpty,
-      3 => routine.isNotEmpty,
-      _ => allergies.isNotEmpty,
-    };
+    final options = _skinTypeOptions(l);
+    final selectedLabels = options
+        .where((option) => option.value == skinType)
+        .map((option) => option.label)
+        .toSet();
 
     return _PageShell(
       locale: locale,
       badge: l.t('Bước 3 / 3', 'Step 3 of 3'),
-      title: l.t('Hồ sơ da nhanh', 'Quick Skin Profile'),
+      title: l.t('Xác định loại da', 'Identify Your Skin Type'),
       subtitle: l.t(
-        'Chỉ vài thao tác - không cần gõ!',
-        'A few taps, no typing needed!',
+        'Chọn cảm giác da sau khi rửa mặt và chờ khoảng 30 phút.',
+        'Choose how your skin feels about 30 minutes after cleansing.',
       ),
       child: _GlassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: _ProgressDots(index: quizStep, locale: locale),
-            ),
-            const SizedBox(height: 26),
             Text(
-              config.title,
+              l.t(
+                'Sau khi rửa mặt và chờ khoảng 30 phút, da bạn cảm thấy như thế nào?',
+                'After washing your face and waiting about 30 minutes, how does your skin feel?',
+              ),
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
-            Text(config.subtitle),
+            Text(
+              l.t(
+                'Câu trả lời này sẽ được gửi về API dưới dạng loại da tương ứng.',
+                'This answer is sent to the API as the matching skin type.',
+              ),
+            ),
             const SizedBox(height: 20),
             _OptionGrid(
-              options: config.options,
-              selected: _selectedForStep(),
-              multi: quizStep == 2 || quizStep == 4,
-              maxCount: quizStep == 2 ? 3 : null,
-              onTap: _onTapForStep,
+              options: options.map((option) => option.label).toList(),
+              selected: selectedLabels,
+              onTap: (label) => onSelectSkinType(
+                options.firstWhere((option) => option.label == label).value,
+              ),
             ),
             if (error != null) ...[
               const SizedBox(height: 12),
@@ -708,16 +634,10 @@ class _QuizStep extends StatelessWidget {
             const SizedBox(height: 28),
             _NavRow(
               onBack: onBack,
-              onNext: canContinue
-                  ? quizStep == 4
-                        ? onAnalyze
-                        : onNext
-                  : null,
-              nextLabel: quizStep == 4
-                  ? loading
-                        ? l.t('Đang phân tích...', 'Analyzing...')
-                        : l.t('Phân tích da của tôi', 'Analyze my skin')
-                  : l.t('Tiếp tục', 'Continue'),
+              onNext: skinType.isEmpty || loading ? null : onAnalyze,
+              nextLabel: loading
+                  ? l.t('Đang phân tích...', 'Analyzing...')
+                  : l.t('Phân tích da của tôi', 'Analyze my skin'),
               backLabel: l.t('Quay lại', 'Back'),
             ),
           ],
@@ -726,116 +646,50 @@ class _QuizStep extends StatelessWidget {
     );
   }
 
-  Set<String> _selectedForStep() => switch (quizStep) {
-    0 => {if (skinType.isNotEmpty) skinType},
-    1 => {if (sensitivity.isNotEmpty) sensitivity},
-    2 => concerns,
-    3 => {if (routine.isNotEmpty) routine},
-    _ => allergies,
-  };
+  List<_SkinTypeOption> _skinTypeOptions(_L l) => [
+    _SkinTypeOption(
+      label: l.t(
+        'A. Da bóng dầu hoặc nhờn rõ rệt',
+        'A. Skin is clearly oily or greasy',
+      ),
+      value: 'oily',
+    ),
+    _SkinTypeOption(
+      label: l.t(
+        'B. Da khô, căng hoặc hơi bong tróc',
+        'B. Skin feels dry, tight, or slightly flaky',
+      ),
+      value: 'dry',
+    ),
+    _SkinTypeOption(
+      label: l.t(
+        'C. Vùng chữ T dầu nhưng hai bên má khô hoặc bình thường',
+        'C. T-zone is oily while cheeks are dry or normal',
+      ),
+      value: 'combination',
+    ),
+    _SkinTypeOption(
+      label: l.t(
+        'D. Da thoải mái, không căng, không nhờn',
+        'D. Skin feels comfortable, not tight and not oily',
+      ),
+      value: 'normal',
+    ),
+    _SkinTypeOption(
+      label: l.t(
+        'E. Da đỏ, châm chích, nóng rát hoặc ngứa',
+        'E. Skin is red, stinging, burning, or itchy',
+      ),
+      value: 'sensitive',
+    ),
+  ];
+}
 
-  void _onTapForStep(String value) {
-    switch (quizStep) {
-      case 0:
-        onSelectSkinType(value);
-      case 1:
-        onSelectSensitivity(value);
-      case 2:
-        onToggleConcern(value);
-      case 3:
-        onSelectRoutine(value);
-      default:
-        onToggleAllergy(value);
-    }
-  }
+class _SkinTypeOption {
+  const _SkinTypeOption({required this.label, required this.value});
 
-  _QuizConfig _config() {
-    final l = _L(locale);
-    return switch (quizStep) {
-      0 => _QuizConfig(
-        l.t(
-          'Da của bạn thường cảm thấy như thế nào?',
-          'How does your skin usually feel?',
-        ),
-        l.t(
-          'Chọn loại mô tả đúng nhất về da của bạn',
-          'Choose the description that fits your skin best',
-        ),
-        [
-          l.t('Da dầu', 'Oily'),
-          l.t('Da hỗn hợp', 'Combination'),
-          l.t('Da thường', 'Normal'),
-          l.t('Da khô', 'Dry'),
-          l.t('Không chắc', 'Not sure'),
-        ],
-      ),
-      1 => _QuizConfig(
-        l.t('Da của bạn nhạy cảm như thế nào?', 'How sensitive is your skin?'),
-        l.t(
-          'Da của bạn phản ứng với sản phẩm như thế nào?',
-          'How does your skin react to products?',
-        ),
-        [
-          l.t('Thường xuyên phản ứng', 'Reacts often'),
-          l.t('Đôi khi', 'Sometimes'),
-          l.t('Hiếm khi', 'Rarely'),
-          l.t('Không chắc', 'Not sure'),
-        ],
-      ),
-      2 => _QuizConfig(
-        l.t(
-          'Những vấn đề da hàng đầu của bạn là gì?',
-          'What are your top skin concerns?',
-        ),
-        l.t(
-          'Chọn tối đa 3 vấn đề quan trọng nhất với bạn',
-          'Choose up to 3 concerns that matter most',
-        ),
-        [
-          l.t('Da bị mụn', 'Acne'),
-          l.t('Da dầu', 'Oily skin'),
-          l.t('Da bị khô/bong tróc', 'Dry or flaky skin'),
-          l.t('Da bị dị ứng', 'Irritation'),
-          l.t('Da nổi đốm nâu', 'Dark spots'),
-          l.t('Da không đều màu', 'Uneven tone'),
-          l.t('Da bị tắc lỗ chân lông', 'Clogged pores'),
-          l.t('Da xỉn màu', 'Dullness'),
-        ],
-      ),
-      3 => _QuizConfig(
-        l.t(
-          'Quy trình chăm sóc da hiện tại?',
-          'What is your current skincare routine?',
-        ),
-        l.t(
-          'Điều này giúp chúng tôi đề xuất mức độ phức tạp phù hợp',
-          'This helps us suggest the right routine complexity',
-        ),
-        [
-          l.t('Chưa có quy trình', 'No routine yet'),
-          l.t('Cơ bản', 'Basic'),
-          l.t('Đầy đủ', 'Advanced'),
-        ],
-      ),
-      _ => _QuizConfig(
-        l.t(
-          'Bạn có nhạy cảm với sản phẩm cụ thể nào không?',
-          'Are you sensitive to any specific product types?',
-        ),
-        l.t(
-          'Tùy chọn - Chọn những gì phù hợp',
-          'Optional - choose what applies',
-        ),
-        [
-          l.t('Mùi hương', 'Fragrance'),
-          l.t('Cồn', 'Alcohol'),
-          l.t('Axit/Retinoid', 'Acids/Retinoids'),
-          l.t('Kem chống nắng', 'Sunscreen'),
-          l.t('Không biết', 'Not sure'),
-        ],
-      ),
-    };
-  }
+  final String label;
+  final String value;
 }
 
 class _ResultStep extends StatelessWidget {
@@ -869,7 +723,7 @@ class _ResultStep extends StatelessWidget {
         ),
       );
     }
-    final sections = _parseSections(data.recommendations);
+    final concernLabels = _concernLabels(data.topConcerns, l);
     return _PageShell(
       locale: locale,
       child: Column(
@@ -900,58 +754,67 @@ class _ResultStep extends StatelessWidget {
                 const SizedBox(height: 20),
                 _MiniSection(
                   title: l.t('Phân tích hoàn tất', 'Analysis complete'),
-                  body: sections['Analysis'] ?? data.recommendations,
+                  body: data.description.isNotEmpty
+                      ? data.description
+                      : data.recommendations,
                   icon: Icons.manage_search,
                 ),
                 const SizedBox(height: 18),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                _ResultCardGrid(
                   children: [
-                    Expanded(
-                      child: _RoutineCard(
-                        title: l.t('Quy trình buổi sáng', 'Morning routine'),
-                        color: const Color(0xFFFFB020),
-                        body: sections['Morning routine'] ?? '',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _RoutineCard(
-                        title: l.t('Quy trình buổi tối', 'Evening routine'),
-                        color: const Color(0xFF7C5CFF),
-                        body: sections['Evening routine'] ?? '',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _RoutineCard(
-                        title: l.t(
-                          'Thành phần tốt cho bạn',
-                          'Ingredients to use',
+                    _RoutineCard(
+                      title: l.t('Lời khuyên', 'Advice'),
+                      color: const Color(0xFFFFB020),
+                      body: _bulletList(
+                        data.advice,
+                        fallback: l.t(
+                          'Đang cập nhật lời khuyên từ AI.',
+                          'AI advice is being updated.',
                         ),
-                        color: Colors.green,
-                        body: sections['Ingredients to use'] ?? '',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _RoutineCard(
-                        title: l.t('Cẩn thận', 'Use with caution'),
-                        color: Colors.deepOrange,
-                        body: sections['Ingredients to avoid'] ?? '',
+                    _RoutineCard(
+                      title: l.t('Cần lưu ý', 'Use with caution'),
+                      color: Colors.deepOrange,
+                      body: _bulletList(
+                        data.warnings,
+                        fallback: l.t(
+                          'Chưa có cảnh báo đặc biệt.',
+                          'No special cautions detected.',
+                        ),
                       ),
+                    ),
+                    _RoutineCard(
+                      title: l.t(
+                        'Vấn đề da phát hiện',
+                        'Detected skin concerns',
+                      ),
+                      color: Colors.green,
+                      body: _bulletList(
+                        concernLabels,
+                        fallback: l.t(
+                          'Chưa phát hiện vấn đề da rõ ràng.',
+                          'No clear skin concerns detected.',
+                        ),
+                      ),
+                    ),
+                    _RoutineCard(
+                      title: l.t('Tín hiệu phân tích', 'Analysis signals'),
+                      color: const Color(0xFF7C5CFF),
+                      body: _signalSummary(data, l).isEmpty
+                          ? l.t(
+                              'Không có tín hiệu đặc biệt.',
+                              'No special signals detected.',
+                            )
+                          : _signalSummary(data, l),
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
                 _MiniSection(
-                  title: l.t('Gợi ý loại sản phẩm', 'Product suggestions'),
-                  body: sections['Product suggestions'] ?? '',
+                  title: l.t('Độ tin cậy phân tích', 'Analysis confidence'),
+                  body:
+                      '${l.t('Độ tin cậy', 'Confidence')}: ${(data.confidence * 100).round()}%',
                   icon: Icons.spa_outlined,
                 ),
                 if (!isDetailed) ...[
@@ -1001,25 +864,56 @@ class _ResultStep extends StatelessWidget {
     );
   }
 
-  Map<String, String> _parseSections(String value) {
-    final output = <String, String>{};
-    for (final part in value.split('\n\n')) {
-      final index = part.indexOf(':');
-      if (index > 0) {
-        output[part.substring(0, index).trim()] = part
-            .substring(index + 1)
-            .trim();
-      }
-    }
-    return output;
-  }
-}
+  String _bulletList(List<String> items, {required String fallback}) =>
+      items.isEmpty ? fallback : items.map((item) => '- $item').join('\n');
 
-class _QuizConfig {
-  const _QuizConfig(this.title, this.subtitle, this.options);
-  final String title;
-  final String subtitle;
-  final List<String> options;
+  List<String> _concernLabels(List<String> values, _L l) =>
+      values.map((value) => _concernLabel(value, l)).toList();
+
+  String _concernLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'acne' => l.t('mụn', 'acne'),
+      'redness' => l.t('đỏ da', 'redness'),
+      'dullness' => l.t('xỉn màu', 'dullness'),
+      'dark_spots' || 'dark spots' => l.t('thâm/nám', 'dark spots'),
+      'enlarged_pores' ||
+      'enlarged pores' => l.t('lỗ chân lông to', 'enlarged pores'),
+      'uneven_tone' || 'uneven tone' => l.t('da không đều màu', 'uneven tone'),
+      _ => value,
+    };
+  }
+
+  String _signalSummary(SkinAnalysisResult data, _L l) {
+    final signals = <String>[
+      '${l.t('Mụn', 'Acne')}: ${_acneLabel(data.acneLevel, l)}',
+      if (data.darkSpots) l.t('Thâm/nám', 'Dark spots'),
+      if (data.enlargedPores) l.t('Lỗ chân lông to', 'Enlarged pores'),
+      if (data.redness) l.t('Đỏ da', 'Redness'),
+      if (data.unevenTone) l.t('Da không đều màu', 'Uneven tone'),
+      if (data.skinCondition.isNotEmpty)
+        '${l.t('Tình trạng', 'Condition')}: ${_conditionLabel(data.skinCondition, l)}',
+    ];
+    return signals.join('\n');
+  }
+
+  String _acneLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'mild' => l.t('nhẹ', 'mild'),
+      'moderate' => l.t('trung bình', 'moderate'),
+      'severe' => l.t('nặng', 'severe'),
+      _ => l.t('không có', 'none'),
+    };
+  }
+
+  String _conditionLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'critical' => l.t('cần chú ý nhiều', 'critical'),
+      'needs_care' => l.t('cần chăm sóc', 'needs care'),
+      'needs_attention' => l.t('cần theo dõi', 'needs attention'),
+      'good' => l.t('ổn định', 'good'),
+      _ => value,
+    };
+  }
 }
 
 class _StepBadge extends StatelessWidget {
@@ -1282,6 +1176,36 @@ class _PhotoAction extends StatelessWidget {
   }
 }
 
+class _PickedImagePreview extends StatelessWidget {
+  const _PickedImagePreview({required this.image});
+
+  final PickedSkinImage image;
+
+  @override
+  Widget build(BuildContext context) {
+    final dataUrl = image.dataUrl;
+    if (dataUrl.startsWith('data:')) {
+      final commaIndex = dataUrl.indexOf(',');
+      if (commaIndex != -1) {
+        try {
+          final bytes = base64Decode(dataUrl.substring(commaIndex + 1));
+          return Image.memory(bytes, fit: BoxFit.contain);
+        } catch (_) {
+          // Fall through to the error placeholder below.
+        }
+      }
+    }
+
+    if (dataUrl.startsWith('http')) {
+      return Image.network(dataUrl, fit: BoxFit.contain);
+    }
+
+    return const Center(
+      child: Icon(Icons.broken_image_outlined, color: Color(0xFFB84A62)),
+    );
+  }
+}
+
 class _PaywallNote extends StatelessWidget {
   const _PaywallNote({required this.locale});
 
@@ -1307,117 +1231,75 @@ class _PaywallNote extends StatelessWidget {
   }
 }
 
-class _ProgressDots extends StatelessWidget {
-  const _ProgressDots({required this.index, required this.locale});
-
-  final int index;
-  final String locale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(5, (i) {
-            return Container(
-              width: i == index ? 58 : 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: i == index
-                    ? const Color(0xFF5BA4D2)
-                    : const Color(0xFFDDE7EF),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _L(locale).t('Bước ${index + 1} trong 5', 'Step ${index + 1} of 5'),
-        ),
-      ],
-    );
-  }
-}
-
 class _OptionGrid extends StatelessWidget {
   const _OptionGrid({
     required this.options,
     required this.selected,
     required this.onTap,
-    this.multi = false,
-    this.maxCount,
   });
 
   final List<String> options;
   final Set<String> selected;
   final ValueChanged<String> onTap;
-  final bool multi;
-  final int? maxCount;
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: options.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 310,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 4.8,
-      ),
-      itemBuilder: (context, index) {
-        final option = options[index];
-        final active = selected.contains(option);
-        final disabled =
-            multi &&
-            maxCount != null &&
-            selected.length >= maxCount! &&
-            !active;
-        return InkWell(
-          onTap: disabled ? null : () => onTap(option),
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFFE3F2FC) : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: active
-                    ? const Color(0xFF5BA4D2)
-                    : const Color(0xFFCFE3F2),
-              ),
-            ),
-            child: Row(
-              children: [
-                if (active) ...[
-                  const Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: Color(0xFF5BA4D2),
+    return Column(
+      children: [
+        for (final option in options) ...[
+          Builder(
+            builder: (context) {
+              final active = selected.contains(option);
+              return InkWell(
+                onTap: () => onTap(option),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
                   ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Text(
-                    option,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: disabled ? Colors.grey : const Color(0xFF566577),
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFFE3F2FC) : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: active
+                          ? const Color(0xFF5BA4D2)
+                          : const Color(0xFFCFE3F2),
                     ),
                   ),
+                  child: Row(
+                    children: [
+                      if (active) ...[
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 18,
+                          color: Color(0xFF5BA4D2),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            color: const Color(0xFF566577),
+                            fontWeight: active
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
-        );
-      },
+          if (option != options.last) const SizedBox(height: 10),
+        ],
+      ],
     );
   }
 }
@@ -1460,6 +1342,7 @@ class _DetectedSkinType extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = _L(locale);
+    final concerns = _concernLabels(result.topConcerns, l);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1474,13 +1357,13 @@ class _DetectedSkinType extends StatelessWidget {
               children: [
                 Text(l.t('Loại da được phát hiện', 'Detected skin type')),
                 Text(
-                  result.skinType,
+                  _skinTypeLabel(result.skinType, l),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: const Color(0xFF5BA4D2),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text(result.concerns),
+                if (concerns.isNotEmpty) Text(concerns.join(', ')),
               ],
             ),
           ),
@@ -1488,6 +1371,35 @@ class _DetectedSkinType extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _skinTypeLabel(String value, _L l) {
+    final normalized = value.toLowerCase().trim();
+    if (normalized.contains('oily')) return l.t('Da dầu', 'Oily');
+    if (normalized.contains('dry')) return l.t('Da khô', 'Dry');
+    if (normalized.contains('combination')) {
+      return l.t('Da hỗn hợp', 'Combination');
+    }
+    if (normalized.contains('sensitive')) {
+      return l.t('Da nhạy cảm', 'Sensitive');
+    }
+    return l.t('Da thường', 'Normal');
+  }
+
+  List<String> _concernLabels(List<String> values, _L l) =>
+      values.map((value) => _concernLabel(value, l)).toList();
+
+  String _concernLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'acne' => l.t('mụn', 'acne'),
+      'redness' => l.t('đỏ da', 'redness'),
+      'dullness' => l.t('xỉn màu', 'dullness'),
+      'dark_spots' || 'dark spots' => l.t('thâm/nám', 'dark spots'),
+      'enlarged_pores' ||
+      'enlarged pores' => l.t('lỗ chân lông to', 'enlarged pores'),
+      'uneven_tone' || 'uneven tone' => l.t('da không đều màu', 'uneven tone'),
+      _ => value,
+    };
   }
 }
 
@@ -1508,6 +1420,34 @@ class _MiniSection extends StatelessWidget {
       color: const Color(0xFF5BA4D2),
       body: body,
       icon: icon,
+    );
+  }
+}
+
+class _ResultCardGrid extends StatelessWidget {
+  const _ResultCardGrid({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 520;
+        final spacing = twoColumns ? 12.0 : 10.0;
+        final itemWidth = twoColumns
+            ? (constraints.maxWidth - spacing) / 2
+            : constraints.maxWidth;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final child in children)
+              SizedBox(width: itemWidth, child: child),
+          ],
+        );
+      },
     );
   }
 }
