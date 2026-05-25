@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   static const String apiBaseUrl = String.fromEnvironment(
     'BELUMI_API_BASE_URL',
-    defaultValue: 'https://localhost:7084/api',
+    defaultValue: 'http://localhost:5151/api',
   );
 
   static String get resolvedApiBaseUrl {

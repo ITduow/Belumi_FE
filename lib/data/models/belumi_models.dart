@@ -135,19 +135,143 @@ class SkinAnalysisResult {
     required this.concerns,
     required this.recommendations,
     required this.score,
+    this.acneLevel = 'none',
+    this.darkSpots = false,
+    this.enlargedPores = false,
+    this.redness = false,
+    this.unevenTone = false,
+    this.topConcerns = const [],
+    this.confidence = 0,
+    this.skinCondition = '',
+    this.description = '',
+    this.advice = const [],
+    this.warnings = const [],
+    this.recommendedIngredients = const [],
+    this.avoidOrProfessionalOnly = const [],
   });
 
   final String skinType;
   final String concerns;
   final String recommendations;
   final int score;
+  final String acneLevel;
+  final bool darkSpots;
+  final bool enlargedPores;
+  final bool redness;
+  final bool unevenTone;
+  final List<String> topConcerns;
+  final double confidence;
+  final String skinCondition;
+  final String description;
+  final List<String> advice;
+  final List<String> warnings;
+  final List<IngredientRecommendation> recommendedIngredients;
+  final List<IngredientRecommendation> avoidOrProfessionalOnly;
 
-  factory SkinAnalysisResult.fromJson(Map<String, dynamic> json) =>
-      SkinAnalysisResult(
+  String get signalSummary {
+    final signals = <String>[
+      'Acne: $acneLevel',
+      if (darkSpots) 'Dark spots',
+      if (enlargedPores) 'Enlarged pores',
+      if (redness) 'Redness',
+      if (unevenTone) 'Uneven tone',
+      if (skinCondition.isNotEmpty) 'Condition: $skinCondition',
+    ];
+    return signals.join('\n');
+  }
+
+  factory SkinAnalysisResult.fromApiJson(
+    Map<String, dynamic> json, {
+    required String skinType,
+  }) {
+    final topConcerns = _stringList(json['top_concerns']);
+    final advice = _stringList(json['advice']);
+    final warnings = _stringList(json['warnings']);
+    final recommendedIngredients = _ingredientRecommendations(
+      json['recommended_ingredients'],
+    );
+    final avoidOrProfessionalOnly = _ingredientRecommendations(
+      json['avoid_or_professional_only'],
+    );
+    final description = json['description'] as String? ?? '';
+    final recommendations = [
+      if (description.isNotEmpty) description,
+      if (advice.isNotEmpty)
+        'Loi khuyen:\n${advice.map((x) => '- $x').join('\n')}',
+      if (warnings.isNotEmpty)
+        'Can luu y:\n${warnings.map((x) => '- $x').join('\n')}',
+    ].join('\n\n');
+
+    return SkinAnalysisResult(
+      skinType: skinType,
+      concerns: topConcerns.isEmpty ? '' : topConcerns.join(', '),
+      recommendations: recommendations,
+      score: (json['overall_score'] as num?)?.round() ?? 0,
+      acneLevel: json['acne_level'] as String? ?? 'none',
+      darkSpots: json['dark_spots'] as bool? ?? false,
+      enlargedPores: json['enlarged_pores'] as bool? ?? false,
+      redness: json['redness'] as bool? ?? false,
+      unevenTone: json['uneven_tone'] as bool? ?? false,
+      topConcerns: topConcerns,
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+      skinCondition: json['skin_condition'] as String? ?? '',
+      description: description,
+      advice: advice,
+      warnings: warnings,
+      recommendedIngredients: recommendedIngredients,
+      avoidOrProfessionalOnly: avoidOrProfessionalOnly,
+    );
+  }
+
+  factory SkinAnalysisResult.fromJson(Map<String, dynamic> json) {
+    final apiResult = json['result'];
+    if (apiResult is Map<String, dynamic>) {
+      return SkinAnalysisResult.fromApiJson(
+        apiResult,
         skinType: json['skinType'] as String? ?? 'Combination',
-        concerns: json['concerns'] as String? ?? '',
-        recommendations: json['recommendations'] as String? ?? '',
-        score: json['score'] as int? ?? 0,
+      );
+    }
+
+    return SkinAnalysisResult(
+      skinType: json['skinType'] as String? ?? 'Combination',
+      concerns: json['concerns'] as String? ?? '',
+      recommendations: json['recommendations'] as String? ?? '',
+      score: json['score'] as int? ?? 0,
+    );
+  }
+
+  static List<String> _stringList(Object? value) =>
+      (value as List<dynamic>? ?? const [])
+          .map((x) => x.toString())
+          .where((x) => x.trim().isNotEmpty)
+          .toList();
+
+  static List<IngredientRecommendation> _ingredientRecommendations(
+    Object? value,
+  ) => (value as List<dynamic>? ?? const [])
+      .whereType<Map<String, dynamic>>()
+      .map(IngredientRecommendation.fromJson)
+      .toList();
+}
+
+class IngredientRecommendation {
+  const IngredientRecommendation({
+    required this.name,
+    required this.reason,
+    required this.sourceIds,
+  });
+
+  final String name;
+  final String reason;
+  final List<String> sourceIds;
+
+  factory IngredientRecommendation.fromJson(Map<String, dynamic> json) =>
+      IngredientRecommendation(
+        name: json['name'] as String? ?? '',
+        reason: json['reason'] as String? ?? '',
+        sourceIds: List<String>.from(
+          json['source_ids'] as List<dynamic>? ?? const [],
+        ),
       );
 }
 
