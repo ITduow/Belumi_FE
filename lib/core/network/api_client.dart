@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import 'api_exception.dart';
 
 class ApiClient {
   ApiClient({String? baseUrl})
@@ -28,7 +29,10 @@ class ApiClient {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw http.ClientException(response.body, uri);
+      throw ApiException(
+        _errorMessage(response.body),
+        statusCode: response.statusCode,
+      );
     }
 
     return response.body.isEmpty ? null : jsonDecode(response.body);
@@ -58,9 +62,30 @@ class ApiClient {
     };
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw http.ClientException(response.body, uri);
+      throw ApiException(
+        _errorMessage(response.body),
+        statusCode: response.statusCode,
+      );
     }
 
     return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
+  String _errorMessage(String body) {
+    if (body.isEmpty) return 'Request failed.';
+
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final message = data['message'] ?? data['detail'] ?? data['title'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+      }
+    } catch (_) {
+      // Fall through to returning the raw body.
+    }
+
+    return body;
   }
 }
