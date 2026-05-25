@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import 'api_exception.dart';
 
 class ApiClient {
   ApiClient({String? baseUrl})
@@ -14,6 +15,29 @@ class ApiClient {
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, Map<String, dynamic> body) =>
       _send('POST', path, body: body);
+  Future<dynamic> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri)..fields.addAll(fields);
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(
+        _errorMessage(response.body),
+        statusCode: response.statusCode,
+      );
+    }
+
+    return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
   Future<dynamic> put(String path, Map<String, dynamic> body) =>
       _send('PUT', path, body: body);
   Future<dynamic> delete(String path) => _send('DELETE', path);
@@ -38,9 +62,30 @@ class ApiClient {
     };
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw http.ClientException(response.body, uri);
+      throw ApiException(
+        _errorMessage(response.body),
+        statusCode: response.statusCode,
+      );
     }
 
     return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
+  String _errorMessage(String body) {
+    if (body.isEmpty) return 'Request failed.';
+
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final message = data['message'] ?? data['detail'] ?? data['title'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+      }
+    } catch (_) {
+      // Fall through to returning the raw body.
+    }
+
+    return body;
   }
 }
