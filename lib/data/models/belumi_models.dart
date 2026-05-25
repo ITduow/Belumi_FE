@@ -146,6 +146,8 @@ class SkinAnalysisResult {
     this.description = '',
     this.advice = const [],
     this.warnings = const [],
+    this.recommendedIngredients = const [],
+    this.avoidOrProfessionalOnly = const [],
   });
 
   final String skinType;
@@ -163,6 +165,8 @@ class SkinAnalysisResult {
   final String description;
   final List<String> advice;
   final List<String> warnings;
+  final List<IngredientRecommendation> recommendedIngredients;
+  final List<IngredientRecommendation> avoidOrProfessionalOnly;
 
   String get signalSummary {
     final signals = <String>[
@@ -183,6 +187,12 @@ class SkinAnalysisResult {
     final topConcerns = _stringList(json['top_concerns']);
     final advice = _stringList(json['advice']);
     final warnings = _stringList(json['warnings']);
+    final recommendedIngredients = _ingredientRecommendations(
+      json['recommended_ingredients'],
+    );
+    final avoidOrProfessionalOnly = _ingredientRecommendations(
+      json['avoid_or_professional_only'],
+    );
     final description = json['description'] as String? ?? '';
     final recommendations = [
       if (description.isNotEmpty) description,
@@ -208,6 +218,8 @@ class SkinAnalysisResult {
       description: description,
       advice: advice,
       warnings: warnings,
+      recommendedIngredients: recommendedIngredients,
+      avoidOrProfessionalOnly: avoidOrProfessionalOnly,
     );
   }
 
@@ -233,6 +245,34 @@ class SkinAnalysisResult {
           .map((x) => x.toString())
           .where((x) => x.trim().isNotEmpty)
           .toList();
+
+  static List<IngredientRecommendation> _ingredientRecommendations(
+    Object? value,
+  ) => (value as List<dynamic>? ?? const [])
+      .whereType<Map<String, dynamic>>()
+      .map(IngredientRecommendation.fromJson)
+      .toList();
+}
+
+class IngredientRecommendation {
+  const IngredientRecommendation({
+    required this.name,
+    required this.reason,
+    required this.sourceIds,
+  });
+
+  final String name;
+  final String reason;
+  final List<String> sourceIds;
+
+  factory IngredientRecommendation.fromJson(Map<String, dynamic> json) =>
+      IngredientRecommendation(
+        name: json['name'] as String? ?? '',
+        reason: json['reason'] as String? ?? '',
+        sourceIds: List<String>.from(
+          json['source_ids'] as List<dynamic>? ?? const [],
+        ),
+      );
 }
 
 class IngredientResult {

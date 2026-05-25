@@ -808,6 +808,36 @@ class _ResultStep extends StatelessWidget {
                             )
                           : _signalSummary(data, l),
                     ),
+                    _RoutineCard(
+                      title: l.t(
+                        'Thành phần nên ưu tiên',
+                        'Ingredients to prioritize',
+                      ),
+                      color: Colors.green,
+                      body: _ingredientList(
+                        data.recommendedIngredients,
+                        fallback: l.t(
+                          'Chưa có gợi ý thành phần cụ thể.',
+                          'No specific ingredient suggestions yet.',
+                        ),
+                      ),
+                      icon: Icons.spa_outlined,
+                    ),
+                    _RoutineCard(
+                      title: l.t(
+                        'Cần tránh / hỏi chuyên gia',
+                        'Avoid / ask a professional',
+                      ),
+                      color: Colors.deepOrange,
+                      body: _ingredientList(
+                        data.avoidOrProfessionalOnly,
+                        fallback: l.t(
+                          'Chưa có thành phần cần lưu ý đặc biệt.',
+                          'No special ingredient cautions detected.',
+                        ),
+                      ),
+                      icon: Icons.warning_amber_rounded,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -866,6 +896,19 @@ class _ResultStep extends StatelessWidget {
 
   String _bulletList(List<String> items, {required String fallback}) =>
       items.isEmpty ? fallback : items.map((item) => '- $item').join('\n');
+
+  String _ingredientList(
+    List<IngredientRecommendation> items, {
+    required String fallback,
+  }) {
+    final lines = items.where((item) => item.name.trim().isNotEmpty).map((
+      item,
+    ) {
+      final reason = item.reason.trim();
+      return reason.isEmpty ? '- ${item.name}' : '- ${item.name}: $reason';
+    }).toList();
+    return lines.isEmpty ? fallback : lines.join('\n');
+  }
 
   List<String> _concernLabels(List<String> values, _L l) =>
       values.map((value) => _concernLabel(value, l)).toList();
