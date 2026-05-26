@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
@@ -28,6 +29,12 @@ class AdminPanelScreen extends StatelessWidget {
                 label: repository.currentUser?.email ?? 'Admin',
                 icon: Icons.admin_panel_settings,
                 onPressed: () {},
+              ),
+              LuxuryButton(
+                label: t('Quản lý tin tức', 'Manage news'),
+                icon: Icons.article_outlined,
+                outlined: true,
+                onPressed: () => context.go('/admin/news'),
               ),
             ],
           ),
