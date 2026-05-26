@@ -10,10 +10,14 @@ class HomeScreenV2 extends StatelessWidget {
 
   final BelumiRepository repository;
 
-  static const _ink = Color(0xFF15110F);
-  static const _rose = Color(0xFFE7B5AA);
-  static const _cream = Color(0xFFFFF9F5);
-  static const _muted = Color(0xFF7E6E68);
+  static const _ink = Color(0xFF4B3328);
+  static const _espresso = Color(0xFF6A4634);
+  static const _caramel = Color(0xFFC9965D);
+  static const _tan = Color(0xFFDAB58E);
+  static const _sand = Color(0xFFE7D8C6);
+  static const _paper = Color(0xFFFFFAF4);
+  static const _cream = Color(0xFFF6EDE4);
+  static const _muted = Color(0xFF816A5C);
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +36,7 @@ class HomeScreenV2 extends StatelessWidget {
             gradient: RadialGradient(
               center: Alignment.topLeft,
               radius: 1.35,
-              colors: [Color(0xFFFFE8E0), Color(0xFFFFFFFF)],
+              colors: [Color(0xFFF3E8DD), Color(0xFFFFFAF4)],
             ),
           ),
           child: ListView(
@@ -99,9 +103,9 @@ class _LuxuryHero extends StatelessWidget {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Color(0xE5916259),
-                    Color(0xAF9E6A61),
-                    Color(0x1A000000),
+                    Color(0xE06A4634),
+                    Color(0xB58A604D),
+                    Color(0x2BF6EDE4),
                   ],
                 ),
               ),
@@ -715,11 +719,12 @@ class _WhitePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: HomeScreenV2._paper.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: HomeScreenV2._sand.withValues(alpha: 0.72)),
         boxShadow: [
           BoxShadow(
-            color: HomeScreenV2._rose.withValues(alpha: 0.16),
+            color: HomeScreenV2._espresso.withValues(alpha: 0.12),
             blurRadius: 26,
             offset: const Offset(0, 16),
           ),
@@ -869,7 +874,11 @@ class _SoftTextureCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF9EEE8), Color(0xFFE6C6B8)],
+            colors: [
+              HomeScreenV2._cream,
+              HomeScreenV2._tan,
+              HomeScreenV2._caramel,
+            ],
           ),
         ),
         child: Stack(
@@ -940,7 +949,7 @@ class _ServiceRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE9DDD8)),
+            border: Border.all(color: HomeScreenV2._sand),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -994,7 +1003,7 @@ class _CircularProduct extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFF0E3DE)),
+                border: Border.all(color: HomeScreenV2._sand),
               ),
               padding: const EdgeInsets.all(16),
               child: ClipOval(
@@ -1057,7 +1066,7 @@ class _CatalogueCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: HomeScreenV2._cream,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0E3DE)),
+        border: Border.all(color: HomeScreenV2._sand),
       ),
       padding: const EdgeInsets.all(10),
       child: Column(
@@ -1127,9 +1136,9 @@ class _ReviewCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF2EF),
+          color: HomeScreenV2._cream,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF2DDD6)),
+          border: Border.all(color: HomeScreenV2._sand),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1207,7 +1216,7 @@ class _NetworkPhoto extends StatelessWidget {
       errorBuilder: (_, _, _) => Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF5DDD4), Color(0xFFD49C91)],
+            colors: [HomeScreenV2._cream, HomeScreenV2._caramel],
           ),
         ),
         child: const Icon(Icons.spa_outlined, color: Colors.white, size: 42),
@@ -1263,9 +1272,9 @@ class _SmallCategory extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: selected ? HomeScreenV2._ink : Colors.white,
+        color: selected ? HomeScreenV2._ink : HomeScreenV2._paper,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE9DDD8)),
+        border: Border.all(color: HomeScreenV2._sand),
       ),
       child: Text(
         label,
@@ -1342,7 +1351,7 @@ class _OutlineTinyButton extends StatelessWidget {
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         foregroundColor: HomeScreenV2._ink,
-        side: const BorderSide(color: Color(0xFFE7D7D1)),
+        side: const BorderSide(color: HomeScreenV2._sand),
         visualDensity: VisualDensity.compact,
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
       ),

@@ -1,4 +1,5 @@
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../models/belumi_models.dart';
 
 class BelumiRepository {
@@ -50,15 +51,81 @@ class BelumiRepository {
     }
   }
 
-  Future<List<BlogPost>> blogs() async {
+  Future<List<BlogPost>> blogs() => news();
+
+  Future<List<BlogPost>> news({
+    String? category,
+    String? search,
+    String? sort,
+  }) async {
     try {
-      final data = await api.get('/blogs') as List<dynamic>;
+      final query = _query({
+        'category': category,
+        'search': search,
+        'sort': sort,
+      });
+      final data = await api.get('/news$query') as List<dynamic>;
       return data
           .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
           .toList();
     } catch (_) {
       return sampleBlogs;
     }
+  }
+
+  Future<BlogPost?> newsDetail(String slug) async {
+    try {
+      final data = await api.get('/news/$slug') as Map<String, dynamic>;
+      return BlogPost.fromJson(data);
+    } catch (_) {
+      for (final post in sampleBlogs) {
+        if (post.slug == slug) return post;
+      }
+      return null;
+    }
+  }
+
+  Future<List<String>> newsCategories() async {
+    try {
+      final data = await api.get('/news/categories') as List<dynamic>;
+      return data
+          .map((x) {
+            if (x is Map<String, dynamic>) {
+              return x['name']?.toString() ?? '';
+            }
+            return x.toString();
+          })
+          .where((x) => x.trim().isNotEmpty)
+          .toList();
+    } catch (_) {
+      return ['Skincare', 'Makeup', 'Ingredient Knowledge', 'Product Review'];
+    }
+  }
+
+  Future<BlogPost> likeNews(BlogPost post) async {
+    _requireLogin();
+    final data =
+        await api.post('/news/${post.id}/toggle-like', {})
+            as Map<String, dynamic>;
+    final state = NewsLikeState.fromJson(data);
+    return post.copyWith(isLiked: state.isLiked, likeCount: state.likeCount);
+  }
+
+  Future<BlogPost> toggleSaveNews(BlogPost post) async {
+    _requireLogin();
+    final data =
+        await api.post('/news/${post.id}/toggle-save', {})
+            as Map<String, dynamic>;
+    final state = NewsSaveState.fromJson(data);
+    return post.copyWith(isSaved: state.isSaved);
+  }
+
+  Future<List<BlogPost>> savedNews() async {
+    _requireLogin();
+    final data = await api.get('/news/saved') as List<dynamic>;
+    return data
+        .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
+        .toList();
   }
 
   Future<SkinAnalysisResult> analyzeSkin({
@@ -420,6 +487,61 @@ class BelumiRepository {
     return data.cast<Map<String, dynamic>>();
   }
 
+  Future<List<BlogPost>> adminNews({
+    String? status,
+    String? category,
+    String? search,
+  }) async {
+    final query = _query({
+      'status': status,
+      'category': category,
+      'search': search,
+    });
+    final data = await api.get('/admin/news$query') as List<dynamic>;
+    return data
+        .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> adminNewsStatistics() async {
+    return await api.get('/admin/news/statistics') as Map<String, dynamic>;
+  }
+
+  Future<BlogPost> createNews(BlogPost post) async {
+    final payload = post.toJson()..remove('id');
+    final data = await api.post('/admin/news', payload) as Map<String, dynamic>;
+    return BlogPost.fromJson(data);
+  }
+
+  Future<BlogPost> updateNews(BlogPost post) async {
+    final data =
+        await api.put('/admin/news/${post.id}', post.toJson())
+            as Map<String, dynamic>;
+    return BlogPost.fromJson(data);
+  }
+
+  Future<void> deleteNews(BlogPost post) async {
+    await api.delete('/admin/news/${post.id}');
+  }
+
+  Future<List<Map<String, dynamic>>> adminNewsCategories() async {
+    final data = await api.get('/admin/news-categories') as List<dynamic>;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> createNewsCategory(String name, String description) async {
+    await api.post('/admin/news-categories', {
+      'name': name,
+      'slug': '',
+      'description': description,
+      'isActive': true,
+    });
+  }
+
+  Future<void> deleteNewsCategory(String id) async {
+    await api.delete('/admin/news-categories/$id');
+  }
+
   Future<void> contact(
     String fullName,
     String phone,
@@ -432,6 +554,24 @@ class BelumiRepository {
       'email': email,
       'message': message,
     });
+  }
+
+  String _query(Map<String, String?> values) {
+    final params = <String, String>{};
+    values.forEach((key, value) {
+      final trimmed = value?.trim();
+      if (trimmed != null && trimmed.isNotEmpty && trimmed != 'All') {
+        params[key] = trimmed;
+      }
+    });
+    if (params.isEmpty) return '';
+    return '?${Uri(queryParameters: params).query}';
+  }
+
+  void _requireLogin() {
+    if (!isLoggedIn) {
+      throw const ApiException('Please login to continue.', statusCode: 401);
+    }
   }
 }
 
@@ -458,17 +598,31 @@ final sampleProducts = [
 
 final sampleBlogs = [
   BlogPost(
+    id: 'sample-routine',
+    slug: 'routine-buoi-sang-nhe-ma-hieu-qua',
     title: 'Routine buoi sang nhe ma hieu qua',
+    summary: 'Lam sach nhe, cap am tot va chong nang deu moi ngay.',
     content: 'Lam sach nhe, cap am tot, chong nang deu va dung active vua du.',
+    category: 'Skincare',
     author: 'Belumi Team',
+    tags: const ['routine', 'skincare'],
+    viewCount: 82,
+    likeCount: 12,
     coverImageUrl:
         'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9',
   ),
   BlogPost(
+    id: 'sample-niacinamide',
+    slug: 'niacinamide-hop-voi-ai',
     title: 'Niacinamide hop voi ai?',
+    summary: 'Hoat chat da nang cho dau thua, tone da va hang rao bao ve.',
     content:
         'Ho tro dau thua, sac to va hang rao bao ve da khi dung dung nong do.',
+    category: 'Ingredient Knowledge',
     author: 'Belumi Lab',
+    tags: const ['ingredient', 'niacinamide'],
+    viewCount: 64,
+    likeCount: 9,
     coverImageUrl:
         'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b',
   ),
