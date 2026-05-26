@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
@@ -96,6 +97,78 @@ class _WishlistScreenState extends State<WishlistScreen> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 18),
+            LuxuryHeader(
+              eyebrow: 'Belumi News',
+              title: t('Bài viết đã lưu', 'Saved articles'),
+              subtitle: t(
+                'Các bài tin tức bạn đã bookmark sẽ được đồng bộ theo tài khoản.',
+                'Bookmarked news articles are synced with your account.',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<List<BlogPost>>(
+              future: widget.repository.isLoggedIn
+                  ? widget.repository.savedNews()
+                  : Future.value(const <BlogPost>[]),
+              builder: (context, newsSnapshot) {
+                final posts = newsSnapshot.data ?? const <BlogPost>[];
+                if (newsSnapshot.connectionState == ConnectionState.waiting) {
+                  return const LuxuryPanel(child: LinearProgressIndicator());
+                }
+                if (newsSnapshot.hasError) {
+                  return LuxuryPanel(
+                    child: Text(
+                      t(
+                        'Không tải được bài viết đã lưu.',
+                        'Could not load saved articles.',
+                      ),
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                if (posts.isEmpty) {
+                  return LuxuryPanel(
+                    child: Text(
+                      widget.repository.isLoggedIn
+                          ? t(
+                              'Chưa có bài viết đã lưu.',
+                              'No saved articles yet.',
+                            )
+                          : t(
+                              'Đăng nhập để xem bài viết đã lưu.',
+                              'Login to view saved articles.',
+                            ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: posts
+                      .map(
+                        (post) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: LuxuryPanel(
+                            padding: EdgeInsets.zero,
+                            child: ListTile(
+                              leading: const Icon(Icons.bookmark),
+                              title: Text(post.title),
+                              subtitle: Text(post.category),
+                              onTap: () => context.go('/news/${post.slug}'),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  await widget.repository.toggleSaveNews(post);
+                                  refresh();
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
             ),
           ],
         );

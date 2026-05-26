@@ -10,9 +10,11 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen_v2.dart';
 import '../../presentation/screens/about_screen.dart';
 import '../../presentation/screens/admin_login_screen.dart';
+import '../../presentation/screens/admin_news_screen.dart';
 import '../../presentation/screens/admin_panel_screen.dart';
 import '../../presentation/screens/account_screen.dart';
 import '../../presentation/screens/ingredient_lookup_screen.dart';
+import '../../presentation/screens/news_detail_screen.dart';
 import '../../presentation/screens/news_screen.dart';
 import '../../presentation/screens/payment_screen.dart';
 import '../../presentation/screens/pricing_screen.dart';
@@ -49,7 +51,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.uri.path == '/login' || state.uri.path == '/register';
       final privateRoute = state.uri.path == '/wishlist';
       final adminRoute =
-          state.uri.path == '/admin' || state.uri.path == '/admin-dashboard';
+          state.uri.path == '/admin-dashboard' ||
+          (state.uri.path.startsWith('/admin') &&
+              state.uri.path != '/admin-login');
 
       if (!loggedIn && privateRoute) return '/login';
       if (adminRoute && !loggedIn) return '/login';
@@ -80,6 +84,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AdminPanelScreen(repository: legacyRepository),
       ),
+      GoRoute(
+        path: '/admin/news',
+        builder: (context, state) =>
+            AdminNewsScreen(repository: legacyRepository),
+      ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
@@ -107,6 +116,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/news',
             builder: (context, state) =>
                 NewsScreen(repository: legacyRepository),
+          ),
+          GoRoute(
+            path: '/news/:slug',
+            builder: (context, state) => NewsDetailScreen(
+              repository: legacyRepository,
+              slug: state.pathParameters['slug'] ?? '',
+            ),
           ),
           GoRoute(
             path: '/wishlist',
