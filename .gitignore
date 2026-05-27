@@ -48,3 +48,7 @@ app.*.map.json
 **/android/key.properties
 **/android/app/*.jks
 **/android/app/*.keystore
+
+# Android Gradle build outputs (auto-generated)
+/android/build/
+/android/.gradle/
