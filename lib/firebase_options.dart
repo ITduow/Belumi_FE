@@ -26,8 +26,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD6EUqcE0cXD_IxwmAhi5x0tCpsN8DloN4',
-    appId: '1:428023632321:web:a264c41ee90efecba2df40',
+    apiKey: 'AIzaSyB0v8h6cOo3aegMskDsTQ8HGFqF2Q_-dE0',
+    appId: '1:428023632321:android:8283ad1531898aeda2df40',
     messagingSenderId: '428023632321',
     projectId: 'belumi-1712f',
     storageBucket: 'belumi-1712f.firebasestorage.app',
