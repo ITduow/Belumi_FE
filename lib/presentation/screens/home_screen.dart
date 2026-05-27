@@ -12,14 +12,14 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.wait([repository.products(), repository.blogs()]),
+      future: Future.wait([repository.products(), repository.news()]),
       builder: (context, snapshot) {
         final products = snapshot.hasData
             ? snapshot.data![0] as List<Product>
             : sampleProducts;
-        final blogs = snapshot.hasData
-            ? snapshot.data![1] as List<BlogPost>
-            : sampleBlogs;
+        final news = snapshot.hasData
+            ? snapshot.data![1] as List<NewsArticle>
+            : const <NewsArticle>[];
 
         return ListView(
           padding: const EdgeInsets.all(20),
@@ -72,9 +72,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
             const SizedBox(height: 20),
-            _SectionTitle(title: 'Blog lam dep'),
+                _SectionTitle(title: 'Tin tuc lam dep'),
             const SizedBox(height: 12),
-            ...blogs
+                    ...news
                 .take(2)
                 .map(
                   (post) => Padding(

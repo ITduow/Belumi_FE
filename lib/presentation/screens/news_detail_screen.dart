@@ -20,7 +20,7 @@ class NewsDetailScreen extends StatefulWidget {
 }
 
 class _NewsDetailScreenState extends State<NewsDetailScreen> {
-  late Future<BlogPost?> _future;
+  late Future<NewsArticle?> _future;
 
   @override
   void initState() {
@@ -46,7 +46,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
-    return FutureBuilder<BlogPost?>(
+    return FutureBuilder<NewsArticle?>(
       future: _future,
       builder: (context, snapshot) {
         final post = snapshot.data;
@@ -253,10 +253,10 @@ class _RelatedNews extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
-    return FutureBuilder<List<BlogPost>>(
+    return FutureBuilder<List<NewsArticle>>(
       future: repository.news(),
       builder: (context, snapshot) {
-        final related = (snapshot.data ?? sampleBlogs)
+        final related = (snapshot.data ?? const <NewsArticle>[])
             .where((post) => post.slug != currentSlug)
             .take(3)
             .toList();

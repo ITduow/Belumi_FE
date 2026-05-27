@@ -81,8 +81,8 @@ class Plan {
   );
 }
 
-class BlogPost {
-  BlogPost({
+class NewsArticle {
+  NewsArticle({
     required this.id,
     required this.slug,
     required this.title,
@@ -137,7 +137,7 @@ class BlogPost {
     'isActive': isActive,
   };
 
-  BlogPost copyWith({
+  NewsArticle copyWith({
     String? title,
     String? slug,
     String? summary,
@@ -153,7 +153,7 @@ class BlogPost {
     bool? isSaved,
     DateTime? publishedAt,
     bool? isActive,
-  }) => BlogPost(
+  }) => NewsArticle(
     id: id,
     slug: slug ?? this.slug,
     title: title ?? this.title,
@@ -172,12 +172,12 @@ class BlogPost {
     isActive: isActive ?? this.isActive,
   );
 
-  factory BlogPost.fromJson(Map<String, dynamic> json) {
+  factory NewsArticle.fromJson(Map<String, dynamic> json) {
     final title = json['title'] as String? ?? 'Belumi News';
     final slug = json['slug'] as String? ?? _slugify(title);
     final content = json['content'] as String? ?? '';
     final summary = json['summary'] as String? ?? content;
-    return BlogPost(
+    return NewsArticle(
       id: json['id'] as String? ?? slug,
       slug: slug,
       title: title,
