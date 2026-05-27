@@ -57,18 +57,18 @@ Tài liệu này liệt kê toàn bộ các bước **PHẢI THỰC HIỆN THỦ
 
 | Key | Value |
 |-----|-------|
-| `ConnectionStrings__DefaultConnection` | *(Internal DB URL từ bước trên)* |
-| `JwtSettings__SecretKey` | `***REDACTED***` |
+| `ConnectionStrings__DefaultConnection` | *(Internal DB URL từ bước tạo Postgres trên)* |
+| `JwtSettings__SecretKey` | *(lấy từ file `.env` của BE Owner)* |
 | `JwtSettings__Issuer` | `Belumi_App` |
 | `JwtSettings__Audience` | `Belumi_App_Users` |
 | `SMTP__Host` | `smtp.gmail.com` |
 | `SMTP__Port` | `587` |
 | `SMTP__User` | `loner9h@gmail.com` |
-| `SMTP__Pass` | `***REDACTED***` |
+| `SMTP__Pass` | *(Gmail App Password — lấy từ file `.env` của BE Owner)* |
 | `SMTP__From` | `Belumi@gmail.com` |
 | `SMTP__DisplayName` | `Belumi App` |
-| `Gemini__ApiKey` | `***REDACTED***` |
-| `FIREBASE_CREDENTIALS` | *(Copy toàn bộ nội dung JSON từ file `.env` dòng 24)* |
+| `Gemini__ApiKey` | *(Gemini API Key — lấy từ file `.env` — **ROTATE NGAY nếu đã bị lộ**)* |
+| `FIREBASE_CREDENTIALS` | *(Copy toàn bộ nội dung JSON từ file `.env` dòng cuối)* |
 
 5. Click **Create Web Service** → Đợi build (5-8 phút)
 6. Kiểm tra: Truy cập `https://belumi-be.onrender.com/api/news` → Phải trả về JSON
@@ -81,7 +81,7 @@ Tài liệu này liệt kê toàn bộ các bước **PHẢI THỰC HIỆN THỦ
 
 ```
 File: Belumi_FE/android/app/upload-keystore.jks
-Password: ***REDACTED***
+Password: *(xem trong file key.properties — KHÔNG ĐỂ LỘ password này)*
 ```
 
 **Backup lên tối thiểu 2 nơi:**
