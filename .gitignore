@@ -49,6 +49,9 @@ app.*.map.json
 **/android/app/*.jks
 **/android/app/*.keystore
 
+# Firebase config - contains API keys, NEVER commit
+**/android/app/google-services.json
+
 # Android Gradle build outputs (auto-generated)
 /android/build/
 /android/.gradle/
