@@ -85,10 +85,10 @@ class NewsApiService {
   NewsApiService(this.api);
   final ApiClient api;
 
-  Future<List<BlogPost>> list() async {
+  Future<List<NewsArticle>> list() async {
     final data = await api.get('/news') as List<dynamic>;
     return data
-        .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
+        .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
         .toList();
   }
 }

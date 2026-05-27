@@ -51,36 +51,27 @@ class BelumiRepository {
     }
   }
 
-  Future<List<BlogPost>> blogs() => news();
-
-  Future<List<BlogPost>> news({
+  Future<List<NewsArticle>> news({
     String? category,
     String? search,
     String? sort,
   }) async {
-    try {
-      final query = _query({
-        'category': category,
-        'search': search,
-        'sort': sort,
-      });
-      final data = await api.get('/news$query') as List<dynamic>;
-      return data
-          .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return sampleBlogs;
-    }
+    final query = _query({
+      'category': category,
+      'search': search,
+      'sort': sort,
+    });
+    final data = await api.get('/news$query') as List<dynamic>;
+    return data
+        .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<BlogPost?> newsDetail(String slug) async {
+  Future<NewsArticle?> newsDetail(String slug) async {
     try {
       final data = await api.get('/news/$slug') as Map<String, dynamic>;
-      return BlogPost.fromJson(data);
+      return NewsArticle.fromJson(data);
     } catch (_) {
-      for (final post in sampleBlogs) {
-        if (post.slug == slug) return post;
-      }
       return null;
     }
   }
@@ -98,11 +89,11 @@ class BelumiRepository {
           .where((x) => x.trim().isNotEmpty)
           .toList();
     } catch (_) {
-      return ['Skincare', 'Makeup', 'Ingredient Knowledge', 'Product Review'];
+      return const [];
     }
   }
 
-  Future<BlogPost> likeNews(BlogPost post) async {
+  Future<NewsArticle> likeNews(NewsArticle post) async {
     _requireLogin();
     final data =
         await api.post('/news/${post.id}/toggle-like', {})
@@ -111,7 +102,7 @@ class BelumiRepository {
     return post.copyWith(isLiked: state.isLiked, likeCount: state.likeCount);
   }
 
-  Future<BlogPost> toggleSaveNews(BlogPost post) async {
+  Future<NewsArticle> toggleSaveNews(NewsArticle post) async {
     _requireLogin();
     final data =
         await api.post('/news/${post.id}/toggle-save', {})
@@ -120,11 +111,11 @@ class BelumiRepository {
     return post.copyWith(isSaved: state.isSaved);
   }
 
-  Future<List<BlogPost>> savedNews() async {
+  Future<List<NewsArticle>> savedNews() async {
     _requireLogin();
     final data = await api.get('/news/saved') as List<dynamic>;
     return data
-        .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
+        .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
         .toList();
   }
 
@@ -487,7 +478,7 @@ class BelumiRepository {
     return data.cast<Map<String, dynamic>>();
   }
 
-  Future<List<BlogPost>> adminNews({
+  Future<List<NewsArticle>> adminNews({
     String? status,
     String? category,
     String? search,
@@ -499,7 +490,7 @@ class BelumiRepository {
     });
     final data = await api.get('/admin/news$query') as List<dynamic>;
     return data
-        .map((x) => BlogPost.fromJson(x as Map<String, dynamic>))
+        .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
         .toList();
   }
 
@@ -507,20 +498,20 @@ class BelumiRepository {
     return await api.get('/admin/news/statistics') as Map<String, dynamic>;
   }
 
-  Future<BlogPost> createNews(BlogPost post) async {
+  Future<NewsArticle> createNews(NewsArticle post) async {
     final payload = post.toJson()..remove('id');
     final data = await api.post('/admin/news', payload) as Map<String, dynamic>;
-    return BlogPost.fromJson(data);
+    return NewsArticle.fromJson(data);
   }
 
-  Future<BlogPost> updateNews(BlogPost post) async {
+  Future<NewsArticle> updateNews(NewsArticle post) async {
     final data =
         await api.put('/admin/news/${post.id}', post.toJson())
             as Map<String, dynamic>;
-    return BlogPost.fromJson(data);
+    return NewsArticle.fromJson(data);
   }
 
-  Future<void> deleteNews(BlogPost post) async {
+  Future<void> deleteNews(NewsArticle post) async {
     await api.delete('/admin/news/${post.id}');
   }
 
@@ -596,34 +587,3 @@ final sampleProducts = [
   ),
 ];
 
-final sampleBlogs = [
-  BlogPost(
-    id: 'sample-routine',
-    slug: 'routine-buoi-sang-nhe-ma-hieu-qua',
-    title: 'Routine buoi sang nhe ma hieu qua',
-    summary: 'Lam sach nhe, cap am tot va chong nang deu moi ngay.',
-    content: 'Lam sach nhe, cap am tot, chong nang deu va dung active vua du.',
-    category: 'Skincare',
-    author: 'Belumi Team',
-    tags: const ['routine', 'skincare'],
-    viewCount: 82,
-    likeCount: 12,
-    coverImageUrl:
-        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9',
-  ),
-  BlogPost(
-    id: 'sample-niacinamide',
-    slug: 'niacinamide-hop-voi-ai',
-    title: 'Niacinamide hop voi ai?',
-    summary: 'Hoat chat da nang cho dau thua, tone da va hang rao bao ve.',
-    content:
-        'Ho tro dau thua, sac to va hang rao bao ve da khi dung dung nong do.',
-    category: 'Ingredient Knowledge',
-    author: 'Belumi Lab',
-    tags: const ['ingredient', 'niacinamide'],
-    viewCount: 64,
-    likeCount: 9,
-    coverImageUrl:
-        'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b',
-  ),
-];

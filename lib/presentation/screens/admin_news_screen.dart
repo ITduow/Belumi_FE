@@ -27,7 +27,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
 
   void _reload() => setState(() => _refresh++);
 
-  Future<void> _openForm([BlogPost? post]) async {
+  Future<void> _openForm([NewsArticle? post]) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) =>
@@ -126,7 +126,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
           const SizedBox(height: 14),
           _CategoryManager(repository: widget.repository),
           const SizedBox(height: 14),
-          FutureBuilder<List<BlogPost>>(
+          FutureBuilder<List<NewsArticle>>(
             key: ValueKey('admin-news-$_refresh-$_status'),
             future: widget.repository.adminNews(
               status: _status,
@@ -147,7 +147,7 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                   ),
                 );
               }
-              final posts = snapshot.data ?? const <BlogPost>[];
+              final posts = snapshot.data ?? const <NewsArticle>[];
               if (posts.isEmpty) {
                 return LuxuryPanel(
                   child: Text(copy.t('Chưa có bài viết.', 'No articles yet.')),
@@ -323,7 +323,7 @@ class _NewsFormDialog extends StatefulWidget {
   const _NewsFormDialog({required this.repository, this.post});
 
   final BelumiRepository repository;
-  final BlogPost? post;
+  final NewsArticle? post;
 
   @override
   State<_NewsFormDialog> createState() => _NewsFormDialogState();
@@ -373,7 +373,7 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    final post = BlogPost(
+    final post = NewsArticle(
       id: widget.post?.id ?? '',
       slug: _slug.text.trim(),
       title: _title.text.trim(),
@@ -561,7 +561,7 @@ class _AdminNewsTile extends StatelessWidget {
     required this.onHide,
   });
 
-  final BlogPost post;
+  final NewsArticle post;
   final VoidCallback onEdit;
   final VoidCallback onHide;
 
