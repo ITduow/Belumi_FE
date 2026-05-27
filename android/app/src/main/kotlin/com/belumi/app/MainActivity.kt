@@ -1,4 +1,4 @@
-package com.example.belumi_app
+package com.belumi.app
 
 import io.flutter.embedding.android.FlutterActivity
 
