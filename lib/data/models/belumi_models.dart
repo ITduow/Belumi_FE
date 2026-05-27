@@ -83,23 +83,168 @@ class Plan {
 
 class BlogPost {
   BlogPost({
+    required this.id,
+    required this.slug,
     required this.title,
+    required this.summary,
     required this.content,
+    this.category = 'Skincare',
     this.coverImageUrl,
     this.author,
+    this.tags = const [],
+    this.status = 'Published',
+    this.viewCount = 0,
+    this.likeCount = 0,
+    this.isLiked = false,
+    this.isSaved = false,
+    this.publishedAt,
+    this.isActive = true,
   });
 
+  final String id;
+  final String slug;
   final String title;
+  final String summary;
   final String content;
+  final String category;
   final String? coverImageUrl;
   final String? author;
+  final List<String> tags;
+  final String status;
+  final int viewCount;
+  final int likeCount;
+  final bool isLiked;
+  final bool isSaved;
+  final DateTime? publishedAt;
+  final bool isActive;
 
-  factory BlogPost.fromJson(Map<String, dynamic> json) => BlogPost(
-    title: json['title'] as String,
-    content: json['content'] as String? ?? '',
-    coverImageUrl: json['coverImageUrl'] as String?,
-    author: json['author'] as String?,
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'slug': slug,
+    'title': title,
+    'summary': summary,
+    'content': content,
+    'coverImageUrl': coverImageUrl,
+    'category': category,
+    'tags': tags.join(', '),
+    'author': author ?? 'Belumi Team',
+    'status': _statusToWire(status),
+    'viewCount': viewCount,
+    'likeCount': likeCount,
+    'isLiked': isLiked,
+    'isSaved': isSaved,
+    'publishedAt': (publishedAt ?? DateTime.now()).toUtc().toIso8601String(),
+    'isActive': isActive,
+  };
+
+  BlogPost copyWith({
+    String? title,
+    String? slug,
+    String? summary,
+    String? content,
+    String? category,
+    String? coverImageUrl,
+    String? author,
+    List<String>? tags,
+    String? status,
+    int? viewCount,
+    int? likeCount,
+    bool? isLiked,
+    bool? isSaved,
+    DateTime? publishedAt,
+    bool? isActive,
+  }) => BlogPost(
+    id: id,
+    slug: slug ?? this.slug,
+    title: title ?? this.title,
+    summary: summary ?? this.summary,
+    content: content ?? this.content,
+    category: category ?? this.category,
+    coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+    author: author ?? this.author,
+    tags: tags ?? this.tags,
+    status: status ?? this.status,
+    viewCount: viewCount ?? this.viewCount,
+    likeCount: likeCount ?? this.likeCount,
+    isLiked: isLiked ?? this.isLiked,
+    isSaved: isSaved ?? this.isSaved,
+    publishedAt: publishedAt ?? this.publishedAt,
+    isActive: isActive ?? this.isActive,
   );
+
+  factory BlogPost.fromJson(Map<String, dynamic> json) {
+    final title = json['title'] as String? ?? 'Belumi News';
+    final slug = json['slug'] as String? ?? _slugify(title);
+    final content = json['content'] as String? ?? '';
+    final summary = json['summary'] as String? ?? content;
+    return BlogPost(
+      id: json['id'] as String? ?? slug,
+      slug: slug,
+      title: title,
+      summary: summary,
+      content: content,
+      category: json['category'] as String? ?? 'Skincare',
+      coverImageUrl:
+          json['coverImageUrl'] as String? ?? json['thumbnailUrl'] as String?,
+      author: json['author'] as String?,
+      tags: _parseTags(json['tags']),
+      status: _parseStatus(json['status']),
+      viewCount: json['viewCount'] as int? ?? 0,
+      likeCount: json['likeCount'] as int? ?? 0,
+      isLiked: json['isLiked'] as bool? ?? false,
+      isSaved: json['isSaved'] as bool? ?? false,
+      publishedAt: _parseDate(json['publishedAt']),
+      isActive: json['isActive'] as bool? ?? true,
+    );
+  }
+
+  static List<String> _parseTags(Object? value) {
+    if (value is List) {
+      return value
+          .map((x) => x.toString().trim())
+          .where((x) => x.isNotEmpty)
+          .toList();
+    }
+    if (value is String) {
+      return value
+          .split(',')
+          .map((x) => x.trim())
+          .where((x) => x.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  static String _parseStatus(Object? value) {
+    if (value is String && value.isNotEmpty) return value;
+    if (value is num) {
+      return switch (value.toInt()) {
+        0 => 'Draft',
+        2 => 'Hidden',
+        _ => 'Published',
+      };
+    }
+    return 'Published';
+  }
+
+  static int _statusToWire(String value) {
+    return switch (value.toLowerCase()) {
+      'draft' => 0,
+      'hidden' => 2,
+      _ => 1,
+    };
+  }
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  static String _slugify(String value) => value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+      .replaceAll(RegExp(r'\s+'), '-');
 }
 
 class ServiceItem {
@@ -466,5 +611,35 @@ class PaymentQr {
     planCode: json['planCode'] as String? ?? 'plus',
     amount: json['amount'] as num? ?? 99000,
     vietQrUrl: json['vietQrUrl'] as String? ?? '',
+  );
+}
+
+class NewsLikeState {
+  const NewsLikeState({
+    required this.newsId,
+    required this.isLiked,
+    required this.likeCount,
+  });
+
+  final String newsId;
+  final bool isLiked;
+  final int likeCount;
+
+  factory NewsLikeState.fromJson(Map<String, dynamic> json) => NewsLikeState(
+    newsId: json['newsId'] as String? ?? '',
+    isLiked: json['isLiked'] as bool? ?? false,
+    likeCount: json['likeCount'] as int? ?? 0,
+  );
+}
+
+class NewsSaveState {
+  const NewsSaveState({required this.newsId, required this.isSaved});
+
+  final String newsId;
+  final bool isSaved;
+
+  factory NewsSaveState.fromJson(Map<String, dynamic> json) => NewsSaveState(
+    newsId: json['newsId'] as String? ?? '',
+    isSaved: json['isSaved'] as bool? ?? false,
   );
 }
