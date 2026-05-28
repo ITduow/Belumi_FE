@@ -1533,7 +1533,7 @@ class _RoutineCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(body.isEmpty ? 'Dang cap nhat goi y tu AI.' : body),
+          Text(body.isEmpty ? 'Đang cập nhật gợi ý từ AI.' : body),
         ],
       ),
     );

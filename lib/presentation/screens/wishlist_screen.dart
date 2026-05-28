@@ -108,12 +108,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            FutureBuilder<List<BlogPost>>(
+            FutureBuilder<List<NewsArticle>>(
               future: widget.repository.isLoggedIn
                   ? widget.repository.savedNews()
-                  : Future.value(const <BlogPost>[]),
+                  : Future.value(const <NewsArticle>[]),
               builder: (context, newsSnapshot) {
-                final posts = newsSnapshot.data ?? const <BlogPost>[];
+                final posts = newsSnapshot.data ?? const <NewsArticle>[];
                 if (newsSnapshot.connectionState == ConnectionState.waiting) {
                   return const LuxuryPanel(child: LinearProgressIndicator());
                 }

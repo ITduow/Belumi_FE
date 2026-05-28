@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/core_providers.dart';
@@ -34,15 +36,31 @@ final authControllerProvider =
     });
 
 class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
-  AuthController(this._repository) : super(const AsyncData(null));
+  AuthController(this._repository) : super(const AsyncLoading()) {
+    unawaited(restoreSession());
+  }
 
   final AuthRepository _repository;
 
-  Future<void> login(String email, String password) async {
+  Future<void> restoreSession() async {
+    try {
+      final user = await _repository.restoreSession();
+      state = AsyncData(user);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+    }
+  }
+
+  Future<AppUser> login(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _repository.login(email: email, password: password),
-    );
+    try {
+      final user = await _repository.login(email: email, password: password);
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<AppUser?> adminLogin(String email, String password) async {
@@ -54,26 +72,38 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
     return nextState.valueOrNull;
   }
 
-  Future<void> register({
+  Future<AppUser> register({
     required String email,
     required String password,
     required String fullName,
     required String phone,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _repository.register(
+    try {
+      final user = await _repository.register(
         email: email,
         password: password,
         fullName: fullName,
         phone: phone,
-      ),
-    );
+      );
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<AppUser> signInWithGoogle() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_repository.signInWithGoogle);
+    try {
+      final user = await _repository.signInWithGoogle();
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> logout() async {

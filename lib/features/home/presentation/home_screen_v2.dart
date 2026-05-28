@@ -22,14 +22,14 @@ class HomeScreenV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.wait([repository.products(), repository.blogs()]),
+      future: Future.wait([repository.products(), repository.news()]),
       builder: (context, snapshot) {
         final products = snapshot.hasData
             ? snapshot.data![0] as List<Product>
             : sampleProducts;
-        final blogs = snapshot.hasData
-            ? snapshot.data![1] as List<BlogPost>
-            : sampleBlogs;
+        final news = snapshot.hasData
+            ? snapshot.data![1] as List<NewsArticle>
+            : const <NewsArticle>[];
 
         return DecoratedBox(
           decoration: const BoxDecoration(
@@ -60,7 +60,7 @@ class HomeScreenV2 extends StatelessWidget {
                       const SizedBox(height: 28),
                       _CatalogueSection(products: products),
                       const SizedBox(height: 28),
-                      _NewsAndReviewsSection(blogs: blogs),
+                      _NewsAndReviewsSection(news: news),
                       const SizedBox(height: 28),
                       const _HomeFooter(),
                     ],
@@ -617,14 +617,14 @@ class _CatalogueSection extends StatelessWidget {
 }
 
 class _NewsAndReviewsSection extends StatelessWidget {
-  const _NewsAndReviewsSection({required this.blogs});
+  const _NewsAndReviewsSection({required this.news});
 
-  final List<BlogPost> blogs;
+  final List<NewsArticle> news;
 
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
-    final posts = blogs.take(4).toList();
+    final posts = news.take(4).toList();
 
     return _WhitePanel(
       child: LayoutBuilder(

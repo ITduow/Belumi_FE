@@ -25,7 +25,7 @@ class _NewsScreenState extends State<NewsScreen> {
     super.dispose();
   }
 
-  Future<List<BlogPost>> _loadNews() {
+  Future<List<NewsArticle>> _loadNews() {
     return widget.repository.news(
       category: _category,
       search: _searchController.text,
@@ -84,14 +84,26 @@ class _NewsScreenState extends State<NewsScreen> {
           onSearch: () => setState(() {}),
         ),
         const SizedBox(height: 16),
-        FutureBuilder<List<BlogPost>>(
+        FutureBuilder<List<NewsArticle>>(
           future: _loadNews(),
           builder: (context, snapshot) {
-            final posts = snapshot.data ?? sampleBlogs;
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const LuxuryPanel(child: LinearProgressIndicator());
             }
 
+            if (snapshot.hasError) {
+              return LuxuryPanel(
+                child: Text(
+                  copy.t(
+                    'Khong tai duoc tin tuc. Vui long kiem tra ket noi API.',
+                    'Could not load news. Please check the API connection.',
+                  ),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final posts = snapshot.data ?? const <NewsArticle>[];
             if (posts.isEmpty) {
               return LuxuryPanel(
                 child: Text(
@@ -201,13 +213,7 @@ class _NewsFilters extends StatelessWidget {
             future: repository.newsCategories(),
             builder: (context, snapshot) {
               final categories =
-                  snapshot.data ??
-                  const [
-                    'Skincare',
-                    'Makeup',
-                    'Ingredient Knowledge',
-                    'Beauty Tips',
-                  ];
+                  snapshot.data ?? const <String>[];
               return Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -267,7 +273,7 @@ class _NewsCard extends StatelessWidget {
     required this.onLike,
   });
 
-  final BlogPost post;
+  final NewsArticle post;
   final bool saved;
   final VoidCallback onTap;
   final VoidCallback onSave;
