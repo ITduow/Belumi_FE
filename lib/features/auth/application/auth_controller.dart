@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/core_providers.dart';
@@ -34,9 +36,20 @@ final authControllerProvider =
     });
 
 class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
-  AuthController(this._repository) : super(const AsyncData(null));
+  AuthController(this._repository) : super(const AsyncLoading()) {
+    unawaited(restoreSession());
+  }
 
   final AuthRepository _repository;
+
+  Future<void> restoreSession() async {
+    try {
+      final user = await _repository.restoreSession();
+      state = AsyncData(user);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+    }
+  }
 
   Future<AppUser> login(String email, String password) async {
     state = const AsyncLoading();

@@ -36,6 +36,18 @@ class AuthRepository {
     return user;
   }
 
+  Future<AppUser?> restoreSession() async {
+    final session = await _authService.currentSession();
+    if (session == null) {
+      await _tokenStorage.clearToken();
+      return null;
+    }
+
+    final user = await _syncFirebaseSession(session);
+    unawaited(_ensureUserDocument(session));
+    return user;
+  }
+
   Future<AppUser> adminLogin({
     required String email,
     required String password,
