@@ -26,7 +26,8 @@ class AppShell extends ConsumerWidget {
     final selectedIndex = _routes.indexWhere(
       (route) => location.startsWith(route),
     );
-    final user = ref.watch(authControllerProvider).valueOrNull;
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.valueOrNull;
     final locale = ref.watch(appLocaleProvider);
     final strings = AppStrings(locale);
 
@@ -54,7 +55,16 @@ class AppShell extends ConsumerWidget {
             onPressed: () => context.go('/about'),
             icon: const Icon(Icons.info_outline),
           ),
-          if (user == null)
+          if (authState.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else if (user == null)
             TextButton(
               onPressed: () => context.go('/login'),
               child: Text(strings.t('login')),

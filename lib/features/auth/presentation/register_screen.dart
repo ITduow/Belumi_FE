@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/i18n/app_strings.dart';
+import '../../../presentation/widgets/belumi_luxury.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/input_field.dart';
-import '../../../presentation/widgets/belumi_luxury.dart';
 import '../application/auth_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -21,24 +21,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final phone = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  String? errorText;
+
+  @override
+  void dispose() {
+    fullName.dispose();
+    phone.dispose();
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final loading = ref.watch(authControllerProvider).isLoading;
     final t = ref.watch(belumiCopyProvider).t;
-
-    ref.listen(authControllerProvider, (previous, next) {
-      next.whenOrNull(
-        data: (user) {
-          if (user != null) context.go('/home');
-        },
-        error: (error, _) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error.toString())));
-        },
-      );
-    });
 
     return Scaffold(
       appBar: AppBar(title: const BelumiLogo(height: 28)),
@@ -113,18 +110,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       label: t('Đăng ký', 'Register'),
                       icon: Icons.person_add_alt,
                       loading: loading,
-                      onPressed: () {
-                        if (!formKey.currentState!.validate()) return;
-                        ref
-                            .read(authControllerProvider.notifier)
-                            .register(
-                              email: email.text.trim(),
-                              password: password.text,
-                              fullName: fullName.text.trim(),
-                              phone: phone.text.trim(),
-                            );
-                      },
+                      onPressed: _submitRegister,
                     ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 12),
+                      _RegisterNotice(message: errorText!),
+                    ],
                     TextButton(
                       onPressed: () => context.go('/login'),
                       child: Text(
@@ -140,6 +131,107 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _submitRegister() async {
+    if (!formKey.currentState!.validate()) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => errorText = null);
+    messenger.clearSnackBars();
+
+    try {
+      final user = await ref
+          .read(authControllerProvider.notifier)
+          .register(
+            email: email.text.trim(),
+            password: password.text,
+            fullName: fullName.text.trim(),
+            phone: phone.text.trim(),
+          );
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            ref
+                .read(belumiCopyProvider)
+                .t('Đăng ký thành công', 'Registration successful'),
+          ),
+        ),
+      );
+      if (user.email.isNotEmpty) context.go('/home');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => errorText = _friendlyError(error));
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final message = error.toString();
+    if (message.contains('email-already-in-use')) {
+      return 'Email này đã được đăng ký.';
+    }
+    if (message.contains('weak-password')) {
+      return 'Mật khẩu chưa đủ mạnh. Vui lòng dùng mật khẩu khác.';
+    }
+    if (message.contains('invalid-email')) {
+      return 'Email không hợp lệ.';
+    }
+    if (message.contains('network-request-failed')) {
+      return 'Không kết nối được máy chủ đăng ký. Kiểm tra mạng rồi thử lại.';
+    }
+    return message;
+  }
+}
+
+class _RegisterNotice extends StatelessWidget {
+  const _RegisterNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
+        boxShadow: [
+          BoxShadow(
+            color: BelumiLuxury.rose.withValues(alpha: 0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 17,
+            backgroundColor: Color(0xFFFFF5F2),
+            child: Icon(
+              Icons.error_outline,
+              color: Color(0xFFB85C5C),
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: BelumiLuxury.ink,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

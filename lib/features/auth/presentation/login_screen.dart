@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/i18n/app_strings.dart';
+import '../../../presentation/widgets/belumi_luxury.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/input_field.dart';
-import '../../../presentation/widgets/belumi_luxury.dart';
 import '../application/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,25 +19,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final formKey = GlobalKey<FormState>();
   final email = TextEditingController(text: 'customer@belumi.vn');
   final password = TextEditingController(text: 'Customer@123');
+  String? errorText;
+
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final loading = authState.isLoading;
     final t = ref.watch(belumiCopyProvider).t;
-
-    ref.listen(authControllerProvider, (previous, next) {
-      next.whenOrNull(
-        data: (user) {
-          if (user != null) context.go('/home');
-        },
-        error: (error, _) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
-        },
-      );
-    });
 
     return Scaffold(
       body: SafeArea(
@@ -89,20 +84,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       label: t('Đăng nhập', 'Login'),
                       icon: Icons.login,
                       loading: loading,
-                      onPressed: () {
-                        if (!formKey.currentState!.validate()) return;
-                        ref
-                            .read(authControllerProvider.notifier)
-                            .login(email.text.trim(), password.text);
-                      },
+                      onPressed: _submitLogin,
                     ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 12),
+                      _AuthNotice(
+                        icon: Icons.error_outline,
+                        message: errorText!,
+                        tone: _AuthNoticeTone.error,
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: loading
-                          ? null
-                          : () => ref
-                                .read(authControllerProvider.notifier)
-                                .signInWithGoogle(),
+                      onPressed: loading ? null : _submitGoogleLogin,
                       icon: const Icon(Icons.g_mobiledata),
                       label: Text(t('Đăng nhập Google', 'Sign in with Google')),
                     ),
@@ -125,14 +119,147 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Future<void> _submitLogin() async {
+    if (!formKey.currentState!.validate()) return;
+    await _runLogin(
+      () => ref
+          .read(authControllerProvider.notifier)
+          .login(email.text.trim(), password.text),
+    );
+  }
+
+  Future<void> _submitGoogleLogin() async {
+    await _runLogin(
+      () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
+    );
+  }
+
+  Future<void> _runLogin(Future<Object?> Function() loginAction) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => errorText = null);
+    messenger.clearSnackBars();
+
+    try {
+      final user = await loginAction();
+      if (!mounted || user == null) return;
+
+      final t = ref.read(belumiCopyProvider).t;
+      _showAuthSnackBar(
+        message: t('Đăng nhập thành công', 'Login successful'),
+        tone: _AuthNoticeTone.success,
+      );
+      context.go('/home');
+    } catch (error) {
+      if (!mounted) return;
+
+      final message = _friendlyError(error);
+      setState(() => errorText = message);
+    }
+  }
+
+  void _showAuthSnackBar({
+    required String message,
+    required _AuthNoticeTone tone,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        padding: EdgeInsets.zero,
+        duration: const Duration(seconds: 2),
+        content: _AuthNotice(
+          icon: tone == _AuthNoticeTone.success
+              ? Icons.check_circle_outline
+              : Icons.error_outline,
+          message: message,
+          tone: tone,
+        ),
+      ),
+    );
+  }
+
   String _friendlyError(Object error) {
     final message = error.toString();
+    if (message.contains('invalid-credential') ||
+        message.contains('wrong-password') ||
+        message.contains('user-not-found')) {
+      return 'Email hoặc mật khẩu không đúng.';
+    }
+    if (message.contains('too-many-requests')) {
+      return 'Bạn đang thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại.';
+    }
+    if (message.contains('network-request-failed')) {
+      return 'Không kết nối được máy chủ đăng nhập. Kiểm tra mạng rồi thử lại.';
+    }
     if (message.contains('REPLACE_WITH')) {
-      return 'Chua cau hinh Firebase client. Hay thay lib/firebase_options.dart bang file tao tu flutterfire configure.';
+      return 'Chưa cấu hình Firebase client. Hãy thay lib/firebase_options.dart bằng file tạo từ flutterfire configure.';
     }
     if (message.contains('popup') || message.contains('unauthorized-domain')) {
-      return 'Google Sign-In bi chan. Kiem tra Firebase Auth provider va Authorized domains co localhost.';
+      return 'Google Sign-In bị chặn. Kiểm tra Firebase Auth provider và Authorized domains.';
     }
     return message;
+  }
+}
+
+enum _AuthNoticeTone { success, error }
+
+class _AuthNotice extends StatelessWidget {
+  const _AuthNotice({
+    required this.icon,
+    required this.message,
+    required this.tone,
+  });
+
+  final IconData icon;
+  final String message;
+  final _AuthNoticeTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = tone == _AuthNoticeTone.success
+        ? const Color(0xFF4D8B6F)
+        : const Color(0xFFB85C5C);
+    final fill = tone == _AuthNoticeTone.success
+        ? const Color(0xFFF3FAF6)
+        : const Color(0xFFFFF5F2);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
+        boxShadow: [
+          BoxShadow(
+            color: BelumiLuxury.rose.withValues(alpha: 0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 17,
+            backgroundColor: fill,
+            child: Icon(icon, color: accent, size: 19),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: BelumiLuxury.ink,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

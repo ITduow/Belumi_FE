@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android Release Signing - NEVER commit these to version control
+**/android/key.properties
+**/android/app/*.jks
+**/android/app/*.keystore
+
+# Firebase config - contains API keys, NEVER commit
+**/android/app/google-services.json
+
+# Android Gradle build outputs (auto-generated)
+/android/build/
+/android/.gradle/

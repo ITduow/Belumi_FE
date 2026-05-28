@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/network/dio_api_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
@@ -29,11 +31,21 @@ class AuthRepository {
     required String password,
   }) async {
     final session = await _authService.signInWithEmailPassword(email, password);
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
-    );
-    return _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session);
+    unawaited(_ensureUserDocument(session));
+    return user;
+  }
+
+  Future<AppUser?> restoreSession() async {
+    final session = await _authService.currentSession();
+    if (session == null) {
+      await _tokenStorage.clearToken();
+      return null;
+    }
+
+    final user = await _syncFirebaseSession(session);
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<AppUser> adminLogin({
@@ -66,20 +78,16 @@ class AuthRepository {
       password: password,
       fullName: fullName,
     );
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
-    );
-    return _syncFirebaseSession(session, fallbackRole: 'user', phone: phone);
+    final user = await _syncFirebaseSession(session, phone: phone);
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<AppUser> signInWithGoogle() async {
     final session = await _authService.signInWithGoogle();
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
-    );
-    return _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session);
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<void> logout() async {
@@ -89,7 +97,6 @@ class AuthRepository {
 
   Future<AppUser> _syncFirebaseSession(
     FirebaseAuthSession session, {
-    required String fallbackRole,
     String? phone,
   }) async {
     final data =
@@ -99,11 +106,21 @@ class AuthRepository {
       id: session.uid,
       email: session.email,
       fullName: session.displayName,
-      role: fallbackRole,
       token: session.idToken,
       phone: phone,
     );
     await _tokenStorage.saveToken(user.token);
     return user;
+  }
+
+  Future<void> _ensureUserDocument(FirebaseAuthSession session) async {
+    try {
+      await _roleService.ensureUserDocument(
+        uid: session.uid,
+        email: session.email,
+      );
+    } catch (_) {
+      // Login should not be blocked by best-effort Firestore profile setup.
+    }
   }
 }

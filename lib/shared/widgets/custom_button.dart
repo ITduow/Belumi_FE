@@ -25,7 +25,7 @@ class CustomButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Icon(icon ?? Icons.arrow_forward),
-      label: Text(loading ? 'Dang xu ly...' : label),
+      label: Text(loading ? 'Đang xử lý...' : label),
     );
   }
 }

@@ -24,6 +24,12 @@ class AuthService {
 
   FirebaseAuth get _auth => _firebaseAuth ?? FirebaseAuth.instance;
 
+  Future<FirebaseAuthSession?> currentSession() async {
+    _ensureFirebaseConfigured();
+    final user = _auth.currentUser;
+    return user == null ? null : _sessionFromUser(user);
+  }
+
   Future<FirebaseAuthSession> signInWithGoogle() async {
     _ensureFirebaseConfigured();
 
