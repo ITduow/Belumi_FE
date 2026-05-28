@@ -28,27 +28,13 @@ final legacyRepositoryProvider = Provider<BelumiRepository>((ref) {
 });
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
   final legacyRepository = ref.watch(legacyRepositoryProvider);
-  final user = authState.valueOrNull;
-  legacyRepository.api.token = user?.token;
-  legacyRepository.currentUser = user == null
-      ? null
-      : legacy_models.AuthUser(
-          userId: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          token: user.token,
-          phone: user.phone,
-        );
 
   return GoRouter(
     initialLocation: '/home',
     redirect: (context, state) {
+      final user = ref.read(authControllerProvider).valueOrNull;
       final loggedIn = user != null;
-      final authRoute =
-          state.uri.path == '/login' || state.uri.path == '/register';
       final privateRoute = state.uri.path == '/wishlist';
       final adminRoute =
           state.uri.path == '/admin-dashboard' ||
@@ -60,7 +46,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (adminRoute && user?.role.toLowerCase() != 'admin') {
         return '/home';
       }
-      if (loggedIn && authRoute) return '/home';
+
+      legacyRepository.api.token = user?.token;
+      legacyRepository.currentUser = user == null
+          ? null
+          : legacy_models.AuthUser(
+              userId: user.id,
+              email: user.email,
+              fullName: user.fullName,
+              role: user.role,
+              token: user.token,
+              phone: user.phone,
+            );
       return null;
     },
     routes: [

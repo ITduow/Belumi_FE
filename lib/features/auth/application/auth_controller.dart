@@ -38,11 +38,16 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
 
   final AuthRepository _repository;
 
-  Future<void> login(String email, String password) async {
+  Future<AppUser> login(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _repository.login(email: email, password: password),
-    );
+    try {
+      final user = await _repository.login(email: email, password: password);
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<AppUser?> adminLogin(String email, String password) async {
@@ -71,9 +76,16 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
     );
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<AppUser> signInWithGoogle() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_repository.signInWithGoogle);
+    try {
+      final user = await _repository.signInWithGoogle();
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> logout() async {

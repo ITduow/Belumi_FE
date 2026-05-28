@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/network/dio_api_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
@@ -29,11 +31,9 @@ class AuthRepository {
     required String password,
   }) async {
     final session = await _authService.signInWithEmailPassword(email, password);
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
-    );
-    return _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session, fallbackRole: 'user');
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<AppUser> adminLogin({
@@ -66,20 +66,20 @@ class AuthRepository {
       password: password,
       fullName: fullName,
     );
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
+    final user = await _syncFirebaseSession(
+      session,
+      fallbackRole: 'user',
+      phone: phone,
     );
-    return _syncFirebaseSession(session, fallbackRole: 'user', phone: phone);
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<AppUser> signInWithGoogle() async {
     final session = await _authService.signInWithGoogle();
-    await _roleService.ensureUserDocument(
-      uid: session.uid,
-      email: session.email,
-    );
-    return _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session, fallbackRole: 'user');
+    unawaited(_ensureUserDocument(session));
+    return user;
   }
 
   Future<void> logout() async {
@@ -105,5 +105,16 @@ class AuthRepository {
     );
     await _tokenStorage.saveToken(user.token);
     return user;
+  }
+
+  Future<void> _ensureUserDocument(FirebaseAuthSession session) async {
+    try {
+      await _roleService.ensureUserDocument(
+        uid: session.uid,
+        email: session.email,
+      );
+    } catch (_) {
+      // Login should not be blocked by best-effort Firestore profile setup.
+    }
   }
 }
