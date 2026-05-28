@@ -31,7 +31,7 @@ class AuthRepository {
     required String password,
   }) async {
     final session = await _authService.signInWithEmailPassword(email, password);
-    final user = await _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session);
     unawaited(_ensureUserDocument(session));
     return user;
   }
@@ -66,18 +66,14 @@ class AuthRepository {
       password: password,
       fullName: fullName,
     );
-    final user = await _syncFirebaseSession(
-      session,
-      fallbackRole: 'user',
-      phone: phone,
-    );
+    final user = await _syncFirebaseSession(session, phone: phone);
     unawaited(_ensureUserDocument(session));
     return user;
   }
 
   Future<AppUser> signInWithGoogle() async {
     final session = await _authService.signInWithGoogle();
-    final user = await _syncFirebaseSession(session, fallbackRole: 'user');
+    final user = await _syncFirebaseSession(session);
     unawaited(_ensureUserDocument(session));
     return user;
   }
@@ -89,7 +85,6 @@ class AuthRepository {
 
   Future<AppUser> _syncFirebaseSession(
     FirebaseAuthSession session, {
-    required String fallbackRole,
     String? phone,
   }) async {
     final data =
@@ -99,7 +94,6 @@ class AuthRepository {
       id: session.uid,
       email: session.email,
       fullName: session.displayName,
-      role: fallbackRole,
       token: session.idToken,
       phone: phone,
     );
