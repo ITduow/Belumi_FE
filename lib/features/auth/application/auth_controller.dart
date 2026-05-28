@@ -59,21 +59,26 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
     return nextState.valueOrNull;
   }
 
-  Future<void> register({
+  Future<AppUser> register({
     required String email,
     required String password,
     required String fullName,
     required String phone,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _repository.register(
+    try {
+      final user = await _repository.register(
         email: email,
         password: password,
         fullName: fullName,
         phone: phone,
-      ),
-    );
+      );
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<AppUser> signInWithGoogle() async {
