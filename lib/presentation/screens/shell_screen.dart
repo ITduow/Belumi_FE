@@ -61,13 +61,13 @@ class _ShellScreenState extends State<ShellScreen> {
                 title: const Text('Belumi Beauty'),
                 subtitle: Text(
                   user == null
-                      ? 'Chua dang nhap'
+                      ? 'Chưa đăng nhập'
                       : '${user!.fullName} • ${repository.currentPlan.toUpperCase()}',
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.person_add_alt),
-                title: const Text('Dang nhap / Dang ky user'),
+                title: const Text('Đăng nhập / Đăng ký user'),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => UserAuthScreen(
@@ -138,7 +138,7 @@ class _ShellScreenState extends State<ShellScreen> {
               if (user != null)
                 ListTile(
                   leading: const Icon(Icons.logout),
-                  title: const Text('Dang xuat'),
+                  title: const Text('Đăng xuất'),
                   onTap: () {
                     repository.logout();
                     setState(() => user = null);
