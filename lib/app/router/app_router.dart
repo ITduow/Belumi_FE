@@ -5,6 +5,7 @@ import '../../core/network/api_client.dart';
 import '../../data/models/belumi_models.dart' as legacy_models;
 import '../../data/repositories/belumi_repository.dart';
 import '../../features/auth/application/auth_controller.dart';
+import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen_v2.dart';
@@ -24,7 +25,27 @@ import '../../presentation/screens/wishlist_screen.dart';
 import '../shell/app_shell.dart';
 
 final legacyRepositoryProvider = Provider<BelumiRepository>((ref) {
-  return BelumiRepository(ApiClient());
+  final repository = BelumiRepository(ApiClient());
+
+  void syncLegacyAuth(AsyncValue<AppUser?> authState) {
+    final user = authState.valueOrNull;
+    repository.api.token = user?.token;
+    repository.currentUser = user == null
+        ? null
+        : legacy_models.AuthUser(
+            userId: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role,
+            token: user.token,
+            phone: user.phone,
+          );
+  }
+
+  syncLegacyAuth(ref.read(authControllerProvider));
+  ref.listen(authControllerProvider, (_, next) => syncLegacyAuth(next));
+
+  return repository;
 });
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -47,17 +68,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
 
-      legacyRepository.api.token = user?.token;
-      legacyRepository.currentUser = user == null
-          ? null
-          : legacy_models.AuthUser(
-              userId: user.id,
-              email: user.email,
-              fullName: user.fullName,
-              role: user.role,
-              token: user.token,
-              phone: user.phone,
-            );
       return null;
     },
     routes: [
