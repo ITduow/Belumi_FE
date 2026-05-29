@@ -114,7 +114,7 @@ class AuthService {
   }
 
   Future<FirebaseAuthSession> _sessionFromUser(User user) async {
-    final idToken = await user.getIdToken();
+    final idToken = await user.getIdToken(true);
     if (idToken == null || idToken.isEmpty) {
       throw FirebaseAuthException(
         code: 'missing-id-token',
