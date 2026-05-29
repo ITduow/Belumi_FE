@@ -56,14 +56,11 @@ class AuthRepository {
       email: email,
       password: password,
     );
-    final user = AppUser(
-      id: session.uid,
-      email: session.email,
-      fullName: session.displayName ?? 'Belumi Admin',
-      role: 'admin',
-      token: session.idToken,
-    );
-    await _tokenStorage.saveToken(user.token);
+    final user = await _syncFirebaseSession(session);
+    if (!user.isAdmin) {
+      await logout();
+      throw const AdminAccessDeniedException();
+    }
     return user;
   }
 
@@ -118,6 +115,7 @@ class AuthRepository {
       await _roleService.ensureUserDocument(
         uid: session.uid,
         email: session.email,
+        displayName: session.displayName,
       );
     } catch (_) {
       // Login should not be blocked by best-effort Firestore profile setup.
