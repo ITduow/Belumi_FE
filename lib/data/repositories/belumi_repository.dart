@@ -151,19 +151,8 @@ class BelumiRepository {
         result,
         skinType: _displaySkinType(normalizedSkinType),
       );
-    } catch (error) {
-      if (imageUrl != null && imageUrl.isNotEmpty) rethrow;
-
-      final concernText = concerns.isEmpty
-          ? 'Routine consistency'
-          : concerns.join(', ');
-      return SkinAnalysisResult(
-        skinType: skinType,
-        concerns: concernText,
-        recommendations:
-            'Analysis: $skinType skin with $concernText. Goal: $goal. Mock Gemini fallback is active.\n\nMorning routine: Gentle cleanser -> hydrating toner -> niacinamide -> moisturizer -> SPF 50.\n\nEvening routine: Cleanser -> targeted serum -> barrier cream.\n\nIngredients to use: Niacinamide, Hyaluronic Acid, Ceramide, Panthenol.\n\nIngredients to avoid: Harsh scrubs, over-layering acids, unprotected daytime retinoids.\n\nProduct suggestions: Belumi Glow Serum, Belumi Barrier Cream, Belumi Daily SPF 50.',
-        score: planCode == 'pro' ? 90 : 82,
-      );
+    } catch (_) {
+      rethrow;
     }
   }
 
@@ -214,8 +203,8 @@ class BelumiRepository {
             ? ['Fragrance/parfum']
             : [],
         recommendations: [
-          'Dung kem chong nang ban ngay.',
-          'Khong layer qua nhieu active trong cung routine.',
+          'Dùng kem chống nắng ban ngày.',
+          'Không layer quá nhiều active trong cùng routine.',
         ],
       );
     }
@@ -401,7 +390,7 @@ class BelumiRepository {
           code: 'free',
           name: 'Free',
           price: 0,
-          features: ['Skin AI mock', 'News', 'Wishlist basic'],
+          features: ['Skin AI', 'News', 'Wishlist basic'],
         ),
         Plan(
           code: 'plus',
@@ -570,7 +559,7 @@ final sampleProducts = [
   Product(
     id: '1',
     name: 'Belumi Glow Serum',
-    description: 'Serum vitamin mong nhe giup da sang va am muot.',
+    description: 'Serum vitamin mỏng nhẹ giúp da sáng và ẩm mượt.',
     price: 420000,
     categoryName: 'Skincare',
     thumbnailUrl:
@@ -579,11 +568,10 @@ final sampleProducts = [
   Product(
     id: '2',
     name: 'Belumi Barrier Cream',
-    description: 'Kem duong phuc hoi hang rao bao ve da.',
+    description: 'Kem dưỡng phục hồi hàng rào bảo vệ da.',
     price: 360000,
     categoryName: 'Skincare',
     thumbnailUrl:
         'https://images.unsplash.com/photo-1617897903246-719242758050',
   ),
 ];
-
