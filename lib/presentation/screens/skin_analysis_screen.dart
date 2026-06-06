@@ -125,13 +125,13 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
     } on TimeoutException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chua chon anh. Hay thu lai.')),
+        const SnackBar(content: Text('Chưa chọn ảnh. Hãy thử lại.')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Khong mo duoc camera tren thiet bi nay.'),
+          content: Text('Không mở được camera trên thiết bị này.'),
         ),
       );
     }
@@ -150,13 +150,13 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
         );
       }
       if (pickedImage == null) {
-        throw Exception('Vui long chon anh truoc khi phan tich.');
+        throw Exception('Vui lòng chọn ảnh trước khi phân tích.');
       }
 
       final data = await widget.repository.analyzeSkin(
         skinType: skinType,
         concerns: [skinType],
-        goal: 'Tu van quy trinh cham soc da ca nhan hoa',
+        goal: 'Tư vấn quy trình chăm sóc da cá nhân hóa',
         planCode: widget.repository.currentPlan,
         imageUrl: pickedImage!.dataUrl,
       );
@@ -248,7 +248,7 @@ class _IntroStep extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF5BA4D2),
+              color: BelumiLuxury.ink,
               borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
@@ -262,7 +262,7 @@ class _IntroStep extends StatelessWidget {
             l.t('Phân tích da bằng AI', 'AI Skin Analysis'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: const Color(0xFF284866),
+              color: BelumiLuxury.black,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -371,7 +371,7 @@ class _ConsentStep extends StatelessWidget {
                 'I consent to image processing for analysis',
               ),
               subtitle: l.t(
-                'Ảnh của bạn sẽ được xử lý để phân tích loại da và tình trạng. Chúng tôi bảo mật dữ liệu an toàn.',
+                'Ảnh của bạn sẽ được xử lý để phân tích tình trạng da. Belumi không xem đây là chẩn đoán y tế.',
                 'Your image will be processed to analyze skin type and condition. We keep your data protected.',
               ),
               onChanged: onConsentChanged,
@@ -431,7 +431,7 @@ class _PhotoStep extends StatelessWidget {
     return _PageShell(
       locale: locale,
       badge: l.t('Bước 2 / 3', 'Step 2 of 3'),
-      title: l.t('Chụp ảnh Selfie', 'Take a Selfie'),
+      title: l.t('Chụp ảnh selfie', 'Take a Selfie'),
       subtitle: l.t(
         'Để có kết quả tốt nhất, hãy làm theo hướng dẫn dưới đây',
         'For the best result, follow the guidance below',
@@ -494,7 +494,7 @@ class _PhotoStep extends StatelessWidget {
                     child: Container(
                       height: 330,
                       width: double.infinity,
-                      color: const Color(0xFFF6FCFF),
+                      color: BelumiLuxury.cream,
                       child: _PickedImagePreview(image: image!),
                     ),
                   ),
@@ -615,7 +615,7 @@ class _QuizStep extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               l.t(
-                'Câu trả lời này sẽ được gửi về API dưới dạng loại da tương ứng.',
+                'Câu trả lời này được gửi tới API dưới dạng loại da tương ứng.',
                 'This answer is sent to the API as the matching skin type.',
               ),
             ),
@@ -723,18 +723,18 @@ class _ResultStep extends StatelessWidget {
         ),
       );
     }
-    final concernLabels = _concernLabels(data.topConcerns, l);
+    final concernLabels = _detectedConcernLabels(data, l);
     return _PageShell(
       locale: locale,
       child: Column(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 34),
+          const Icon(Icons.check_circle, color: Color(0xFF4D8B6F), size: 34),
           const SizedBox(height: 10),
           Text(
             l.t('Kết quả phân tích da của bạn', 'Your Skin Analysis Result'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF284866),
+              color: BelumiLuxury.black,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -750,7 +750,7 @@ class _ResultStep extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _DetectedSkinType(result: data, locale: locale),
+                _SkinProfileSummary(result: data, locale: locale),
                 const SizedBox(height: 20),
                 _MiniSection(
                   title: l.t('Phân tích hoàn tất', 'Analysis complete'),
@@ -764,7 +764,7 @@ class _ResultStep extends StatelessWidget {
                   children: [
                     _RoutineCard(
                       title: l.t('Lời khuyên', 'Advice'),
-                      color: const Color(0xFFFFB020),
+                      color: BelumiLuxury.ink,
                       body: _bulletList(
                         data.advice,
                         fallback: l.t(
@@ -775,7 +775,7 @@ class _ResultStep extends StatelessWidget {
                     ),
                     _RoutineCard(
                       title: l.t('Cần lưu ý', 'Use with caution'),
-                      color: Colors.deepOrange,
+                      color: const Color(0xFFB85C5C),
                       body: _bulletList(
                         data.warnings,
                         fallback: l.t(
@@ -789,7 +789,7 @@ class _ResultStep extends StatelessWidget {
                         'Vấn đề da phát hiện',
                         'Detected skin concerns',
                       ),
-                      color: Colors.green,
+                      color: const Color(0xFF4D8B6F),
                       body: _bulletList(
                         concernLabels,
                         fallback: l.t(
@@ -800,7 +800,7 @@ class _ResultStep extends StatelessWidget {
                     ),
                     _RoutineCard(
                       title: l.t('Tín hiệu phân tích', 'Analysis signals'),
-                      color: const Color(0xFF7C5CFF),
+                      color: BelumiLuxury.rose,
                       body: _signalSummary(data, l).isEmpty
                           ? l.t(
                               'Không có tín hiệu đặc biệt.',
@@ -813,7 +813,7 @@ class _ResultStep extends StatelessWidget {
                         'Thành phần nên ưu tiên',
                         'Ingredients to prioritize',
                       ),
-                      color: Colors.green,
+                      color: const Color(0xFF4D8B6F),
                       body: _ingredientList(
                         data.recommendedIngredients,
                         fallback: l.t(
@@ -828,7 +828,7 @@ class _ResultStep extends StatelessWidget {
                         'Cần tránh / hỏi chuyên gia',
                         'Avoid / ask a professional',
                       ),
-                      color: Colors.deepOrange,
+                      color: const Color(0xFFB85C5C),
                       body: _ingredientList(
                         data.avoidOrProfessionalOnly,
                         fallback: l.t(
@@ -855,12 +855,12 @@ class _ResultStep extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5BA4D2),
+                    color: BelumiLuxury.ink,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     l.t(
-                      'Mẹo chuyên gia để có kết quả tốt nhất: Hãy kiên nhẫn, thử nghiệm từng sản phẩm, theo dõi thay đổi và kiên trì với quy trình.',
+                      'Mẹo chuyên gia để có kết quả tốt nhất: hãy kiên nhẫn, thử từng sản phẩm, theo dõi thay đổi và kiên trì với quy trình.',
                       'Expert tips for better results: be patient, patch-test products, track changes, and stay consistent with your routine.',
                     ),
                     style: const TextStyle(color: Colors.white),
@@ -910,29 +910,23 @@ class _ResultStep extends StatelessWidget {
     return lines.isEmpty ? fallback : lines.join('\n');
   }
 
-  List<String> _concernLabels(List<String> values, _L l) =>
-      values.map((value) => _concernLabel(value, l)).toList();
-
-  String _concernLabel(String value, _L l) {
-    return switch (value.toLowerCase().trim()) {
-      'acne' => l.t('mụn', 'acne'),
-      'redness' => l.t('đỏ da', 'redness'),
-      'dullness' => l.t('xỉn màu', 'dullness'),
-      'dark_spots' || 'dark spots' => l.t('thâm/nám', 'dark spots'),
-      'enlarged_pores' ||
-      'enlarged pores' => l.t('lỗ chân lông to', 'enlarged pores'),
-      'uneven_tone' || 'uneven tone' => l.t('da không đều màu', 'uneven tone'),
-      _ => value,
-    };
-  }
+  List<String> _detectedConcernLabels(SkinAnalysisResult data, _L l) => [
+    if (data.acneLevel.toLowerCase().trim() != 'none')
+      '${l.t('Mụn', 'Acne')}: ${_acneLabel(data.acneLevel, l)}',
+    if (data.darkSpots)
+      l.t('Thâm mụn / tăng sắc tố', 'Dark spots / hyperpigmentation'),
+    if (data.enlargedPores) l.t('Lỗ chân lông to', 'Enlarged pores'),
+    if (data.redness) l.t('Đỏ da / viêm', 'Redness / inflammation'),
+  ];
 
   String _signalSummary(SkinAnalysisResult data, _L l) {
     final signals = <String>[
       '${l.t('Mụn', 'Acne')}: ${_acneLabel(data.acneLevel, l)}',
+      if (data.acneTypes.isNotEmpty)
+        '${l.t('Loại mụn', 'Acne types')}: ${_acneTypeLabels(data.acneTypes, l).join(', ')}',
       if (data.darkSpots) l.t('Thâm/nám', 'Dark spots'),
       if (data.enlargedPores) l.t('Lỗ chân lông to', 'Enlarged pores'),
       if (data.redness) l.t('Đỏ da', 'Redness'),
-      if (data.unevenTone) l.t('Da không đều màu', 'Uneven tone'),
       if (data.skinCondition.isNotEmpty)
         '${l.t('Tình trạng', 'Condition')}: ${_conditionLabel(data.skinCondition, l)}',
     ];
@@ -957,6 +951,26 @@ class _ResultStep extends StatelessWidget {
       _ => value,
     };
   }
+
+  List<String> _acneTypeLabels(List<String> values, _L l) =>
+      values.map((value) => _acneTypeLabel(value, l)).toList();
+
+  String _acneTypeLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'closed_comedone_like' => l.t(
+        'mụn ẩn/đầu trắng đóng',
+        'closed comedones',
+      ),
+      'open_comedone_like' => l.t('mụn đầu đen', 'blackheads'),
+      'papule_like' => l.t('sẩn đỏ', 'papules'),
+      'pustule_like' => l.t('mụn mủ', 'pustules'),
+      'nodule_or_cyst_like' => l.t(
+        'nốt viêm sâu dạng nang/cục',
+        'nodule/cyst-like lesions',
+      ),
+      _ => value,
+    };
+  }
 }
 
 class _StepBadge extends StatelessWidget {
@@ -966,9 +980,9 @@ class _StepBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      avatar: const Icon(Icons.auto_awesome, size: 16),
+      avatar: const Icon(Icons.auto_awesome, size: 16, color: BelumiLuxury.ink),
       label: Text(label),
-      side: const BorderSide(color: Color(0xFFD9EAF5)),
+      side: const BorderSide(color: Color(0xFFF1DFD8)),
       backgroundColor: Colors.white,
     );
   }
@@ -986,9 +1000,10 @@ class _GlassCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5BA4D2).withValues(alpha: 0.12),
+            color: BelumiLuxury.rose.withValues(alpha: 0.16),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -1018,16 +1033,14 @@ class _HowItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5FBFF),
+        color: BelumiLuxury.peach.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFC7E0F1)),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: dark
-                ? const Color(0xFF284866)
-                : const Color(0xFF5BA4D2),
+            backgroundColor: dark ? BelumiLuxury.ink : BelumiLuxury.rose,
             child: Text(
               number,
               style: const TextStyle(
@@ -1103,7 +1116,7 @@ class _ConsentTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD6E6F1)),
+          border: Border.all(color: const Color(0xFFF1DFD8)),
         ),
         child: Row(
           children: [
@@ -1156,7 +1169,7 @@ class _GuideCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${good ? '✓' : 'X'} $title',
+              '${good ? '' : 'X'} $title',
               style: TextStyle(
                 color: color.shade700,
                 fontWeight: FontWeight.w900,
@@ -1168,7 +1181,7 @@ class _GuideCard extends StatelessWidget {
               (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  '${good ? '✓' : 'X'} $item',
+                  '${good ? '' : 'X'} $item',
                   style: TextStyle(color: color.shade700),
                 ),
               ),
@@ -1200,14 +1213,14 @@ class _PhotoAction extends StatelessWidget {
         height: 136,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFD6E6F1)),
+          border: Border.all(color: const Color(0xFFF1DFD8)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: const Color(0xFF5BA4D2),
+              backgroundColor: BelumiLuxury.ink,
               child: Icon(icon, color: Colors.white),
             ),
             const SizedBox(height: 14),
@@ -1304,12 +1317,14 @@ class _OptionGrid extends StatelessWidget {
                   ),
                   alignment: Alignment.centerLeft,
                   decoration: BoxDecoration(
-                    color: active ? const Color(0xFFE3F2FC) : Colors.white,
+                    color: active
+                        ? BelumiLuxury.peach.withValues(alpha: 0.55)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: active
-                          ? const Color(0xFF5BA4D2)
-                          : const Color(0xFFCFE3F2),
+                          ? BelumiLuxury.rose
+                          : const Color(0xFFF1DFD8),
                     ),
                   ),
                   child: Row(
@@ -1318,7 +1333,7 @@ class _OptionGrid extends StatelessWidget {
                         const Icon(
                           Icons.check_circle_outline,
                           size: 18,
-                          color: Color(0xFF5BA4D2),
+                          color: BelumiLuxury.ink,
                         ),
                         const SizedBox(width: 10),
                       ],
@@ -1326,7 +1341,7 @@ class _OptionGrid extends StatelessWidget {
                         child: Text(
                           option,
                           style: TextStyle(
-                            color: const Color(0xFF566577),
+                            color: BelumiLuxury.black,
                             fontWeight: active
                                 ? FontWeight.w800
                                 : FontWeight.w600,
@@ -1352,7 +1367,7 @@ class _NavRow extends StatelessWidget {
     required this.onBack,
     required this.onNext,
     this.backLabel = 'Quay lại',
-    this.nextLabel = 'Tiep tuc',
+    this.nextLabel = 'Tiếp tục',
   });
 
   final VoidCallback onBack;
@@ -1376,8 +1391,8 @@ class _NavRow extends StatelessWidget {
   }
 }
 
-class _DetectedSkinType extends StatelessWidget {
-  const _DetectedSkinType({required this.result, required this.locale});
+class _SkinProfileSummary extends StatelessWidget {
+  const _SkinProfileSummary({required this.result, required this.locale});
 
   final SkinAnalysisResult result;
   final String locale;
@@ -1385,12 +1400,13 @@ class _DetectedSkinType extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = _L(locale);
-    final concerns = _concernLabels(result.topConcerns, l);
+    final acneTypes = _acneTypeLabels(result.acneTypes, l);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6FCFF),
+        color: BelumiLuxury.peach.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
       ),
       child: Row(
         children: [
@@ -1398,19 +1414,28 @@ class _DetectedSkinType extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l.t('Loại da được phát hiện', 'Detected skin type')),
+                Text(l.t('Loại da đã chọn', 'Selected skin type')),
                 Text(
                   _skinTypeLabel(result.skinType, l),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: const Color(0xFF5BA4D2),
+                    color: BelumiLuxury.ink,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (concerns.isNotEmpty) Text(concerns.join(', ')),
+                const SizedBox(height: 6),
+                Text(
+                  '${l.t('Mức mụn', 'Acne level')}: ${_acneLabel(result.acneLevel, l)}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                if (acneTypes.isNotEmpty)
+                  Text(
+                    '${l.t('Loại mụn', 'Acne types')}: ${acneTypes.join(', ')}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
               ],
             ),
           ),
-          Chip(label: Text('${result.score}/100')),
+          Chip(label: Text('${(result.confidence * 100).round()}%')),
         ],
       ),
     );
@@ -1429,18 +1454,31 @@ class _DetectedSkinType extends StatelessWidget {
     return l.t('Da thường', 'Normal');
   }
 
-  List<String> _concernLabels(List<String> values, _L l) =>
-      values.map((value) => _concernLabel(value, l)).toList();
-
-  String _concernLabel(String value, _L l) {
+  String _acneLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
-      'acne' => l.t('mụn', 'acne'),
-      'redness' => l.t('đỏ da', 'redness'),
-      'dullness' => l.t('xỉn màu', 'dullness'),
-      'dark_spots' || 'dark spots' => l.t('thâm/nám', 'dark spots'),
-      'enlarged_pores' ||
-      'enlarged pores' => l.t('lỗ chân lông to', 'enlarged pores'),
-      'uneven_tone' || 'uneven tone' => l.t('da không đều màu', 'uneven tone'),
+      'mild' => l.t('nhẹ', 'mild'),
+      'moderate' => l.t('trung bình', 'moderate'),
+      'severe' => l.t('nặng', 'severe'),
+      _ => l.t('không có', 'none'),
+    };
+  }
+
+  List<String> _acneTypeLabels(List<String> values, _L l) =>
+      values.map((value) => _acneTypeLabel(value, l)).toList();
+
+  String _acneTypeLabel(String value, _L l) {
+    return switch (value.toLowerCase().trim()) {
+      'closed_comedone_like' => l.t(
+        'mụn ẩn/đầu trắng đóng',
+        'closed comedones',
+      ),
+      'open_comedone_like' => l.t('mụn đầu đen', 'blackheads'),
+      'papule_like' => l.t('sẩn đỏ', 'papules'),
+      'pustule_like' => l.t('mụn mủ', 'pustules'),
+      'nodule_or_cyst_like' => l.t(
+        'nốt viêm sâu dạng nang/cục',
+        'nodule/cyst-like lesions',
+      ),
       _ => value,
     };
   }
@@ -1460,7 +1498,7 @@ class _MiniSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _RoutineCard(
       title: title,
-      color: const Color(0xFF5BA4D2),
+      color: BelumiLuxury.ink,
       body: body,
       icon: icon,
     );

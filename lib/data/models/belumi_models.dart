@@ -173,7 +173,7 @@ class NewsArticle {
   );
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
-    final title = json['title'] as String? ?? 'Belumi News';
+    final title = json['title'] as String? ?? 'Bài viết Belumi';
     final slug = json['slug'] as String? ?? _slugify(title);
     final content = json['content'] as String? ?? '';
     final summary = json['summary'] as String? ?? content;
@@ -279,13 +279,11 @@ class SkinAnalysisResult {
     required this.skinType,
     required this.concerns,
     required this.recommendations,
-    required this.score,
     this.acneLevel = 'none',
+    this.acneTypes = const [],
     this.darkSpots = false,
     this.enlargedPores = false,
     this.redness = false,
-    this.unevenTone = false,
-    this.topConcerns = const [],
     this.confidence = 0,
     this.skinCondition = '',
     this.description = '',
@@ -298,13 +296,11 @@ class SkinAnalysisResult {
   final String skinType;
   final String concerns;
   final String recommendations;
-  final int score;
   final String acneLevel;
+  final List<String> acneTypes;
   final bool darkSpots;
   final bool enlargedPores;
   final bool redness;
-  final bool unevenTone;
-  final List<String> topConcerns;
   final double confidence;
   final String skinCondition;
   final String description;
@@ -319,7 +315,7 @@ class SkinAnalysisResult {
       if (darkSpots) 'Dark spots',
       if (enlargedPores) 'Enlarged pores',
       if (redness) 'Redness',
-      if (unevenTone) 'Uneven tone',
+      if (acneTypes.isNotEmpty) 'Acne types: ${acneTypes.join(', ')}',
       if (skinCondition.isNotEmpty) 'Condition: $skinCondition',
     ];
     return signals.join('\n');
@@ -329,7 +325,7 @@ class SkinAnalysisResult {
     Map<String, dynamic> json, {
     required String skinType,
   }) {
-    final topConcerns = _stringList(json['top_concerns']);
+    final acneTypes = _stringList(json['acne_types']);
     final advice = _stringList(json['advice']);
     final warnings = _stringList(json['warnings']);
     final recommendedIngredients = _ingredientRecommendations(
@@ -342,22 +338,25 @@ class SkinAnalysisResult {
     final recommendations = [
       if (description.isNotEmpty) description,
       if (advice.isNotEmpty)
-        'Loi khuyen:\n${advice.map((x) => '- $x').join('\n')}',
+        'Lời khuyên:\n${advice.map((x) => '- $x').join('\n')}',
       if (warnings.isNotEmpty)
-        'Can luu y:\n${warnings.map((x) => '- $x').join('\n')}',
+        'Cần lưu ý:\n${warnings.map((x) => '- $x').join('\n')}',
     ].join('\n\n');
 
     return SkinAnalysisResult(
       skinType: skinType,
-      concerns: topConcerns.isEmpty ? '' : topConcerns.join(', '),
+      concerns: _concernsFromSignals(
+        acneLevel: json['acne_level'] as String? ?? 'none',
+        darkSpots: json['dark_spots'] as bool? ?? false,
+        enlargedPores: json['enlarged_pores'] as bool? ?? false,
+        redness: json['redness'] as bool? ?? false,
+      ).join(', '),
       recommendations: recommendations,
-      score: (json['overall_score'] as num?)?.round() ?? 0,
       acneLevel: json['acne_level'] as String? ?? 'none',
+      acneTypes: acneTypes,
       darkSpots: json['dark_spots'] as bool? ?? false,
       enlargedPores: json['enlarged_pores'] as bool? ?? false,
       redness: json['redness'] as bool? ?? false,
-      unevenTone: json['uneven_tone'] as bool? ?? false,
-      topConcerns: topConcerns,
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       skinCondition: json['skin_condition'] as String? ?? '',
       description: description,
@@ -381,7 +380,6 @@ class SkinAnalysisResult {
       skinType: json['skinType'] as String? ?? 'Combination',
       concerns: json['concerns'] as String? ?? '',
       recommendations: json['recommendations'] as String? ?? '',
-      score: json['score'] as int? ?? 0,
     );
   }
 
@@ -390,6 +388,20 @@ class SkinAnalysisResult {
           .map((x) => x.toString())
           .where((x) => x.trim().isNotEmpty)
           .toList();
+
+  static List<String> _concernsFromSignals({
+    required String acneLevel,
+    required bool darkSpots,
+    required bool enlargedPores,
+    required bool redness,
+  }) {
+    return [
+      if (acneLevel.toLowerCase().trim() != 'none') 'acne',
+      if (darkSpots) 'dark_spots',
+      if (enlargedPores) 'enlarged_pores',
+      if (redness) 'redness',
+    ];
+  }
 
   static List<IngredientRecommendation> _ingredientRecommendations(
     Object? value,
