@@ -432,6 +432,105 @@ class IngredientRecommendation {
       );
 }
 
+class Ingredient {
+  const Ingredient({
+    required this.id,
+    required this.nameInc,
+    required this.name,
+    required this.category,
+    required this.description,
+    required this.links,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String id;
+  final String nameInc;
+  final String name;
+  final String category;
+  final String description;
+  final String links;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  List<String> get linkList => links
+      .split('|')
+      .map((link) => link.trim())
+      .where((link) => link.isNotEmpty)
+      .toList();
+
+  Map<String, dynamic> toJson() => {
+    'nameInc': nameInc,
+    'name': name,
+    'category': category,
+    'description': description,
+    'links': links,
+  };
+
+  Ingredient copyWith({
+    String? id,
+    String? nameInc,
+    String? name,
+    String? category,
+    String? description,
+    String? links,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Ingredient(
+    id: id ?? this.id,
+    nameInc: nameInc ?? this.nameInc,
+    name: name ?? this.name,
+    category: category ?? this.category,
+    description: description ?? this.description,
+    links: links ?? this.links,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+
+  factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
+    id: json['id'] as String? ?? '',
+    nameInc: json['nameInc'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    category: json['category'] as String? ?? '',
+    description: json['description'] as String? ?? '',
+    links: json['links'] as String? ?? '',
+    createdAt: _parseDate(json['createdAt']),
+    updatedAt: _parseDate(json['updatedAt']),
+  );
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+}
+
+class IngredientListResult {
+  const IngredientListResult({
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.pageSize,
+  });
+
+  final List<Ingredient> items;
+  final int total;
+  final int page;
+  final int pageSize;
+
+  bool get hasMore => page * pageSize < total;
+
+  factory IngredientListResult.fromJson(Map<String, dynamic> json) =>
+      IngredientListResult(
+        items: (json['items'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(Ingredient.fromJson)
+            .toList(),
+        total: json['total'] as int? ?? 0,
+        page: json['page'] as int? ?? 1,
+        pageSize: json['pageSize'] as int? ?? 20,
+      );
+}
+
 class IngredientResult {
   IngredientResult({
     required this.summary,
@@ -654,4 +753,40 @@ class NewsSaveState {
     newsId: json['newsId'] as String? ?? '',
     isSaved: json['isSaved'] as bool? ?? false,
   );
+}
+
+class ChatbotSource {
+  const ChatbotSource({required this.type, required this.label, this.url});
+
+  final String type;
+  final String label;
+  final String? url;
+
+  factory ChatbotSource.fromJson(Map<String, dynamic> json) => ChatbotSource(
+    type: json['type'] as String? ?? '',
+    label: json['label'] as String? ?? '',
+    url: json['url'] as String?,
+  );
+}
+
+class ChatbotResponse {
+  const ChatbotResponse({
+    required this.answer,
+    required this.tools,
+    required this.sources,
+  });
+
+  final String answer;
+  final List<String> tools;
+  final List<ChatbotSource> sources;
+
+  factory ChatbotResponse.fromJson(Map<String, dynamic> json) =>
+      ChatbotResponse(
+        answer: json['answer'] as String? ?? '',
+        tools: List<String>.from(json['tools'] as List<dynamic>? ?? const []),
+        sources: (json['sources'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(ChatbotSource.fromJson)
+            .toList(),
+      );
 }

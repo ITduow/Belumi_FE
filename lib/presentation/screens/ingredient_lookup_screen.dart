@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/platform/picked_skin_image.dart';
 import '../../core/platform/skin_image_picker.dart';
@@ -16,16 +18,23 @@ class IngredientLookupScreen extends StatefulWidget {
 }
 
 class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
-  final searchController = TextEditingController(text: 'Niacinamide');
+  final searchController = TextEditingController();
   final pasteController = TextEditingController(
     text:
         'Aqua, Niacinamide, Glycerin, Hyaluronic Acid, Ceramide NP, Fragrance',
   );
   int tab = 0;
   bool loading = false;
+  String? error;
   PickedSkinImage? image;
-  IngredientResult? lookup;
+  IngredientListResult? searchResult;
   IngredientScanResult? scan;
+
+  @override
+  void initState() {
+    super.initState();
+    _search();
+  }
 
   @override
   void dispose() {
@@ -43,8 +52,8 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
         LuxuryHero(
           title: t('Tra cứu thành phần', 'Ingredient Lookup'),
           subtitle: t(
-            'Giải mã nhãn sản phẩm bằng tìm kiếm, dán danh sách thành phần hoặc quét ảnh.',
-            'Decode product labels with search, paste-list analysis, or OCR-style image scanning.',
+            'Tìm thành phần trong dữ liệu Belumi hoặc phân tích danh sách INCI bằng scan.',
+            'Search Belumi ingredient data or analyze a full INCI list with scan.',
           ),
           imageUrl:
               'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=1200&q=80',
@@ -54,8 +63,8 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 0, label: Text(t('Tìm kiếm', 'Search'))),
-            ButtonSegment(value: 1, label: Text(t('Dán', 'Paste'))),
-            ButtonSegment(value: 2, label: Text(t('Quét', 'Scan'))),
+            ButtonSegment(value: 1, label: Text(t('Dán INCI', 'Paste INCI'))),
+            ButtonSegment(value: 2, label: Text(t('Quét ảnh', 'Scan image'))),
           ],
           selected: {tab},
           onSelectionChanged: (value) => setState(() => tab = value.first),
@@ -67,7 +76,7 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
             0 => _SearchPanel(
               controller: searchController,
               loading: loading,
-              onAnalyze: () => _lookup(searchController.text),
+              onSearch: _search,
             ),
             1 => _PastePanel(
               controller: pasteController,
@@ -83,11 +92,21 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
             ),
           },
         ),
-        if (lookup != null) ...[
-          const SizedBox(height: 18),
-          _LookupResultCard(result: lookup!),
+        if (loading) ...[
+          const SizedBox(height: 12),
+          const LinearProgressIndicator(),
         ],
-        if (scan != null) ...[
+        if (error != null) ...[
+          const SizedBox(height: 12),
+          _ToolCard(
+            child: Text(error!, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+        if (tab == 0 && searchResult != null) ...[
+          const SizedBox(height: 18),
+          _IngredientSearchResults(result: searchResult!),
+        ],
+        if (scan != null && tab != 0) ...[
           const SizedBox(height: 18),
           _ScanResultCard(result: scan!),
         ],
@@ -97,32 +116,42 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
     );
   }
 
-  Future<void> _lookup(String value) async {
-    if (value.trim().isEmpty) return;
+  Future<void> _search() async {
     setState(() {
       loading = true;
+      error = null;
       scan = null;
     });
-    final data = await widget.repository.lookupIngredient(value.trim());
-    if (!mounted) return;
-    setState(() {
-      lookup = data;
-      loading = false;
-    });
+    try {
+      final data = await widget.repository.searchIngredients(
+        search: searchController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => searchResult = data);
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() => error = exception.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _scan(String value) async {
     if (value.trim().isEmpty) return;
     setState(() {
       loading = true;
-      lookup = null;
+      error = null;
     });
-    final data = await widget.repository.scanIngredientLabel(value.trim());
-    if (!mounted) return;
-    setState(() {
-      scan = data;
-      loading = false;
-    });
+    try {
+      final data = await widget.repository.scanIngredientLabel(value.trim());
+      if (!mounted) return;
+      setState(() => scan = data);
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() => error = exception.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _pickAndScan(bool preferCamera) async {
@@ -133,16 +162,103 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   }
 }
 
+class IngredientDetailScreen extends StatelessWidget {
+  const IngredientDetailScreen({
+    super.key,
+    required this.repository,
+    required this.ingredientId,
+  });
+
+  final BelumiRepository repository;
+  final String ingredientId;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = belumiCopy(context).t;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(t('Chi tiết thành phần', 'Ingredient Details')),
+        leading: IconButton(
+          onPressed: () => context.go('/ingredient-lookup'),
+          icon: const Icon(Icons.arrow_back),
+        ),
+      ),
+      body: FutureBuilder<Ingredient?>(
+        future: repository.ingredientDetail(ingredientId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LuxuryPage(
+              children: [LuxuryPanel(child: LinearProgressIndicator())],
+            );
+          }
+          if (snapshot.hasError || snapshot.data == null) {
+            return LuxuryPage(
+              children: [
+                LuxuryPanel(
+                  child: Text(
+                    t(
+                      'Không tải được chi tiết thành phần.',
+                      'Could not load ingredient details.',
+                    ),
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          final ingredient = snapshot.data!;
+          return LuxuryPage(
+            children: [
+              LuxuryHero(
+                title: ingredient.nameInc,
+                subtitle: '${ingredient.name} - ${ingredient.category}',
+                imageUrl:
+                    'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=1200&q=80',
+              ),
+              const SizedBox(height: 16),
+              LuxuryPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _DetailRow(label: 'INCI', value: ingredient.nameInc),
+                    _DetailRow(
+                      label: t('Tên hiển thị', 'Display name'),
+                      value: ingredient.name,
+                    ),
+                    _DetailRow(
+                      label: t('Danh mục', 'Category'),
+                      value: ingredient.category,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(t('Mô tả', 'Description'), style: _titleStyle),
+                    const SizedBox(height: 8),
+                    Text(ingredient.description),
+                    if (ingredient.linkList.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _LinkSection(links: ingredient.linkList),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _SearchPanel extends StatelessWidget {
   const _SearchPanel({
     required this.controller,
     required this.loading,
-    required this.onAnalyze,
+    required this.onSearch,
   });
 
   final TextEditingController controller;
   final bool loading;
-  final VoidCallback onAnalyze;
+  final VoidCallback onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +268,7 @@ class _SearchPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            t('Tìm một thành phần', 'Search a single ingredient'),
+            t('Tìm trong dữ liệu thành phần', 'Search ingredient data'),
             style: _titleStyle,
           ),
           const SizedBox(height: 10),
@@ -161,22 +277,16 @@ class _SearchPanel extends StatelessWidget {
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
               labelText: t(
-                'Tên thành phần hoặc INCI',
-                'Ingredient name or INCI',
+                'Tên thành phần, INCI, danh mục',
+                'Ingredient name, INCI, category',
               ),
               hintText: 'Hyaluronic Acid, Retinol, Niacinamide...',
+              suffixIcon: IconButton(
+                onPressed: loading ? null : onSearch,
+                icon: const Icon(Icons.arrow_forward),
+              ),
             ),
-            onSubmitted: (_) => onAnalyze(),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: loading ? null : onAnalyze,
-            icon: const Icon(Icons.science_outlined),
-            label: Text(
-              loading
-                  ? t('Đang phân tích...', 'Analyzing...')
-                  : t('Xem chi tiết', 'View details'),
-            ),
+            onSubmitted: (_) => onSearch(),
           ),
         ],
       ),
@@ -309,44 +419,84 @@ class _ScanPanel extends StatelessWidget {
               icon: const Icon(Icons.close),
               label: Text(t('Xóa ảnh', 'Clear image')),
             ),
-          if (loading) const LinearProgressIndicator(),
         ],
       ),
     );
   }
 }
 
-class _LookupResultCard extends StatelessWidget {
-  const _LookupResultCard({required this.result});
+class _IngredientSearchResults extends StatelessWidget {
+  const _IngredientSearchResults({required this.result});
 
-  final IngredientResult result;
+  final IngredientListResult result;
 
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
+    if (result.items.isEmpty) {
+      return _ToolCard(
+        child: Text(
+          t(
+            'Không tìm thấy thành phần phù hợp.',
+            'No matching ingredients found.',
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _ToolCard(
+          child: Row(
+            children: [
+              const Icon(Icons.science_outlined),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t(
+                    'Tìm thấy ${result.total} thành phần',
+                    '${result.total} ingredients found',
+                  ),
+                  style: _titleStyle,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...result.items.map(
+          (ingredient) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _IngredientCard(ingredient: ingredient),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _IngredientCard extends StatelessWidget {
+  const _IngredientCard({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context) {
     return _ToolCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('Chi tiết thành phần', 'Ingredient Details'),
-            style: _titleStyle,
-          ),
-          const SizedBox(height: 8),
-          Text(result.summary),
-          _ListSection(
-            title: t('Lợi ích / An toàn', 'Benefits / Safe'),
-            items: result.safeIngredients,
-          ),
-          _ListSection(
-            title: t('Cần lưu ý', 'Use With Care'),
-            items: result.watchlist,
-          ),
-          _ListSection(
-            title: t('Gợi ý', 'Recommendations'),
-            items: result.recommendations,
-          ),
-        ],
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        onTap: () => context.go('/ingredient-lookup/${ingredient.id}'),
+        leading: const CircleAvatar(child: Icon(Icons.science_outlined)),
+        title: Text(
+          ingredient.nameInc,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          '${ingredient.name} - ${ingredient.category}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
@@ -450,6 +600,28 @@ class _IngredientItems extends StatelessWidget {
   }
 }
 
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(value),
+        ],
+      ),
+    );
+  }
+}
+
 class _ListSection extends StatelessWidget {
   const _ListSection({required this.title, required this.items});
 
@@ -480,6 +652,61 @@ class _ListSection extends StatelessWidget {
   }
 }
 
+class _LinkSection extends StatelessWidget {
+  const _LinkSection({required this.links});
+
+  final List<String> links;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Links', style: TextStyle(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        ...links.map((link) => _LinkTile(link: link)),
+      ],
+    );
+  }
+}
+
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({required this.link});
+
+  final String link;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.open_in_new, size: 20),
+      title: Text(
+        link,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+      onTap: () async {
+        final uri = Uri.tryParse(link);
+        if (uri == null) return;
+        final opened = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Could not open $link')));
+        }
+      },
+    );
+  }
+}
+
 class _HowToUseCard extends StatelessWidget {
   const _HowToUseCard();
 
@@ -497,20 +724,20 @@ class _HowToUseCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             t(
-              '1. Chọn tìm kiếm, dán hoặc quét.',
-              '1. Choose search, paste, or scan.',
+              '1. Tìm ingredient riêng lẻ bằng tên hoặc INCI.',
+              '1. Search a single ingredient by name or INCI.',
             ),
           ),
           Text(
             t(
-              '2. Xem lợi ích, rủi ro và độ phù hợp.',
-              '2. Review benefits, concerns, and suitability.',
+              '2. Dán full INCI hoặc quét ảnh để phân tích công thức.',
+              '2. Paste a full INCI list or scan an image to analyze a formula.',
             ),
           ),
           Text(
             t(
-              '3. Lưu hoặc so sánh sản phẩm trước khi mua.',
-              '3. Save or compare products before buying.',
+              '3. Xem lợi ích, rủi ro và gợi ý sử dụng.',
+              '3. Review benefits, concerns, and usage suggestions.',
             ),
           ),
         ],

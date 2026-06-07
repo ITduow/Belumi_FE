@@ -36,6 +36,12 @@ class AdminPanelScreen extends StatelessWidget {
                 outlined: true,
                 onPressed: () => context.go('/admin/news'),
               ),
+              LuxuryButton(
+                label: t('Quản lý thành phần', 'Manage ingredients'),
+                icon: Icons.science_outlined,
+                outlined: true,
+                onPressed: () => context.go('/admin/ingredients'),
+              ),
             ],
           ),
           const SizedBox(height: 18),
