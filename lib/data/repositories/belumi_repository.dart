@@ -210,6 +210,46 @@ class BelumiRepository {
     }
   }
 
+  Future<IngredientListResult> searchIngredients({
+    String? search,
+    String? category,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final query = _query({
+      'search': search,
+      'category': category,
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+    });
+    final data = await api.get('/ingredients$query') as Map<String, dynamic>;
+    return IngredientListResult.fromJson(data);
+  }
+
+  Future<Ingredient?> ingredientDetail(String id) async {
+    if (id.trim().isEmpty) return null;
+    final data = await api.get('/ingredients/$id') as Map<String, dynamic>;
+    return Ingredient.fromJson(data);
+  }
+
+  Future<Ingredient> createIngredient(Ingredient ingredient) async {
+    final data =
+        await api.post('/ingredients', ingredient.toJson())
+            as Map<String, dynamic>;
+    return Ingredient.fromJson(data);
+  }
+
+  Future<Ingredient> updateIngredient(Ingredient ingredient) async {
+    final data =
+        await api.put('/ingredients/${ingredient.id}', ingredient.toJson())
+            as Map<String, dynamic>;
+    return Ingredient.fromJson(data);
+  }
+
+  Future<void> deleteIngredient(Ingredient ingredient) async {
+    await api.delete('/ingredients/${ingredient.id}');
+  }
+
   Future<IngredientScanResult> scanIngredientLabel(
     String rawTextOrImageUrl, {
     String? skinType,

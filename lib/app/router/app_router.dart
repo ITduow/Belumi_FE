@@ -10,6 +10,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/home/presentation/home_screen_v2.dart';
 import '../../presentation/screens/about_screen.dart';
+import '../../presentation/screens/admin_ingredients_screen.dart';
 import '../../presentation/screens/admin_login_screen.dart';
 import '../../presentation/screens/admin_news_screen.dart';
 import '../../presentation/screens/admin_panel_screen.dart';
@@ -96,6 +97,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AdminNewsScreen(repository: legacyRepository),
       ),
+      GoRoute(
+        path: '/admin/ingredients',
+        builder: (context, state) =>
+            AdminIngredientsScreen(repository: legacyRepository),
+      ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
@@ -113,6 +119,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/ingredient-lookup',
             builder: (context, state) =>
                 IngredientLookupScreen(repository: legacyRepository),
+          ),
+          GoRoute(
+            path: '/ingredient-lookup/:ingredientId',
+            builder: (context, state) => IngredientDetailScreen(
+              repository: legacyRepository,
+              ingredientId: state.pathParameters['ingredientId'] ?? '',
+            ),
           ),
           GoRoute(
             path: '/virtual-makeup',
