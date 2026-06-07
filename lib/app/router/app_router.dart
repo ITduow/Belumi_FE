@@ -103,7 +103,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             AdminIngredientsScreen(repository: legacyRepository),
       ),
       ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
+        builder: (context, state, child) =>
+            AppShell(repository: legacyRepository, child: child),
         routes: [
           GoRoute(
             path: '/home',

@@ -576,6 +576,19 @@ class BelumiRepository {
     });
   }
 
+  Future<ChatbotResponse> sendChatbotMessage(
+    String message, {
+    String? skinType,
+  }) async {
+    final data =
+        await api.post('/chatbot/message', {
+              'message': message,
+              'skinType': skinType,
+            })
+            as Map<String, dynamic>;
+    return ChatbotResponse.fromJson(data);
+  }
+
   String _query(Map<String, String?> values) {
     final params = <String, String>{};
     values.forEach((key, value) {

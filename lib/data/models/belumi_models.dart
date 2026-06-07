@@ -754,3 +754,39 @@ class NewsSaveState {
     isSaved: json['isSaved'] as bool? ?? false,
   );
 }
+
+class ChatbotSource {
+  const ChatbotSource({required this.type, required this.label, this.url});
+
+  final String type;
+  final String label;
+  final String? url;
+
+  factory ChatbotSource.fromJson(Map<String, dynamic> json) => ChatbotSource(
+    type: json['type'] as String? ?? '',
+    label: json['label'] as String? ?? '',
+    url: json['url'] as String?,
+  );
+}
+
+class ChatbotResponse {
+  const ChatbotResponse({
+    required this.answer,
+    required this.tools,
+    required this.sources,
+  });
+
+  final String answer;
+  final List<String> tools;
+  final List<ChatbotSource> sources;
+
+  factory ChatbotResponse.fromJson(Map<String, dynamic> json) =>
+      ChatbotResponse(
+        answer: json['answer'] as String? ?? '',
+        tools: List<String>.from(json['tools'] as List<dynamic>? ?? const []),
+        sources: (json['sources'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(ChatbotSource.fromJson)
+            .toList(),
+      );
+}
