@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
-import 'payment_screen.dart';
 
 class PricingScreen extends StatelessWidget {
   const PricingScreen({super.key, required this.repository});
@@ -148,16 +147,29 @@ class _PlanCard extends StatelessWidget {
               )
             else
               LuxuryButton(
-                label: t('Thanh toán VietQR', 'Pay with VietQR'),
-                icon: Icons.qr_code_2,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PaymentScreen(
-                      repository: repository,
-                      planCode: plan.code,
-                    ),
-                  ),
-                ),
+                label: t('Đăng ký ngay', 'Subscribe now'),
+                icon: Icons.payment,
+                onPressed: () async {
+                  final success = await repository.buyPlan(plan);
+                  if (!context.mounted) return;
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          t('Đăng ký thành công!', 'Subscription successful!'),
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          t('Không thể thực hiện thanh toán.', 'Failed to start purchase flow.'),
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
           ],
         ),

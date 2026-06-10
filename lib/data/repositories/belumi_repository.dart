@@ -1,18 +1,71 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/belumi_models.dart';
 
 class BelumiRepository {
-  BelumiRepository(this.api);
+  BelumiRepository(this.api) {
+    _initRevenueCat();
+  }
 
   final ApiClient api;
-  AuthUser? currentUser;
+  
+  AuthUser? _currentUser;
+  AuthUser? get currentUser => _currentUser;
+  set currentUser(AuthUser? user) {
+    _currentUser = user;
+    if (user != null) {
+      Purchases.logIn(user.userId).then((_) {
+        _syncSubscriptionWithRevenueCat();
+      });
+    } else {
+      Purchases.logOut().then((_) {
+        currentPlan = 'free';
+      });
+    }
+  }
+
   String currentPlan = 'free';
   final Set<String> localWishlistIds = {};
 
   bool get isLoggedIn => currentUser != null;
   bool get isAdmin => currentUser?.isAdmin ?? false;
   bool get isPro => currentPlan == 'pro';
+
+  Future<void> _initRevenueCat() async {
+    await Purchases.setLogLevel(LogLevel.debug);
+    PurchasesConfiguration configuration = PurchasesConfiguration("test_DCgkKSQbaePcSKMHyJNcetMgFJj");
+    await Purchases.configure(configuration);
+    
+    Purchases.addCustomerInfoUpdateListener((customerInfo) {
+      _updatePlanFromCustomerInfo(customerInfo);
+    });
+  }
+
+  void _updatePlanFromCustomerInfo(CustomerInfo customerInfo) {
+    final isProActive = customerInfo.entitlements.all["Belumi Pro"]?.isActive ?? 
+                        customerInfo.entitlements.all["pro"]?.isActive ?? 
+                        false;
+    final isPlusActive = customerInfo.entitlements.all["plus"]?.isActive ?? false;
+    if (isProActive) {
+      currentPlan = 'pro';
+    } else if (isPlusActive) {
+      currentPlan = 'plus';
+    } else {
+      currentPlan = 'free';
+    }
+  }
+
+  Future<void> _syncSubscriptionWithRevenueCat() async {
+    try {
+      CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+      _updatePlanFromCustomerInfo(customerInfo);
+    } catch (e) {
+      debugPrint('Failed to fetch customer info from RevenueCat: $e');
+    }
+  }
 
   Future<AuthUser> login(String email, String password) =>
       throw UnsupportedError('Use Firebase AuthService for email login.');
@@ -400,55 +453,111 @@ class BelumiRepository {
     }
   }
 
-  Future<PaymentQr> createPaymentQr(String planCode, String email) async {
-    try {
-      final data =
-          await api.post('/payments/vietqr', {
-                'planCode': planCode,
-                'customerEmail': email,
-              })
-              as Map<String, dynamic>;
-      return PaymentQr.fromJson(data);
-    } catch (_) {
-      final amount = planCode == 'pro' ? 199000 : 99000;
-      return PaymentQr(
-        planCode: planCode,
-        amount: amount,
-        vietQrUrl:
-            'https://img.vietqr.io/image/BIDV-1234567890-compact2.png?amount=$amount&addInfo=BELUMI%20${planCode.toUpperCase()}',
-      );
-    }
-  }
-
   Future<List<Plan>> plans() async {
     try {
       final data = await api.get('/payments/plans') as List<dynamic>;
-      return data.map((x) => Plan.fromJson(x as Map<String, dynamic>)).toList();
+      final backendPlans = data.map((x) => Plan.fromJson(x as Map<String, dynamic>)).toList();
+
+      try {
+        Offerings offerings = await Purchases.getOfferings();
+        final currentOffering = offerings.current;
+        if (currentOffering != null) {
+          return backendPlans.map((plan) {
+            Package? match;
+            for (final p in currentOffering.availablePackages) {
+              if (p.identifier == plan.code) {
+                match = p;
+                break;
+              }
+            }
+            if (match == null) {
+              // Fallback matching
+              if (plan.code == 'pro') {
+                match = currentOffering.monthly;
+              } else if (plan.code == 'plus') {
+                match = currentOffering.weekly;
+              }
+            }
+            if (match != null) {
+              return plan.copyWith(
+                storePrice: match.storeProduct.priceString,
+              );
+            }
+            return plan;
+          }).toList();
+        }
+      } catch (e) {
+        debugPrint('Error fetching offerings from RevenueCat: $e');
+      }
+      return backendPlans;
     } catch (_) {
       return [
         Plan(
           code: 'free',
           name: 'Free',
           price: 0,
-          features: ['Skin AI', 'News', 'Wishlist basic'],
+          features: const ['Skin AI', 'News', 'Wishlist basic'],
         ),
         Plan(
           code: 'plus',
           name: 'Plus',
           price: 99000,
-          features: ['Ingredient OCR lookup', 'More AI scans', 'Wishlist sync'],
+          features: const ['Ingredient OCR lookup', 'More AI scans', 'Wishlist sync'],
         ),
         Plan(
           code: 'pro',
           name: 'Pro',
           price: 199000,
-          features: [
+          features: const [
             'Virtual makeup',
             'Advanced AI consultation',
             'Priority recommendations',
           ],
         ),
       ];
+    }
+  }
+
+  Future<bool> buyPlan(Plan plan) async {
+    if (plan.code == 'free') {
+      activatePlan('free');
+      return true;
+    }
+
+    try {
+      Offerings offerings = await Purchases.getOfferings();
+      final currentOffering = offerings.current;
+      if (currentOffering == null) {
+        debugPrint('No current offering found in RevenueCat');
+        return false;
+      }
+
+      Package? packageToBuy;
+      for (final p in currentOffering.availablePackages) {
+        if (p.identifier == plan.code) {
+          packageToBuy = p;
+          break;
+        }
+      }
+      if (packageToBuy == null) {
+        if (plan.code == 'pro') {
+          packageToBuy = currentOffering.monthly;
+        } else if (plan.code == 'plus') {
+          packageToBuy = currentOffering.weekly;
+        }
+      }
+
+      if (packageToBuy == null) {
+        debugPrint('Package not found for plan code: ${plan.code}');
+        return false;
+      }
+
+      final PurchaseResult purchaseResult = await Purchases.purchasePackage(packageToBuy);
+      _updatePlanFromCustomerInfo(purchaseResult.customerInfo);
+      return true;
+    } catch (e) {
+      debugPrint('Purchase failed: $e');
+      return false;
     }
   }
 

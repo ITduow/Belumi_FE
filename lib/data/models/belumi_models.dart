@@ -66,18 +66,35 @@ class Plan {
     required this.name,
     required this.price,
     required this.features,
+    this.storePrice,
   });
 
   final String code;
   final String name;
   final num price;
   final List<String> features;
+  final String? storePrice;
+
+  Plan copyWith({
+    String? code,
+    String? name,
+    num? price,
+    List<String>? features,
+    String? storePrice,
+  }) => Plan(
+    code: code ?? this.code,
+    name: name ?? this.name,
+    price: price ?? this.price,
+    features: features ?? this.features,
+    storePrice: storePrice ?? this.storePrice,
+  );
 
   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
     code: json['code'] as String? ?? 'free',
     name: json['name'] as String? ?? 'Free',
     price: json['price'] as num? ?? 0,
     features: List<String>.from(json['features'] as List<dynamic>? ?? const []),
+    storePrice: json['storePrice'] as String?,
   );
 }
 

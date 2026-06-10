@@ -18,7 +18,6 @@ import '../../presentation/screens/account_screen.dart';
 import '../../presentation/screens/ingredient_lookup_screen.dart';
 import '../../presentation/screens/news_detail_screen.dart';
 import '../../presentation/screens/news_screen.dart';
-import '../../presentation/screens/payment_screen.dart';
 import '../../presentation/screens/pricing_screen.dart';
 import '../../presentation/screens/skin_analysis_screen.dart';
 import '../../presentation/screens/virtual_makeup_screen.dart';
@@ -163,13 +162,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             builder: (context, state) =>
                 AccountScreen(repository: legacyRepository),
-          ),
-          GoRoute(
-            path: '/payment/:plan',
-            builder: (context, state) => PaymentScreen(
-              repository: legacyRepository,
-              planCode: state.pathParameters['plan'] ?? 'plus',
-            ),
           ),
         ],
       ),
