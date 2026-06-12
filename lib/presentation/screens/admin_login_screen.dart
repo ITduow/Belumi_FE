@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../config/i18n/app_strings.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/data/admin_auth_service.dart';
@@ -32,17 +33,31 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
+    final copy = ref.watch(belumiCopyProvider);
+    final t = copy.t;
+
     return Scaffold(
-      appBar: AppBar(title: const BelumiLogo(height: 28)),
+      appBar: AppBar(
+        title: const BelumiLogo(height: 32),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _AdminLanguageSwitch(
+              locale: copy.locale,
+              onChanged: (locale) =>
+                  ref.read(appLocaleProvider.notifier).state = locale,
+            ),
+          ),
+        ],
+      ),
       body: LuxuryPage(
         maxWidth: 520,
         children: [
           LuxuryHero(
-            title: t('Trung tâm quản trị', 'Admin Beauty Center'),
+            title: t('Trung tâm quản trị', 'Admin Center'),
             subtitle: t(
-              'Đăng nhập để quản lý user, content, subscription và AI usage của Belumi.',
-              'Sign in to manage users, content, subscriptions and AI usage for Belumi.',
+              'Đăng nhập để quản lý người dùng, nội dung, gói dịch vụ và dữ liệu AI của Belumi.',
+              'Sign in to manage users, content, plans and AI data for Belumi.',
             ),
             imageUrl:
                 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1200&q=80',
@@ -80,6 +95,26 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                   const SizedBox(height: 12),
                   Text(error!, style: const TextStyle(color: Colors.red)),
                 ],
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: loading ? null : () => context.go('/home'),
+                        icon: const Icon(Icons.home_outlined),
+                        label: Text(t('Trang chủ', 'Home')),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: loading ? null : () => context.go('/login'),
+                        icon: const Icon(Icons.login_outlined),
+                        label: Text(t('Login thường', 'User login')),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -122,14 +157,21 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     if (!mounted) return;
 
     setState(() {
-      error = 'You are not allowed to access admin panel.';
+      error = ref.read(belumiCopyProvider).t(
+            'Bạn không có quyền truy cập trang quản trị.',
+            'You are not allowed to access the admin panel.',
+          );
       loading = false;
     });
   }
 
   String _friendlyAdminError(Object error) {
+    final t = ref.read(belumiCopyProvider).t;
     if (error is AdminAccessDeniedException) {
-      return 'You are not allowed to access admin panel.';
+      return t(
+        'Bạn không có quyền truy cập trang quản trị.',
+        'You are not allowed to access the admin panel.',
+      );
     }
 
     if (error is FirebaseAuthException) {
@@ -137,14 +179,23 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         'user-not-found' ||
         'wrong-password' ||
         'invalid-credential' ||
-        'invalid-email' => 'Invalid admin email or password.',
-        'too-many-requests' =>
-          'Too many failed attempts. Please wait and try again.',
-        'network-request-failed' =>
-          'Network error. Please check your connection.',
-        'firebase-placeholder-config' =>
-          'Firebase client config is still placeholder.',
-        _ => error.message ?? 'Admin login failed.',
+        'invalid-email' =>
+          t('Email hoặc mật khẩu quản trị không đúng.',
+              'Invalid admin email or password.'),
+        'too-many-requests' => t(
+            'Bạn thử sai quá nhiều lần. Vui lòng đợi rồi thử lại.',
+            'Too many failed attempts. Please wait and try again.',
+          ),
+        'network-request-failed' => t(
+            'Lỗi mạng. Vui lòng kiểm tra kết nối.',
+            'Network error. Please check your connection.',
+          ),
+        'firebase-placeholder-config' => t(
+            'Firebase client chưa được cấu hình.',
+            'Firebase client config is still placeholder.',
+          ),
+        _ => error.message ?? t('Đăng nhập quản trị thất bại.',
+            'Admin login failed.'),
       };
     }
 
@@ -152,11 +203,85 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     if (message.contains('user-not-found') ||
         message.contains('wrong-password') ||
         message.contains('invalid-credential')) {
-      return 'Invalid admin email or password.';
+      return t(
+        'Email hoặc mật khẩu quản trị không đúng.',
+        'Invalid admin email or password.',
+      );
     }
     if (message.contains('Firebase client config is still placeholder')) {
-      return 'Firebase client config is still placeholder.';
+      return t(
+        'Firebase client chưa được cấu hình.',
+        'Firebase client config is still placeholder.',
+      );
     }
     return message;
+  }
+}
+
+class _AdminLanguageSwitch extends StatelessWidget {
+  const _AdminLanguageSwitch({required this.locale, required this.onChanged});
+
+  final String locale;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE7D7D1)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _LanguageChip(
+            label: 'VI',
+            selected: locale == 'vi',
+            onTap: () => onChanged('vi'),
+          ),
+          _LanguageChip(
+            label: 'EN',
+            selected: locale == 'en',
+            onTap: () => onChanged('en'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LanguageChip extends StatelessWidget {
+  const _LanguageChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: selected ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? BelumiLuxury.ink : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : BelumiLuxury.ink,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
   }
 }

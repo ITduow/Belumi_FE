@@ -75,6 +75,37 @@ class _BelumiLogoState extends State<BelumiLogo> {
     setState(() => _isHolding = false);
   }
 
+  static const int _adminTapTarget = 5;
+  int _adminTapCount = 0;
+  DateTime? _lastTapAt;
+
+  void _handleAdminTap() {
+    final now = DateTime.now();
+    final lastTapAt = _lastTapAt;
+    if (lastTapAt == null ||
+        now.difference(lastTapAt) > const Duration(seconds: 3)) {
+      _adminTapCount = 0;
+    }
+
+    _lastTapAt = now;
+    _adminTapCount += 1;
+    if (_adminTapCount < _adminTapTarget) return;
+
+    _adminTapCount = 0;
+    _lastTapAt = null;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 1),
+        content: Text(
+          belumiCopy(
+            context,
+          ).t('Đang mở chế độ quản trị...', 'Opening admin mode...'),
+        ),
+      ),
+    );
+    context.go('/admin-login');
+  }
+
   @override
   void dispose() {
     _adminHoldTimer?.cancel();
@@ -83,28 +114,11 @@ class _BelumiLogoState extends State<BelumiLogo> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _startAdminHold(),
-      onTapUp: (_) => _cancelAdminHold(),
-      onTapCancel: _cancelAdminHold,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Image.asset(
-            'assets/images/belumi_logo_cropped.png',
-            height: widget.height,
-            fit: BoxFit.contain,
-            color: widget.dark ? Colors.white : null,
-          ),
-          if (_isHolding)
-            SizedBox(
-              width: widget.height + 12,
-              height: widget.height + 12,
-              child: const CircularProgressIndicator(strokeWidth: 2),
-            ),
-        ],
-      ),
+    return Image.asset(
+      'assets/images/belumi_logo_mark.png',
+      height: widget.height,
+      fit: BoxFit.contain,
+      color: widget.dark ? Colors.white : null,
     );
   }
 }
