@@ -131,6 +131,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   hintText: t('Mật khẩu', 'Password'),
                                   obscureText: obscurePassword,
                                   suffix: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 40,
+                                      height: 36,
+                                    ),
+                                    visualDensity: VisualDensity.compact,
                                     tooltip: obscurePassword
                                         ? t('Hiện mật khẩu', 'Show password')
                                         : t('Ẩn mật khẩu', 'Hide password'),
@@ -573,12 +579,13 @@ class _BelumiTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 36),
+    return SizedBox(
+      height: 36,
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        textAlignVertical: TextAlignVertical.center,
         validator: validator,
         style: const TextStyle(
           color: _LoginScreenState._brandBrown,
@@ -596,13 +603,14 @@ class _BelumiTextField extends StatelessWidget {
           fillColor: _LoginScreenState._background,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
-            vertical: 10,
+            vertical: 8,
           ),
           suffixIcon: suffix,
-          suffixIconConstraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 34,
+          suffixIconConstraints: const BoxConstraints.tightFor(
+            width: 40,
+            height: 36,
           ),
+          errorStyle: const TextStyle(height: 0, fontSize: 0),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(7),
             borderSide: const BorderSide(color: _LoginScreenState._border),
