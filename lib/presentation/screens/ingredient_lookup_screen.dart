@@ -1,12 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/platform/picked_skin_image.dart';
-import '../../core/platform/skin_image_picker.dart';
+import '../../core/services/ocr_service.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
+import 'ocr_camera_screen.dart';
 
 class IngredientLookupScreen extends StatefulWidget {
   const IngredientLookupScreen({super.key, required this.repository});
@@ -27,6 +32,8 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   bool loading = false;
   String? error;
   PickedSkinImage? image;
+  String? _ocrText; // Text extracted by OCR from image
+  String? _imagePath; // File path of picked/captured image
   IngredientListResult? searchResult;
   IngredientScanResult? scan;
 
@@ -85,10 +92,16 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
             ),
             _ => _ScanPanel(
               image: image,
+              ocrText: _ocrText,
               loading: loading,
-              onCamera: () => _pickAndScan(true),
+              onCamera: _openOcrCamera,
               onUpload: () => _pickAndScan(false),
-              onClear: () => setState(() => image = null),
+              onClear: () => setState(() {
+                image = null;
+                _ocrText = null;
+                _imagePath = null;
+                scan = null;
+              }),
             ),
           },
         ),
@@ -154,11 +167,71 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
     }
   }
 
+  /// Open the custom camera screen with flash toggle for OCR scanning.
+  Future<void> _openOcrCamera() async {
+    final imagePath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const OcrCameraScreen()),
+    );
+    if (imagePath == null || !mounted) return;
+    await _processImageForOcr(imagePath);
+  }
+
+  /// Pick image from gallery and run OCR.
   Future<void> _pickAndScan(bool preferCamera) async {
-    final picked = await pickSkinImage(preferCamera: preferCamera);
-    if (picked == null) return;
-    setState(() => image = picked);
-    await _scan(picked.dataUrl);
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 1800,
+    );
+    if (file == null || !mounted) return;
+    await _processImageForOcr(file.path);
+  }
+
+  /// Process image: show preview, run OCR, then send extracted text to backend.
+  Future<void> _processImageForOcr(String imagePath) async {
+    // Create preview image
+    final bytes = await File(imagePath).readAsBytes();
+    final mimeType = imagePath.toLowerCase().endsWith('.png')
+        ? 'image/png'
+        : 'image/jpeg';
+    final dataUrl = 'data:$mimeType;base64,${base64Encode(bytes)}';
+
+    setState(() {
+      image = PickedSkinImage(
+        name: imagePath.split(Platform.pathSeparator).last,
+        mimeType: mimeType,
+        dataUrl: dataUrl,
+      );
+      _imagePath = imagePath;
+      _ocrText = null;
+      loading = true;
+      error = null;
+      scan = null;
+    });
+
+    try {
+      // Step 1: Extract text from image using ML Kit OCR
+      final extractedText = await OcrService.instance.extractTextFromFile(
+        imagePath,
+      );
+
+      if (!mounted) return;
+      setState(() => _ocrText = extractedText);
+
+      // Step 2: Send extracted text to backend for ingredient analysis
+      final data = await widget.repository.scanIngredientLabel(
+        extractedText,
+      );
+
+      if (!mounted) return;
+      setState(() => scan = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 }
 
@@ -351,6 +424,7 @@ class _PastePanel extends StatelessWidget {
 class _ScanPanel extends StatelessWidget {
   const _ScanPanel({
     required this.image,
+    required this.ocrText,
     required this.loading,
     required this.onCamera,
     required this.onUpload,
@@ -358,6 +432,7 @@ class _ScanPanel extends StatelessWidget {
   });
 
   final PickedSkinImage? image;
+  final String? ocrText;
   final bool loading;
   final VoidCallback onCamera;
   final VoidCallback onUpload;
@@ -390,6 +465,57 @@ class _ScanPanel extends StatelessWidget {
                 height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          // Show extracted OCR text
+          if (ocrText != null && ocrText!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.text_snippet_outlined,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t('Chữ nhận diện được (OCR)', 'Detected text (OCR)'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    ocrText!,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                    maxLines: 8,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

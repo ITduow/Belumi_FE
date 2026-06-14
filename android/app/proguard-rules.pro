@@ -53,3 +53,17 @@
 # Keep source file names for better crash reports in Crashlytics
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
+
+# ============================================================
+# Google ML Kit (Text Recognition / OCR)
+# ============================================================
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class com.google.android.gms.internal.mlkit_vision_text_common.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_text.** { *; }
+
+# ============================================================
+# CameraX (used by camera plugin for OCR scanning)
+# ============================================================
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
