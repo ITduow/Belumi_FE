@@ -148,16 +148,22 @@ class _PlanCard extends StatelessWidget {
               )
             else
               LuxuryButton(
-                label: t('Thanh toán VietQR', 'Pay with VietQR'),
-                icon: Icons.qr_code_2,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PaymentScreen(
-                      repository: repository,
-                      planCode: plan.code,
+                label: t('Đăng ký thử nghiệm', 'Subscribe (Demo)'),
+                icon: Icons.offline_pin_outlined,
+                onPressed: () {
+                  repository.activatePlan(plan.code);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        t(
+                          'Đã kích hoạt gói ${plan.name} thử nghiệm!',
+                          '${plan.name} plan activated (Demo)!',
+                        ),
+                      ),
+                      backgroundColor: Colors.green,
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
           ],
         ),
