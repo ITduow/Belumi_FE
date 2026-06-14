@@ -34,6 +34,7 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   PickedSkinImage? image;
   String? _ocrText; // Text extracted by OCR from image
   String? _imagePath; // File path of picked/captured image
+  String? _processingStatus; // Status message during OCR processing
   IngredientListResult? searchResult;
   IngredientScanResult? scan;
 
@@ -108,6 +109,28 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
         if (loading) ...[
           const SizedBox(height: 12),
           const LinearProgressIndicator(),
+          if (_processingStatus != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _processingStatus!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
         if (error != null) ...[
           const SizedBox(height: 12),
@@ -208,16 +231,21 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
       loading = true;
       error = null;
       scan = null;
+      _processingStatus = 'Đang tăng cường ảnh (auto-contrast)...';
     });
 
     try {
-      // Step 1: Extract text from image using ML Kit OCR
+      // Step 1: Auto-contrast + OCR text extraction
+      setState(() => _processingStatus = 'Đang nhận diện chữ (OCR)...');
       final extractedText = await OcrService.instance.extractTextFromFile(
         imagePath,
       );
 
       if (!mounted) return;
-      setState(() => _ocrText = extractedText);
+      setState(() {
+        _ocrText = extractedText;
+        _processingStatus = 'Đang phân tích thành phần...';
+      });
 
       // Step 2: Send extracted text to backend for ingredient analysis
       final data = await widget.repository.scanIngredientLabel(
@@ -230,7 +258,10 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
       if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) setState(() {
+        loading = false;
+        _processingStatus = null;
+      });
     }
   }
 }
