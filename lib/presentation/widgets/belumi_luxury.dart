@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../config/i18n/app_strings.dart';
 
@@ -38,80 +35,6 @@ class BelumiLogo extends StatefulWidget {
 }
 
 class _BelumiLogoState extends State<BelumiLogo> {
-  Timer? _adminHoldTimer;
-  bool _isHolding = false;
-  bool _opened = false;
-
-  void _startAdminHold() {
-    if (_isHolding) return;
-    _adminHoldTimer?.cancel();
-    setState(() {
-      _isHolding = true;
-      _opened = false;
-    });
-
-    _adminHoldTimer = Timer(const Duration(seconds: 5), () {
-      if (!mounted) return;
-      _opened = true;
-      setState(() => _isHolding = false);
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 1),
-          content: Text(
-            belumiCopy(
-              context,
-            ).t('Đang mở chế độ quản trị...', 'Opening admin mode...'),
-          ),
-        ),
-      );
-      context.go('/admin-login');
-    });
-  }
-
-  void _cancelAdminHold() {
-    _adminHoldTimer?.cancel();
-    _adminHoldTimer = null;
-    if (!mounted || _opened) return;
-    setState(() => _isHolding = false);
-  }
-
-  static const int _adminTapTarget = 5;
-  int _adminTapCount = 0;
-  DateTime? _lastTapAt;
-
-  void _handleAdminTap() {
-    final now = DateTime.now();
-    final lastTapAt = _lastTapAt;
-    if (lastTapAt == null ||
-        now.difference(lastTapAt) > const Duration(seconds: 3)) {
-      _adminTapCount = 0;
-    }
-
-    _lastTapAt = now;
-    _adminTapCount += 1;
-    if (_adminTapCount < _adminTapTarget) return;
-
-    _adminTapCount = 0;
-    _lastTapAt = null;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        duration: const Duration(seconds: 1),
-        content: Text(
-          belumiCopy(
-            context,
-          ).t('Đang mở chế độ quản trị...', 'Opening admin mode...'),
-        ),
-      ),
-    );
-    context.go('/admin-login');
-  }
-
-  @override
-  void dispose() {
-    _adminHoldTimer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Image.asset(

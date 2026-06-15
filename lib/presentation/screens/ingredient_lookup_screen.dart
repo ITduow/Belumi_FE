@@ -33,7 +33,6 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   String? error;
   PickedSkinImage? image;
   String? _ocrText; // Text extracted by OCR from image
-  String? _imagePath; // File path of picked/captured image
   String? _processingStatus; // Status message during OCR processing
   IngredientListResult? searchResult;
   IngredientScanResult? scan;
@@ -100,7 +99,6 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
               onClear: () => setState(() {
                 image = null;
                 _ocrText = null;
-                _imagePath = null;
                 scan = null;
               }),
             ),
@@ -226,7 +224,6 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
         mimeType: mimeType,
         dataUrl: dataUrl,
       );
-      _imagePath = imagePath;
       _ocrText = null;
       loading = true;
       error = null;
@@ -258,10 +255,12 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
       if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
-      if (mounted) setState(() {
-        loading = false;
-        _processingStatus = null;
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+          _processingStatus = null;
+        });
+      }
     }
   }
 }

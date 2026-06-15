@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
-import 'payment_screen.dart';
 
 class PricingScreen extends StatelessWidget {
   const PricingScreen({super.key, required this.repository});
