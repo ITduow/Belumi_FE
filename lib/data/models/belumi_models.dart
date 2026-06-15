@@ -311,14 +311,46 @@ class SkinAnalysisResult {
 
   String get signalSummary {
     final signals = <String>[
-      'Acne: $acneLevel',
-      if (darkSpots) 'Dark spots',
-      if (enlargedPores) 'Enlarged pores',
-      if (redness) 'Redness',
-      if (acneTypes.isNotEmpty) 'Acne types: ${acneTypes.join(', ')}',
-      if (skinCondition.isNotEmpty) 'Condition: $skinCondition',
+      'Mức độ mụn nhìn thấy: ${_displayAcneLevel(acneLevel)}',
+      if (darkSpots) 'Vùng da không đều màu',
+      if (enlargedPores) 'Lỗ chân lông rõ',
+      if (redness) 'Vùng ửng đỏ',
+      if (acneTypes.isNotEmpty)
+        'Dạng mụn nhìn thấy: ${acneTypes.map(_displayAcneType).join(', ')}',
+      if (skinCondition.isNotEmpty)
+        'Mức chăm sóc: ${_displaySkinCondition(skinCondition)}',
     ];
     return signals.join('\n');
+  }
+
+  static String _displayAcneLevel(String value) {
+    return switch (value.toLowerCase().trim()) {
+      'mild' => 'Nhẹ',
+      'moderate' => 'Vừa',
+      'severe' => 'Nổi bật',
+      _ => 'Không thấy rõ',
+    };
+  }
+
+  static String _displayAcneType(String value) {
+    return switch (value.toLowerCase().trim()) {
+      'closed_comedone_like' => 'mụn ẩn / vùng da sần nhỏ',
+      'open_comedone_like' => 'điểm tối ở lỗ chân lông',
+      'papule_like' => 'nốt ửng đỏ nhỏ',
+      'pustule_like' => 'nốt có đầu trắng',
+      'nodule_or_cyst_like' => 'vùng mụn nổi rõ',
+      _ => value,
+    };
+  }
+
+  static String _displaySkinCondition(String value) {
+    return switch (value.toLowerCase().trim()) {
+      'critical' || 'routine_focus' => 'Cần chăm sóc kỹ hơn',
+      'needs_care' => 'Cần chăm sóc đều đặn',
+      'needs_attention' => 'Nên theo dõi routine',
+      'good' => 'Ổn định',
+      _ => value,
+    };
   }
 
   factory SkinAnalysisResult.fromApiJson(
@@ -338,9 +370,9 @@ class SkinAnalysisResult {
     final recommendations = [
       if (description.isNotEmpty) description,
       if (advice.isNotEmpty)
-        'Lời khuyên:\n${advice.map((x) => '- $x').join('\n')}',
+        'Gợi ý routine:\n${advice.map((x) => '- $x').join('\n')}',
       if (warnings.isNotEmpty)
-        'Cần lưu ý:\n${warnings.map((x) => '- $x').join('\n')}',
+        'Lưu ý khi chăm sóc da:\n${warnings.map((x) => '- $x').join('\n')}',
     ].join('\n\n');
 
     return SkinAnalysisResult(

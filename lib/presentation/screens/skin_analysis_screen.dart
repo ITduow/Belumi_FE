@@ -259,7 +259,7 @@ class _IntroStep extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            l.t('Phân tích da bằng AI', 'AI Skin Analysis'),
+            l.t('Hồ sơ chăm sóc da bằng AI', 'AI Beauty Skin Profile'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: BelumiLuxury.black,
@@ -269,8 +269,8 @@ class _IntroStep extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             l.t(
-              'Nhận gợi ý chăm sóc da cá nhân được hỗ trợ bởi phân tích AI',
-              'Get personalized skincare recommendations powered by AI analysis',
+              'Nhận gợi ý routine làm đẹp dựa trên ảnh và hồ sơ da của bạn',
+              'Get beauty routine suggestions based on your photo and skin profile',
             ),
             textAlign: TextAlign.center,
           ),
@@ -287,7 +287,7 @@ class _IntroStep extends StatelessWidget {
                 const SizedBox(height: 18),
                 _HowItem(
                   number: '1',
-                  title: l.t('Chụp ảnh selfie', 'Take a selfie'),
+                  title: l.t('Chụp ảnh da mặt', 'Take a face photo'),
                   subtitle: l.t(
                     'Ánh sáng tự nhiên, không lọc, khuôn mặt giữa khung',
                     'Natural light, no filters, face centered in frame',
@@ -295,7 +295,7 @@ class _IntroStep extends StatelessWidget {
                 ),
                 _HowItem(
                   number: '2',
-                  title: l.t('Trả lời câu hỏi nhanh', 'Answer quick questions'),
+                  title: l.t('Chọn hồ sơ da cơ bản', 'Choose your basic skin profile'),
                   subtitle: l.t(
                     '5 thao tác về da, không cần gõ',
                     '5 simple skin profile steps, no typing needed',
@@ -304,12 +304,12 @@ class _IntroStep extends StatelessWidget {
                 _HowItem(
                   number: '3',
                   title: l.t(
-                    'Nhận quy trình cá nhân',
-                    'Receive a personalized routine',
+                    'Nhận routine gợi ý',
+                    'Receive routine suggestions',
                   ),
                   subtitle: l.t(
-                    'Gợi ý được hỗ trợ bởi AI phù hợp với da của bạn',
-                    'AI-supported recommendations tailored to your skin',
+                    'Gợi ý làm đẹp được cá nhân hóa theo hồ sơ da của bạn',
+                    'Beauty suggestions tailored to your skin profile',
                   ),
                   dark: true,
                 ),
@@ -324,7 +324,7 @@ class _IntroStep extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onStart,
               icon: const Icon(Icons.auto_awesome),
-              label: Text(l.t('Bắt đầu phân tích da', 'Start skin analysis')),
+              label: Text(l.t('Tạo hồ sơ da', 'Create skin profile')),
             ),
           ),
         ],
@@ -367,12 +367,12 @@ class _ConsentStep extends StatelessWidget {
             _ConsentTile(
               value: consent,
               title: l.t(
-                'Tôi đồng ý xử lý ảnh để phân tích',
-                'I consent to image processing for analysis',
+                'Tôi đồng ý xử lý ảnh để tạo hồ sơ da',
+                'I consent to image processing for my skin profile',
               ),
               subtitle: l.t(
-                'Ảnh của bạn sẽ được xử lý để phân tích tình trạng da. Belumi không xem đây là chẩn đoán y tế.',
-                'Your image will be processed to analyze skin type and condition. We keep your data protected.',
+                'Ảnh của bạn sẽ được xử lý để nhận diện các đặc điểm nhìn thấy và tạo gợi ý routine làm đẹp.',
+                'Your photo will be processed to identify visible features and create beauty routine suggestions.',
               ),
               onChanged: onConsentChanged,
             ),
@@ -380,12 +380,12 @@ class _ConsentStep extends StatelessWidget {
             _ConsentTile(
               value: deleteAfter,
               title: l.t(
-                'Xóa ảnh sau khi phân tích xong',
-                'Delete image after analysis',
+                'Xóa ảnh sau khi tạo kết quả',
+                'Delete photo after results',
               ),
               subtitle: l.t(
-                'Tự động xóa ảnh của bạn sau khi kết quả được tạo ra',
-                'Automatically delete your image after the result is generated',
+                'Tự động xóa ảnh sau khi hồ sơ da được tạo',
+                'Automatically delete your photo after your skin profile is created',
               ),
               onChanged: onDeleteChanged,
             ),
@@ -431,7 +431,7 @@ class _PhotoStep extends StatelessWidget {
     return _PageShell(
       locale: locale,
       badge: l.t('Bước 2 / 3', 'Step 2 of 3'),
-      title: l.t('Chụp ảnh selfie', 'Take a Selfie'),
+      title: l.t('Chụp ảnh da mặt', 'Take a face photo'),
       subtitle: l.t(
         'Để có kết quả tốt nhất, hãy làm theo hướng dẫn dưới đây',
         'For the best result, follow the guidance below',
@@ -594,7 +594,7 @@ class _QuizStep extends StatelessWidget {
     return _PageShell(
       locale: locale,
       badge: l.t('Bước 3 / 3', 'Step 3 of 3'),
-      title: l.t('Xác định loại da', 'Identify Your Skin Type'),
+      title: l.t('Chọn loại da của bạn', 'Choose Your Skin Type'),
       subtitle: l.t(
         'Chọn cảm giác da sau khi rửa mặt và chờ khoảng 30 phút.',
         'Choose how your skin feels about 30 minutes after cleansing.',
@@ -637,7 +637,7 @@ class _QuizStep extends StatelessWidget {
               onNext: skinType.isEmpty || loading ? null : onAnalyze,
               nextLabel: loading
                   ? l.t('Đang phân tích...', 'Analyzing...')
-                  : l.t('Phân tích da của tôi', 'Analyze my skin'),
+                  : l.t('Tạo hồ sơ da của tôi', 'Create my skin profile'),
               backLabel: l.t('Quay lại', 'Back'),
             ),
           ],
@@ -731,7 +731,7 @@ class _ResultStep extends StatelessWidget {
           const Icon(Icons.check_circle, color: Color(0xFF4D8B6F), size: 34),
           const SizedBox(height: 10),
           Text(
-            l.t('Kết quả phân tích da của bạn', 'Your Skin Analysis Result'),
+            l.t('Hồ sơ chăm sóc da', 'Beauty Skin Profile'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: BelumiLuxury.black,
@@ -753,7 +753,7 @@ class _ResultStep extends StatelessWidget {
                 _SkinProfileSummary(result: data, locale: locale),
                 const SizedBox(height: 20),
                 _MiniSection(
-                  title: l.t('Phân tích hoàn tất', 'Analysis complete'),
+                  title: l.t('Nhận xét', 'Profile notes'),
                   body: data.description.isNotEmpty
                       ? data.description
                       : data.recommendations,
@@ -763,55 +763,55 @@ class _ResultStep extends StatelessWidget {
                 _ResultCardGrid(
                   children: [
                     _RoutineCard(
-                      title: l.t('Lời khuyên', 'Advice'),
+                      title: l.t('Gợi ý routine', 'Routine suggestions'),
                       color: BelumiLuxury.ink,
                       body: _bulletList(
                         data.advice,
                         fallback: l.t(
-                          'Đang cập nhật lời khuyên từ AI.',
-                          'AI advice is being updated.',
+                          'Đang cập nhật gợi ý routine từ AI.',
+                          'AI routine suggestions are being updated.',
                         ),
                       ),
                     ),
                     _RoutineCard(
-                      title: l.t('Cần lưu ý', 'Use with caution'),
+                      title: l.t('Lưu ý khi chăm sóc da', 'Skincare notes'),
                       color: const Color(0xFFB85C5C),
                       body: _bulletList(
                         data.warnings,
                         fallback: l.t(
-                          'Chưa có cảnh báo đặc biệt.',
-                          'No special cautions detected.',
+                          'Chưa có lưu ý đặc biệt.',
+                          'No special notes detected.',
                         ),
                       ),
                     ),
                     _RoutineCard(
                       title: l.t(
-                        'Vấn đề da phát hiện',
-                        'Detected skin concerns',
+                        'Đặc điểm nhìn thấy',
+                        'Visible features',
                       ),
                       color: const Color(0xFF4D8B6F),
                       body: _bulletList(
                         concernLabels,
                         fallback: l.t(
-                          'Chưa phát hiện vấn đề da rõ ràng.',
-                          'No clear skin concerns detected.',
+                          'Chưa thấy đặc điểm nổi bật.',
+                          'No prominent visible features detected.',
                         ),
                       ),
                     ),
                     _RoutineCard(
-                      title: l.t('Tín hiệu phân tích', 'Analysis signals'),
+                      title: l.t('Chi tiết hồ sơ', 'Profile details'),
                       color: BelumiLuxury.rose,
                       body: _signalSummary(data, l).isEmpty
                           ? l.t(
                               'Không có tín hiệu đặc biệt.',
-                              'No special signals detected.',
+                              'No special profile details detected.',
                             )
                           : _signalSummary(data, l),
                     ),
                     _RoutineCard(
                       title: l.t(
-                        'Thành phần nên ưu tiên',
-                        'Ingredients to prioritize',
+                        'Thành phần có thể cân nhắc',
+                        'Ingredients to consider',
                       ),
                       color: const Color(0xFF4D8B6F),
                       body: _ingredientList(
@@ -825,8 +825,8 @@ class _ResultStep extends StatelessWidget {
                     ),
                     _RoutineCard(
                       title: l.t(
-                        'Cần tránh / hỏi chuyên gia',
-                        'Avoid / ask a professional',
+                        'Nên dùng thận trọng',
+                        'Use with care',
                       ),
                       color: const Color(0xFFB85C5C),
                       body: _ingredientList(
@@ -842,9 +842,9 @@ class _ResultStep extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 _MiniSection(
-                  title: l.t('Độ tin cậy phân tích', 'Analysis confidence'),
+                  title: l.t('Độ rõ của ảnh', 'Photo clarity'),
                   body:
-                      '${l.t('Độ tin cậy', 'Confidence')}: ${(data.confidence * 100).round()}%',
+                      '${l.t('Độ rõ của ảnh', 'Photo clarity')}: ${(data.confidence * 100).round()}%',
                   icon: Icons.spa_outlined,
                 ),
                 if (!isDetailed) ...[
@@ -860,8 +860,8 @@ class _ResultStep extends StatelessWidget {
                   ),
                   child: Text(
                     l.t(
-                      'Mẹo chuyên gia để có kết quả tốt nhất: hãy kiên nhẫn, thử từng sản phẩm, theo dõi thay đổi và kiên trì với quy trình.',
-                      'Expert tips for better results: be patient, patch-test products, track changes, and stay consistent with your routine.',
+                      'Mẹo routine để có kết quả tốt nhất: hãy kiên nhẫn, thử từng sản phẩm, theo dõi thay đổi và kiên trì với quy trình.',
+                      'Routine tips for better results: be patient, patch-test products, track changes, and stay consistent with your routine.',
                     ),
                     style: const TextStyle(color: Colors.white),
                   ),
@@ -912,42 +912,42 @@ class _ResultStep extends StatelessWidget {
 
   List<String> _detectedConcernLabels(SkinAnalysisResult data, _L l) => [
     if (data.acneLevel.toLowerCase().trim() != 'none')
-      '${l.t('Mụn', 'Acne')}: ${_acneLabel(data.acneLevel, l)}',
+      '${l.t('Mụn nhìn thấy', 'Visible acne')}: ${_acneLabel(data.acneLevel, l)}',
     if (data.darkSpots)
-      l.t('Thâm mụn / tăng sắc tố', 'Dark spots / hyperpigmentation'),
-    if (data.enlargedPores) l.t('Lỗ chân lông to', 'Enlarged pores'),
-    if (data.redness) l.t('Đỏ da / viêm', 'Redness / inflammation'),
+      l.t('Vùng da không đều màu', 'Uneven-looking tone'),
+    if (data.enlargedPores) l.t('Lỗ chân lông rõ', 'Visible pores'),
+    if (data.redness) l.t('Vùng ửng đỏ', 'Visible redness'),
   ];
 
   String _signalSummary(SkinAnalysisResult data, _L l) {
     final signals = <String>[
-      '${l.t('Mụn', 'Acne')}: ${_acneLabel(data.acneLevel, l)}',
+      '${l.t('Mức độ mụn nhìn thấy', 'Visible acne visibility')}: ${_acneLabel(data.acneLevel, l)}',
       if (data.acneTypes.isNotEmpty)
-        '${l.t('Loại mụn', 'Acne types')}: ${_acneTypeLabels(data.acneTypes, l).join(', ')}',
-      if (data.darkSpots) l.t('Thâm/nám', 'Dark spots'),
-      if (data.enlargedPores) l.t('Lỗ chân lông to', 'Enlarged pores'),
-      if (data.redness) l.t('Đỏ da', 'Redness'),
+        '${l.t('Dạng mụn nhìn thấy', 'Visible acne forms')}: ${_acneTypeLabels(data.acneTypes, l).join(', ')}',
+      if (data.darkSpots) l.t('Vùng da không đều màu', 'Uneven-looking tone'),
+      if (data.enlargedPores) l.t('Lỗ chân lông rõ', 'Visible pores'),
+      if (data.redness) l.t('Vùng ửng đỏ', 'Visible redness'),
       if (data.skinCondition.isNotEmpty)
-        '${l.t('Tình trạng', 'Condition')}: ${_conditionLabel(data.skinCondition, l)}',
+        '${l.t('Mức chăm sóc', 'Routine focus')}: ${_conditionLabel(data.skinCondition, l)}',
     ];
     return signals.join('\n');
   }
 
   String _acneLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
-      'mild' => l.t('nhẹ', 'mild'),
-      'moderate' => l.t('trung bình', 'moderate'),
-      'severe' => l.t('nặng', 'severe'),
-      _ => l.t('không có', 'none'),
+      'mild' => l.t('Nhẹ', 'Light'),
+      'moderate' => l.t('Vừa', 'Moderate'),
+      'severe' => l.t('Nổi bật', 'Prominent'),
+      _ => l.t('Không thấy rõ', 'Not obvious'),
     };
   }
 
   String _conditionLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
-      'critical' => l.t('cần chú ý nhiều', 'critical'),
-      'needs_care' => l.t('cần chăm sóc', 'needs care'),
-      'needs_attention' => l.t('cần theo dõi', 'needs attention'),
-      'good' => l.t('ổn định', 'good'),
+      'critical' || 'routine_focus' => l.t('Cần chăm sóc kỹ hơn', 'Needs extra routine focus'),
+      'needs_care' => l.t('Cần chăm sóc đều đặn', 'Needs steady care'),
+      'needs_attention' => l.t('Nên theo dõi routine', 'Monitor your routine'),
+      'good' => l.t('Ổn định', 'Balanced'),
       _ => value,
     };
   }
@@ -958,15 +958,15 @@ class _ResultStep extends StatelessWidget {
   String _acneTypeLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
       'closed_comedone_like' => l.t(
-        'mụn ẩn/đầu trắng đóng',
-        'closed comedones',
+        'mụn ẩn / vùng da sần nhỏ',
+        'small clogged-looking texture',
       ),
-      'open_comedone_like' => l.t('mụn đầu đen', 'blackheads'),
-      'papule_like' => l.t('sẩn đỏ', 'papules'),
-      'pustule_like' => l.t('mụn mủ', 'pustules'),
+      'open_comedone_like' => l.t('điểm tối ở lỗ chân lông', 'dark pore dots'),
+      'papule_like' => l.t('nốt ửng đỏ nhỏ', 'small red-looking bumps'),
+      'pustule_like' => l.t('nốt có đầu trắng', 'whitehead-looking bumps'),
       'nodule_or_cyst_like' => l.t(
-        'nốt viêm sâu dạng nang/cục',
-        'nodule/cyst-like lesions',
+        'vùng mụn nổi rõ',
+        'prominent raised acne areas',
       ),
       _ => value,
     };
@@ -1086,8 +1086,8 @@ class _NoticeBox extends StatelessWidget {
       ),
       child: Text(
         l.t(
-          'Quan trọng: Đây chỉ là hướng dẫn thẩm mỹ, không phải tư vấn y tế. Hãy tham khảo bác sĩ da liễu khi có mối lo ngại về da.',
-          'Important: This is cosmetic guidance only, not medical advice. Please consult a dermatologist for skin health concerns.',
+          'Belumi chỉ hỗ trợ bạn tham khảo routine làm đẹp dựa trên ảnh và hồ sơ da. Kết quả không thay thế đánh giá chuyên môn.',
+          'Belumi helps you explore beauty routines based on your photo and skin profile. Results do not replace professional evaluation.',
         ),
       ),
     );
@@ -1424,12 +1424,12 @@ class _SkinProfileSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${l.t('Mức mụn', 'Acne level')}: ${_acneLabel(result.acneLevel, l)}',
+                  '${l.t('Mức độ mụn nhìn thấy', 'Visible acne visibility')}: ${_acneLabel(result.acneLevel, l)}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 if (acneTypes.isNotEmpty)
                   Text(
-                    '${l.t('Loại mụn', 'Acne types')}: ${acneTypes.join(', ')}',
+                    '${l.t('Dạng mụn nhìn thấy', 'Visible acne forms')}: ${acneTypes.join(', ')}',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
               ],
@@ -1456,10 +1456,10 @@ class _SkinProfileSummary extends StatelessWidget {
 
   String _acneLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
-      'mild' => l.t('nhẹ', 'mild'),
-      'moderate' => l.t('trung bình', 'moderate'),
-      'severe' => l.t('nặng', 'severe'),
-      _ => l.t('không có', 'none'),
+      'mild' => l.t('Nhẹ', 'Light'),
+      'moderate' => l.t('Vừa', 'Moderate'),
+      'severe' => l.t('Nổi bật', 'Prominent'),
+      _ => l.t('Không thấy rõ', 'Not obvious'),
     };
   }
 
@@ -1469,15 +1469,15 @@ class _SkinProfileSummary extends StatelessWidget {
   String _acneTypeLabel(String value, _L l) {
     return switch (value.toLowerCase().trim()) {
       'closed_comedone_like' => l.t(
-        'mụn ẩn/đầu trắng đóng',
-        'closed comedones',
+        'mụn ẩn / vùng da sần nhỏ',
+        'small clogged-looking texture',
       ),
-      'open_comedone_like' => l.t('mụn đầu đen', 'blackheads'),
-      'papule_like' => l.t('sẩn đỏ', 'papules'),
-      'pustule_like' => l.t('mụn mủ', 'pustules'),
+      'open_comedone_like' => l.t('điểm tối ở lỗ chân lông', 'dark pore dots'),
+      'papule_like' => l.t('nốt ửng đỏ nhỏ', 'small red-looking bumps'),
+      'pustule_like' => l.t('nốt có đầu trắng', 'whitehead-looking bumps'),
       'nodule_or_cyst_like' => l.t(
-        'nốt viêm sâu dạng nang/cục',
-        'nodule/cyst-like lesions',
+        'vùng mụn nổi rõ',
+        'prominent raised acne areas',
       ),
       _ => value,
     };
