@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,7 +27,17 @@ import '../../presentation/screens/wishlist_screen.dart';
 import '../shell/app_shell.dart';
 
 final legacyRepositoryProvider = Provider<BelumiRepository>((ref) {
-  final repository = BelumiRepository(ApiClient());
+  final repository = BelumiRepository(ApiClient(
+    tokenProvider: () async {
+      try {
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          return await firebaseUser.getIdToken();
+        }
+      } catch (_) {}
+      return null;
+    },
+  ));
 
   void syncLegacyAuth(AsyncValue<AppUser?> authState) {
     final user = authState.valueOrNull;

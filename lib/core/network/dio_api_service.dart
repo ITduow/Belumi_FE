@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../config/app_config.dart';
 import '../storage/token_storage.dart';
@@ -18,7 +19,14 @@ class DioApiService {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _tokenStorage.readToken();
+          String? token;
+          try {
+            final firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser != null) {
+              token = await firebaseUser.getIdToken();
+            }
+          } catch (_) {}
+          token ??= await _tokenStorage.readToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }

@@ -14,9 +14,7 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 final roleServiceProvider = Provider<RoleService>((ref) => RoleService());
 
 final adminAuthServiceProvider = Provider<AdminAuthService>(
-  (ref) => AdminAuthService(
-    authService: ref.watch(authServiceProvider),
-  ),
+  (ref) => AdminAuthService(authService: ref.watch(authServiceProvider)),
 );
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

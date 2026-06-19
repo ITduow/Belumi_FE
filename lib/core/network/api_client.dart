@@ -6,11 +6,23 @@ import '../config/app_config.dart';
 import 'api_exception.dart';
 
 class ApiClient {
-  ApiClient({String? baseUrl})
-    : baseUrl = baseUrl ?? AppConfig.resolvedApiBaseUrl;
+  ApiClient({String? baseUrl, Future<String?> Function()? tokenProvider})
+    : baseUrl = baseUrl ?? AppConfig.resolvedApiBaseUrl,
+      _tokenProvider = tokenProvider;
 
   final String baseUrl;
+  final Future<String?> Function()? _tokenProvider;
   String? token;
+
+  Future<String?> _resolveToken() async {
+    if (_tokenProvider != null) {
+      try {
+        final t = await _tokenProvider!();
+        if (t != null) return t;
+      } catch (_) {}
+    }
+    return token;
+  }
 
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, Map<String, dynamic> body) =>
@@ -21,8 +33,9 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final request = http.MultipartRequest('POST', uri)..fields.addAll(fields);
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
+    final resolvedToken = await _resolveToken();
+    if (resolvedToken != null) {
+      request.headers['Authorization'] = 'Bearer $resolvedToken';
     }
 
     final streamedResponse = await request.send();
@@ -49,8 +62,10 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final headers = <String, String>{'Content-Type': 'application/json'};
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
+    final resolvedToken = await _resolveToken();
+    print('ApiClient token value: "$resolvedToken"');
+    if (resolvedToken != null) {
+      headers['Authorization'] = 'Bearer $resolvedToken';
     }
 
     final response = switch (method) {
@@ -62,6 +77,8 @@ class ApiClient {
     };
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      print('ApiClient Error: $method $path -> ${response.statusCode}');
+      print('ApiClient Error Body: "${response.body}"');
       throw ApiException(
         _errorMessage(response.body),
         statusCode: response.statusCode,
