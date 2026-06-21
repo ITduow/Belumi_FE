@@ -20,8 +20,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const Color _border = Color(0xFFD9CCC5);
 
   final formKey = GlobalKey<FormState>();
+  final fullName = TextEditingController();
+  final phone = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  bool registerMode = false;
   bool rememberAccount = false;
   bool obscurePassword = true;
   int adminTapCount = 0;
@@ -30,6 +33,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    fullName.dispose();
+    phone.dispose();
     email.dispose();
     password.dispose();
     super.dispose();
@@ -58,293 +63,359 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 50, 24, 0),
                       child: Stack(
-                      children: [
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: Row(
-                            children: [
-                              TextButton.icon(
-                                onPressed: loading
-                                    ? null
-                                    : () => context.go('/home'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: _brandBrown,
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(0, 34),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                icon: const Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  size: 15,
-                                ),
-                                label: Text(
-                                  t('Trang chủ', 'Home'),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              _LanguageSwitch(
-                                locale: copy.locale,
-                                onChanged: (locale) => ref
-                                    .read(appLocaleProvider.notifier)
-                                    .state = locale,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Center(
-                          child: Form(
-                            key: formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: Row(
                               children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _handleAdminLogoTap,
-                                  child: Image.asset(
-                                    'assets/images/belumi_logo_login_full.png',
-                                    width: 210,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                _BelumiTextField(
-                                  controller: email,
-                                  hintText: t(
-                                    'Mail/Số điện thoại',
-                                    'Email/Phone number',
-                                  ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) =>
-                                      value == null || !value.contains('@')
-                                      ? t('Email không hợp lệ', 'Invalid email')
-                                      : null,
-                                ),
-                                const SizedBox(height: 14),
-                                _BelumiTextField(
-                                  controller: password,
-                                  hintText: t('Mật khẩu', 'Password'),
-                                  obscureText: obscurePassword,
-                                  suffix: IconButton(
+                                TextButton.icon(
+                                  onPressed: loading
+                                      ? null
+                                      : () => context.go('/home'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: _brandBrown,
                                     padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints.tightFor(
-                                      width: 40,
-                                      height: 36,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                    tooltip: obscurePassword
-                                        ? t('Hiện mật khẩu', 'Show password')
-                                        : t('Ẩn mật khẩu', 'Hide password'),
-                                    icon: Icon(
-                                      obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: _mutedText,
-                                      size: 19,
-                                    ),
-                                    onPressed: () => setState(
-                                      () => obscurePassword = !obscurePassword,
-                                    ),
+                                    minimumSize: const Size(0, 34),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  validator: (value) =>
-                                      value == null || value.length < 6
-                                      ? t(
-                                          'Mật khẩu tối thiểu 6 ký tự',
-                                          'Password must be at least 6 characters',
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: Checkbox(
-                                        value: rememberAccount,
-                                        onChanged: loading
-                                            ? null
-                                            : (value) => setState(
-                                                  () => rememberAccount =
-                                                      value ?? false,
-                                                ),
-                                        activeColor: _buttonBrown,
-                                        side: const BorderSide(color: _border),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      t('Ghi nhớ tài khoản', 'Remember me'),
-                                      style: const TextStyle(
-                                        color: Color(0xFF8A7B72),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    TextButton(
-                                      onPressed: loading
-                                          ? null
-                                          : _showForgotPasswordNotice,
-                                      style: TextButton.styleFrom(
-                                        minimumSize: Size.zero,
-                                        padding: EdgeInsets.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        foregroundColor: _brandBrown,
-                                      ),
-                                      child: Text(
-                                        t(
-                                          'Quên mật khẩu?',
-                                          'Forgot password?',
-                                        ),
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 36,
-                                  child: ElevatedButton(
-                                    onPressed: loading ? null : _submitLogin,
-                                    style: ElevatedButton.styleFrom(
-                                      elevation: 0,
-                                      backgroundColor: _buttonBrown,
-                                      disabledBackgroundColor:
-                                          _buttonBrown.withValues(alpha: 0.62),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(22),
-                                      ),
-                                    ),
-                                    child: loading
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    Colors.white,
-                                                  ),
-                                            ),
-                                          )
-                                        : Text(
-                                            t('Đăng nhập', 'Login'),
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 15,
                                   ),
-                                ),
-                                if (errorText != null) ...[
-                                  const SizedBox(height: 12),
-                                  _AuthNotice(
-                                    icon: Icons.error_outline,
-                                    message: errorText!,
-                                    tone: _AuthNoticeTone.error,
-                                  ),
-                                ],
-                                const SizedBox(height: 18),
-                                Text(
-                                  t('Hoặc', 'Or'),
-                                  style: const TextStyle(
-                                    color: _mutedText,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 36,
-                                  child: OutlinedButton(
-                                    onPressed: loading
-                                        ? null
-                                        : _submitGoogleLogin,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: _buttonBrown,
-                                      side: const BorderSide(
-                                        color: _buttonBrown,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(22),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Image.asset(
-                                          'assets/images/google_logo.png',
-                                          width: 18,
-                                          height: 18,
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Text(
-                                          t(
-                                            'Tiếp tục với Google',
-                                            'Continue with Google',
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
+                                  label: Text(
+                                    t('Trang chủ', 'Home'),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                Wrap(
-                                  alignment: WrapAlignment.center,
-                                  crossAxisAlignment:
-                                      WrapCrossAlignment.center,
-                                  children: [
-                                    Text(
-                                      t(
-                                        'Chưa có tài khoản? ',
-                                        'No account yet? ',
-                                      ),
-                                      style: const TextStyle(
-                                        color: _mutedText,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: loading
-                                          ? null
-                                          : () => context.go('/register'),
-                                      child: Text(
-                                        t('Đăng ký ngay', 'Register now'),
-                                        style: const TextStyle(
-                                          color: _brandBrown,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                const Spacer(),
+                                _LanguageSwitch(
+                                  locale: copy.locale,
+                                  onChanged: (locale) =>
+                                      ref
+                                              .read(appLocaleProvider.notifier)
+                                              .state =
+                                          locale,
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
+                          Center(
+                            child: Form(
+                              key: formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: _handleAdminLogoTap,
+                                    child: Image.asset(
+                                      'assets/images/belumi_logo_login_full.png',
+                                      width: 210,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  if (registerMode) ...[
+                                    _BelumiTextField(
+                                      controller: fullName,
+                                      hintText: t('Họ tên', 'Full name'),
+                                      keyboardType: TextInputType.name,
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                          ? t(
+                                              'Nhập họ tên',
+                                              'Enter your full name',
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _BelumiTextField(
+                                      controller: phone,
+                                      hintText: t(
+                                        'Số điện thoại',
+                                        'Phone number',
+                                      ),
+                                      keyboardType: TextInputType.phone,
+                                      validator: (value) =>
+                                          value == null ||
+                                              value.trim().length < 8
+                                          ? t(
+                                              'Số điện thoại không hợp lệ',
+                                              'Invalid phone number',
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  _BelumiTextField(
+                                    controller: email,
+                                    hintText: t(
+                                      'Mail/Số điện thoại',
+                                      'Email/Phone number',
+                                    ),
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: (value) =>
+                                        value == null || !value.contains('@')
+                                        ? t(
+                                            'Email không hợp lệ',
+                                            'Invalid email',
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _BelumiTextField(
+                                    controller: password,
+                                    hintText: t('Mật khẩu', 'Password'),
+                                    obscureText: obscurePassword,
+                                    suffix: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints:
+                                          const BoxConstraints.tightFor(
+                                            width: 40,
+                                            height: 36,
+                                          ),
+                                      visualDensity: VisualDensity.compact,
+                                      tooltip: obscurePassword
+                                          ? t('Hiện mật khẩu', 'Show password')
+                                          : t('Ẩn mật khẩu', 'Hide password'),
+                                      icon: Icon(
+                                        obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: _mutedText,
+                                        size: 19,
+                                      ),
+                                      onPressed: () => setState(
+                                        () =>
+                                            obscurePassword = !obscurePassword,
+                                      ),
+                                    ),
+                                    validator: (value) =>
+                                        value == null || value.length < 6
+                                        ? t(
+                                            'Mật khẩu tối thiểu 6 ký tự',
+                                            'Password must be at least 6 characters',
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  if (!registerMode)
+                                    Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: Checkbox(
+                                            value: rememberAccount,
+                                            onChanged: loading
+                                                ? null
+                                                : (value) => setState(
+                                                    () => rememberAccount =
+                                                        value ?? false,
+                                                  ),
+                                            activeColor: _buttonBrown,
+                                            side: const BorderSide(
+                                              color: _border,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            materialTapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          t('Ghi nhớ tài khoản', 'Remember me'),
+                                          style: const TextStyle(
+                                            color: Color(0xFF8A7B72),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        TextButton(
+                                          onPressed: loading
+                                              ? null
+                                              : _showForgotPasswordNotice,
+                                          style: TextButton.styleFrom(
+                                            minimumSize: Size.zero,
+                                            padding: EdgeInsets.zero,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                            foregroundColor: _brandBrown,
+                                          ),
+                                          child: Text(
+                                            t(
+                                              'Quên mật khẩu?',
+                                              'Forgot password?',
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  const SizedBox(height: 14),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 36,
+                                    child: ElevatedButton(
+                                      onPressed: loading
+                                          ? null
+                                          : registerMode
+                                          ? _submitRegister
+                                          : _submitLogin,
+                                      style: ElevatedButton.styleFrom(
+                                        elevation: 0,
+                                        backgroundColor: _buttonBrown,
+                                        disabledBackgroundColor: _buttonBrown
+                                            .withValues(alpha: 0.62),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            22,
+                                          ),
+                                        ),
+                                      ),
+                                      child: loading
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(Colors.white),
+                                              ),
+                                            )
+                                          : Text(
+                                              registerMode
+                                                  ? t('Đăng ký', 'Register')
+                                                  : t('Đăng nhập', 'Login'),
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  if (errorText != null) ...[
+                                    const SizedBox(height: 12),
+                                    _AuthNotice(
+                                      icon: Icons.error_outline,
+                                      message: errorText!,
+                                      tone: _AuthNoticeTone.error,
+                                    ),
+                                  ],
+                                  if (!registerMode) ...[
+                                    const SizedBox(height: 18),
+                                    Text(
+                                      t('Hoặc', 'Or'),
+                                      style: const TextStyle(
+                                        color: _mutedText,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 36,
+                                      child: OutlinedButton(
+                                        onPressed: loading
+                                            ? null
+                                            : _submitGoogleLogin,
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: _buttonBrown,
+                                          side: const BorderSide(
+                                            color: _buttonBrown,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              22,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Image.asset(
+                                              'assets/images/google_logo.png',
+                                              width: 18,
+                                              height: 18,
+                                            ),
+                                            const SizedBox(width: 14),
+                                            Text(
+                                              t(
+                                                'Tiếp tục với Google',
+                                                'Continue with Google',
+                                              ),
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        registerMode
+                                            ? t(
+                                                'Đã có tài khoản? ',
+                                                'Already have an account? ',
+                                              )
+                                            : t(
+                                                'Chưa có tài khoản? ',
+                                                'No account yet? ',
+                                              ),
+                                        style: const TextStyle(
+                                          color: _mutedText,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: loading ? null : _toggleAuthMode,
+                                        child: Text(
+                                          registerMode
+                                              ? t('Đăng nhập', 'Login')
+                                              : t(
+                                                  'Đăng ký ngay',
+                                                  'Register now',
+                                                ),
+                                          style: const TextStyle(
+                                            color: _brandBrown,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -450,6 +521,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       tone: _AuthNoticeTone.success,
     );
     context.go('/admin-login');
+  }
+
+  void _toggleAuthMode() {
+    formKey.currentState?.reset();
+    setState(() {
+      registerMode = !registerMode;
+      errorText = null;
+      obscurePassword = true;
+    });
+  }
+
+  Future<void> _submitRegister() async {
+    if (!formKey.currentState!.validate()) return;
+
+    setState(() => errorText = null);
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .register(
+            email: email.text.trim(),
+            password: password.text,
+            fullName: fullName.text.trim(),
+            phone: phone.text.trim(),
+          );
+      if (!mounted) return;
+
+      _showAuthSnackBar(
+        message: ref
+            .read(belumiCopyProvider)
+            .t('Đăng ký thành công', 'Registration successful'),
+        tone: _AuthNoticeTone.success,
+      );
+      context.go('/home');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => errorText = _friendlyRegisterError(error));
+    }
+  }
+
+  String _friendlyRegisterError(Object error) {
+    final message = error.toString();
+    if (message.contains('email-already-in-use')) {
+      return 'Email này đã được đăng ký.';
+    }
+    if (message.contains('weak-password')) {
+      return 'Mật khẩu chưa đủ mạnh. Vui lòng dùng mật khẩu khác.';
+    }
+    if (message.contains('invalid-email')) {
+      return 'Email không hợp lệ.';
+    }
+    if (message.contains('network-request-failed')) {
+      return 'Không kết nối được máy chủ đăng ký. Kiểm tra mạng rồi thử lại.';
+    }
+    return message;
   }
 
   String _friendlyError(Object error) {

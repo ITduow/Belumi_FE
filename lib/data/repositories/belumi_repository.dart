@@ -40,6 +40,12 @@ class BelumiRepository {
     currentPlan = planCode;
   }
 
+  Future<void> deleteAccount() async {
+    _requireLogin();
+    await api.delete('/account');
+    logout();
+  }
+
   Future<List<Product>> products() async {
     try {
       final data = await api.get('/products') as List<dynamic>;

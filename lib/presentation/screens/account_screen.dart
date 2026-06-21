@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/repositories/belumi_repository.dart';
+import '../../features/auth/application/auth_controller.dart';
 import '../widgets/belumi_luxury.dart';
 
-class AccountScreen extends StatefulWidget {
+class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key, required this.repository});
 
   final BelumiRepository repository;
 
   @override
-  State<AccountScreen> createState() => _AccountScreenState();
+  ConsumerState<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> {
+class _AccountScreenState extends ConsumerState<AccountScreen> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final email = TextEditingController();
   final message = TextEditingController();
+  bool deletingAccount = false;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +138,113 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
         ],
+        if (widget.repository.isLoggedIn) ...[
+          const SizedBox(height: 24),
+          LuxuryPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LuxuryHeader(
+                  eyebrow: t('Tài khoản', 'Account'),
+                  title: t('Xóa tài khoản', 'Delete account'),
+                  subtitle: t(
+                    'Xóa tài khoản Belumi và dữ liệu liên quan khỏi hệ thống. Hành động này không thể hoàn tác.',
+                    'Delete your Belumi account and related data from the system. This action cannot be undone.',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: deletingAccount ? null : _confirmDeleteAccount,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB85C5C),
+                      side: const BorderSide(color: Color(0xFFB85C5C)),
+                    ),
+                    icon: deletingAccount
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.delete_forever_outlined),
+                    label: Text(
+                      deletingAccount
+                          ? t('Đang xóa...', 'Deleting...')
+                          : t('Xóa tài khoản', 'Delete account'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final t = belumiCopy(context).t;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t('Xóa tài khoản?', 'Delete account?')),
+        content: Text(
+          t(
+            'Tài khoản và dữ liệu Belumi liên quan sẽ bị xóa khỏi hệ thống. Bạn có chắc muốn tiếp tục?',
+            'Your Belumi account and related data will be deleted from the system. Are you sure you want to continue?',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t('Hủy', 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB85C5C),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(t('Xóa', 'Delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteAccount();
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final t = belumiCopy(context).t;
+    setState(() => deletingAccount = true);
+    try {
+      await widget.repository.deleteAccount();
+      await ref.read(authControllerProvider.notifier).logout();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t('Tài khoản đã được xóa.', 'Your account has been deleted.'),
+          ),
+        ),
+      );
+      context.go('/login');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t(
+              'Không xóa được tài khoản. Vui lòng thử lại.',
+              'Could not delete the account. Please try again.',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => deletingAccount = false);
+    }
   }
 }

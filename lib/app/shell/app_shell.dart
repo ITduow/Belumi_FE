@@ -18,9 +18,7 @@ class AppShell extends ConsumerWidget {
     '/home',
     '/skincare-ai',
     '/ingredient-lookup',
-    '/virtual-makeup',
     '/news',
-    '/wishlist',
   ];
 
   @override
@@ -39,20 +37,6 @@ class AppShell extends ConsumerWidget {
         titleSpacing: 12,
         title: const BelumiLogo(height: 30),
         actions: [
-          SegmentedButton<String>(
-            showSelectedIcon: false,
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            segments: const [
-              ButtonSegment(value: 'vi', label: Text('VI')),
-              ButtonSegment(value: 'en', label: Text('EN')),
-            ],
-            selected: {locale},
-            onSelectionChanged: (value) =>
-                ref.read(appLocaleProvider.notifier).state = value.first,
-          ),
           IconButton(
             tooltip: strings.t('about'),
             onPressed: () => context.go('/about'),
@@ -107,41 +91,29 @@ class AppShell extends ConsumerWidget {
           child: KeyedSubtree(key: ValueKey(locale), child: child),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFFFFF9F5),
-        indicatorColor: const Color(0xFFFFE8E0),
+      bottomNavigationBar: _BottomNavBar(
         selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-        onDestinationSelected: (index) => context.go(_routes[index]),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home),
+        onSelected: (index) => context.go(_routes[index]),
+        items: [
+          _BottomNavItem(
+            icon: Icons.home_outlined,
+            selectedIcon: Icons.home,
             label: strings.t('home'),
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.auto_awesome_outlined),
-            selectedIcon: const Icon(Icons.auto_awesome),
-            label: strings.t('skincareAi'),
+          _BottomNavItem(
+            icon: Icons.auto_awesome_outlined,
+            selectedIcon: Icons.auto_awesome,
+            label: locale == 'vi' ? 'AI da' : 'Skin AI',
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.document_scanner_outlined),
-            selectedIcon: const Icon(Icons.document_scanner),
-            label: strings.t('ingredientLookup'),
+          _BottomNavItem(
+            icon: Icons.document_scanner_outlined,
+            selectedIcon: Icons.document_scanner,
+            label: locale == 'vi' ? 'Thành phần' : 'Ingredients',
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.face_retouching_natural_outlined),
-            selectedIcon: const Icon(Icons.face_retouching_natural),
-            label: strings.t('virtualMakeup'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.article_outlined),
-            selectedIcon: const Icon(Icons.article),
+          _BottomNavItem(
+            icon: Icons.article_outlined,
+            selectedIcon: Icons.article,
             label: strings.t('news'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.favorite_border),
-            selectedIcon: const Icon(Icons.favorite),
-            label: strings.t('wishlist'),
           ),
         ],
       ),
@@ -155,6 +127,113 @@ class AppShell extends ConsumerWidget {
           builder: (_) => _ChatbotSheet(repository: repository),
         ),
         child: const Icon(Icons.message_outlined),
+      ),
+    );
+  }
+}
+
+class _BottomNavItem {
+  const _BottomNavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+}
+
+class _BottomNavBar extends StatelessWidget {
+  const _BottomNavBar({
+    required this.items,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<_BottomNavItem> items;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: Color(0xFFFFF9F5)),
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (var index = 0; index < items.length; index++)
+                Expanded(
+                  child: _BottomNavTile(
+                    item: items[index],
+                    selected: selectedIndex == index,
+                    onTap: () => onSelected(index),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavTile extends StatelessWidget {
+  const _BottomNavTile({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _BottomNavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? Theme.of(context).colorScheme.primary
+        : BelumiLuxury.muted;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 44,
+              height: 24,
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xFFFFE8E0) : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Icon(
+                selected ? item.selectedIcon : item.icon,
+                size: 20,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                height: 1.05,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
