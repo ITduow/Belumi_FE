@@ -33,7 +33,7 @@ class AppStrings {
       'news': 'Tin tức',
       'wishlist': 'Yêu thích',
       'about': 'Về Belumi',
-      'pricing': 'Bảng giá',
+      'pricing': 'Gói dịch vụ',
       'payment': 'Thanh toán',
       'adminLogin': 'Đăng nhập quản trị',
       'adminPanel': 'Quản trị',

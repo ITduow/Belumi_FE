@@ -52,6 +52,11 @@ final legacyRepositoryProvider = Provider<BelumiRepository>((ref) {
             token: user.token,
             phone: user.phone,
           );
+    if (user != null && user.subscriptionPlan != null) {
+      repository.activatePlan(user.subscriptionPlan!.toLowerCase());
+    } else {
+      repository.activatePlan('free');
+    }
   }
 
   syncLegacyAuth(ref.read(authControllerProvider));
