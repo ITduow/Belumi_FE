@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../core/network/dio_api_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
@@ -42,6 +44,20 @@ class AuthRepository {
       await _tokenStorage.clearToken();
       return null;
     }
+
+    // Tự động kiểm tra giao dịch đang chờ xử lý từ lần trước nếu có
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final orderCode = prefs.getInt('pending_payment_order_code');
+      if (orderCode != null) {
+        final response = await _api.get('/payments/status/$orderCode') as Map<String, dynamic>;
+        final status = response['status'] as String? ?? 'Pending';
+        if (status == 'Paid') {
+          await prefs.remove('pending_payment_order_code');
+          await prefs.remove('pending_payment_plan_code');
+        }
+      }
+    } catch (_) {}
 
     final user = await _syncFirebaseSession(session);
     unawaited(_ensureUserDocument(session));
