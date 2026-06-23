@@ -62,24 +62,49 @@ class AuthUser {
 
 class Plan {
   Plan({
+    this.id,
     required this.code,
     required this.name,
     required this.price,
     required this.features,
+    this.billingCycle,
   });
 
+  final String? id;
   final String code;
   final String name;
   final num price;
   final List<String> features;
+  final String? billingCycle;
 
   factory Plan.fromJson(Map<String, dynamic> json) => Plan(
+    id: json['id'] as String?,
     code: json['code'] as String? ?? 'free',
     name: json['name'] as String? ?? 'Free',
     price: json['price'] as num? ?? 0,
     features: List<String>.from(json['features'] as List<dynamic>? ?? const []),
+    billingCycle: json['billingCycle'] as String?,
   );
 }
+
+class PayOsPaymentLinkResponse {
+  PayOsPaymentLinkResponse({
+    required this.checkoutUrl,
+    required this.orderCode,
+    required this.amount,
+  });
+
+  final String checkoutUrl;
+  final int orderCode;
+  final num amount;
+
+  factory PayOsPaymentLinkResponse.fromJson(Map<String, dynamic> json) => PayOsPaymentLinkResponse(
+    checkoutUrl: json['checkoutUrl'] as String? ?? '',
+    orderCode: json['orderCode'] as int? ?? 0,
+    amount: json['amount'] as num? ?? 0,
+  );
+}
+
 
 class NewsArticle {
   NewsArticle({

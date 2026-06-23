@@ -12,7 +12,7 @@ class BelumiRepository {
 
   bool get isLoggedIn => currentUser != null;
   bool get isAdmin => currentUser?.isAdmin ?? false;
-  bool get isPro => currentPlan == 'pro';
+  bool get isPro => currentPlan == 'yearly';
 
   Future<AuthUser> login(String email, String password) =>
       throw UnsupportedError('Use Firebase AuthService for email login.');
@@ -406,24 +406,22 @@ class BelumiRepository {
     }
   }
 
-  Future<PaymentQr> createPaymentQr(String planCode, String email) async {
-    try {
-      final data =
-          await api.post('/payments/vietqr', {
-                'planCode': planCode,
-                'customerEmail': email,
-              })
-              as Map<String, dynamic>;
-      return PaymentQr.fromJson(data);
-    } catch (_) {
-      final amount = planCode == 'pro' ? 199000 : 99000;
-      return PaymentQr(
-        planCode: planCode,
-        amount: amount,
-        vietQrUrl:
-            'https://img.vietqr.io/image/BIDV-1234567890-compact2.png?amount=$amount&addInfo=BELUMI%20${planCode.toUpperCase()}',
-      );
-    }
+  Future<PayOsPaymentLinkResponse> createPayOsLink(
+    String planId,
+    String cancelUrl,
+    String returnUrl,
+  ) async {
+    final response = await api.post('/payments/payos-link', {
+      'planId': planId,
+      'cancelUrl': cancelUrl,
+      'returnUrl': returnUrl,
+    }) as Map<String, dynamic>;
+    return PayOsPaymentLinkResponse.fromJson(response);
+  }
+
+  Future<String> checkPaymentStatus(int orderCode) async {
+    final response = await api.get('/payments/status/$orderCode') as Map<String, dynamic>;
+    return response['status'] as String? ?? 'Pending';
   }
 
   Future<List<Plan>> plans() async {
@@ -433,25 +431,41 @@ class BelumiRepository {
     } catch (_) {
       return [
         Plan(
+          id: 'free-plan-id',
           code: 'free',
-          name: 'Free',
+          name: 'Gói Miễn Phí',
           price: 0,
-          features: ['Skin AI', 'News', 'Wishlist basic'],
-        ),
-        Plan(
-          code: 'plus',
-          name: 'Plus',
-          price: 99000,
-          features: ['Ingredient OCR lookup', 'More AI scans', 'Wishlist sync'],
-        ),
-        Plan(
-          code: 'pro',
-          name: 'Pro',
-          price: 199000,
+          billingCycle: 'monthly',
           features: [
-            'Virtual makeup',
-            'Advanced AI consultation',
-            'Priority recommendations',
+            'Kết quả tra cứu thành phần mỹ phẩm và phân tích da bị hạn chế',
+            'Giới hạn lượt giải thích với AI về tình trạng da hiện tại',
+            'Quy trình chăm sóc da cá nhân hóa theo loại da bị hạn chế',
+          ],
+        ),
+        Plan(
+          id: 'monthly-plan-id',
+          code: 'monthly',
+          name: 'Gói Mỗi Tháng',
+          price: 59000,
+          billingCycle: 'monthly',
+          features: [
+            'Kết quả tra cứu thành phần mỹ phẩm và phân tích da đầy đủ',
+            'Không giới hạn lượt giải thích với AI về tình trạng da hiện tại và so sánh các mỹ phẩm phù hợp với loại da',
+            'Quy trình chăm sóc da cá nhân hóa theo loại da đầy đủ',
+          ],
+        ),
+        Plan(
+          id: 'yearly-plan-id',
+          code: 'yearly',
+          name: 'Gói Mỗi Năm',
+          price: 599000,
+          billingCycle: 'yearly',
+          features: [
+            'Chi phí mỗi tháng rẻ hơn',
+            'Trải nghiệm miễn phí tính năng mới trang điểm ảo khi được ra mắt chính thức',
+            'Kết quả tra cứu thành phần mỹ phẩm và phân tích da đầy đủ',
+            'Không giới hạn lượt giải thích với AI về tình trạng da hiện tại và so sánh các mỹ phẩm phù hợp với loại da',
+            'Quy trình chăm sóc da cá nhân hóa theo loại da đầy đủ',
           ],
         ),
       ];

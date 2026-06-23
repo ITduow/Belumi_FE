@@ -32,9 +32,9 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   String skinType = '';
 
   bool get isPlusOrPro =>
-      widget.repository.currentPlan == 'plus' ||
-      widget.repository.currentPlan == 'pro';
-  bool get isPro => widget.repository.currentPlan == 'pro';
+      widget.repository.currentPlan == 'monthly' ||
+      widget.repository.currentPlan == 'yearly';
+  bool get isPro => widget.repository.currentPlan == 'yearly';
   bool get canUsePhotoAnalysis => true;
 
   bool get isVi => ref.read(appLocaleProvider) == 'vi';
