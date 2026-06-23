@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/belumi_models.dart';
@@ -24,6 +25,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _errorMessage;
   PayOsPaymentLinkResponse? _paymentLink;
   Plan? _selectedPlan;
+  bool _paymentSuccess = false;
 
   @override
   void initState() {
@@ -96,13 +98,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           widget.repository.activatePlan(_selectedPlan!.code);
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thanh toán thành công! Gói cước của bạn đã được nâng cấp.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+        setState(() {
+          _paymentSuccess = true;
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -128,6 +126,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
+
+    if (_paymentSuccess) {
+      return _buildSuccessScreen(context);
+    }
 
     if (_isLoading) {
       return Scaffold(
@@ -290,6 +292,245 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessScreen(BuildContext context) {
+    final t = belumiCopy(context).t;
+    final planName = _selectedPlan?.name ?? t('Gói Premium', 'Premium Plan');
+    
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: BelumiLuxury.background,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Glowing Checkmark Animation-like Circle
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFE8F5E9),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                            blurRadius: 30,
+                            spreadRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          size: 64,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    
+                    // Congratulation Headers
+                    Text(
+                      t('NÂNG CẤP THÀNH CÔNG!', 'UPGRADE SUCCESSFUL!'),
+                      style: const TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      t('Chào mừng bạn đến với Belumi Premium', 'Welcome to Belumi Premium'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: BelumiLuxury.black,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.4,
+                          fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                        ),
+                        children: [
+                          TextSpan(text: t('Tài khoản của bạn đã được nâng cấp lên ', 'Your account has been upgraded to ')),
+                          TextSpan(
+                            text: planName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF193447),
+                            ),
+                          ),
+                          TextSpan(text: t('. Hãy bắt đầu tận hưởng toàn bộ các đặc quyền của hội viên cao cấp.', '. Start enjoying all the exclusive privileges of premium membership.')),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Unlocked Features section
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        t('Các tính năng bạn có thể sử dụng:', 'Features you can use now:'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          color: Color(0xFF193447),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 4 Feature Cards
+                    _buildFeatureTile(
+                      icon: Icons.auto_awesome_rounded,
+                      title: t('AI Chăm Sóc Da (Skin AI)', 'AI Skin Care (Skin AI)'),
+                      subtitle: t(
+                        'Phân tích da sâu, phát hiện mụn, nếp nhăn và đề xuất routine chăm sóc cá nhân hóa hoàn toàn miễn phí.',
+                        'Deep skin analysis, acne/wrinkle detection, and custom skin routine suggestions.',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureTile(
+                      icon: Icons.search_rounded,
+                      title: t('Tra cứu không giới hạn', 'Unlimited Ingredient Lookup'),
+                      subtitle: t(
+                        'Tra cứu nhanh chóng độ an toàn, kích ứng, công dụng và độ tương thích của mọi thành phần mỹ phẩm.',
+                        'Quickly look up safety, irritation rate, effects, and compatibility of any cosmetic ingredient.',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureTile(
+                      icon: Icons.face_retouching_natural_rounded,
+                      title: t('Trang điểm ảo AR', 'AR Virtual Try-On'),
+                      subtitle: t(
+                        'Thử trực tiếp các màu son môi, màu má, kẻ mắt chân thực qua camera trước khi quyết định mua.',
+                        'Try lipstick shades, blush, eyeliner in real-time through AR camera before buying.',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeatureTile(
+                      icon: Icons.support_agent_rounded,
+                      title: t('Hỗ trợ Chuyên gia AI 24/7', '24/7 AI Expert Chat'),
+                      subtitle: t(
+                        'Trò chuyện không giới hạn với chatbot chuyên sâu về da liễu để trả lời mọi băn khoăn về routine.',
+                        'Unlimited chat with chatbot specialized in dermatology for any questions on routines.',
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+                    
+                    // Action Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF193447),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          // Clear payment screen and go home
+                          context.go('/home');
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              t('Bắt Đầu Khám Phá Ngay', 'Start Exploring Now'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF193447).withValues(alpha: 0.06),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: const Color(0xFF193447),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    color: Color(0xFF193447),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

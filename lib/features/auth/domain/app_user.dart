@@ -6,6 +6,7 @@ class AppUser {
     required this.role,
     required this.token,
     this.phone,
+    this.subscriptionPlan,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class AppUser {
   final String role;
   final String token;
   final String? phone;
+  final String? subscriptionPlan;
 
   bool get isAdmin => role.toLowerCase() == 'admin';
 
@@ -24,6 +26,7 @@ class AppUser {
     String? role,
     String? token,
     String? phone,
+    String? subscriptionPlan,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -32,6 +35,7 @@ class AppUser {
       role: role ?? this.role,
       token: token ?? this.token,
       phone: phone ?? this.phone,
+      subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
     );
   }
 
@@ -43,6 +47,7 @@ class AppUser {
       phone: json['phone']?.toString(),
       role: _roleFromJson(json['role']),
       token: json['token']?.toString() ?? '',
+      subscriptionPlan: json['subscriptionPlan']?.toString() ?? json['subscription_plan']?.toString(),
     );
   }
 

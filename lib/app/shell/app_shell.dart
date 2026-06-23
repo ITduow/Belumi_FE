@@ -67,11 +67,17 @@ class AppShell extends ConsumerWidget {
                   context.go('/admin');
                 } else if (value == 'profile') {
                   context.go('/profile');
+                } else if (value == 'pricing') {
+                  context.push('/pricing');
                 }
               },
               itemBuilder: (_) => [
                 PopupMenuItem(enabled: false, child: Text(user.email)),
                 const PopupMenuItem(value: 'profile', child: Text('Profile')),
+                PopupMenuItem(
+                  value: 'pricing',
+                  child: Text(strings.t('pricing')),
+                ),
                 if (user.role.toLowerCase() == 'admin')
                   PopupMenuItem(
                     value: 'admin',
