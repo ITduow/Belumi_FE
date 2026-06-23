@@ -11,7 +11,7 @@ Future<void> main() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 8));
+    );
   } catch (error, stackTrace) {
     FlutterError.reportError(
       FlutterErrorDetails(

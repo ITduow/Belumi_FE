@@ -176,10 +176,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 AccountScreen(repository: legacyRepository),
           ),
           GoRoute(
-            path: '/payment/:plan',
+            path: '/payment/:planId',
             builder: (context, state) => PaymentScreen(
               repository: legacyRepository,
-              planCode: state.pathParameters['plan'] ?? 'plus',
+              planId: state.pathParameters['planId'] ?? '',
             ),
           ),
         ],
