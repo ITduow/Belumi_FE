@@ -53,12 +53,14 @@ class ApiClient {
 
   Future<dynamic> put(String path, Map<String, dynamic> body) =>
       _send('PUT', path, body: body);
+  Future<dynamic> patch(String path, dynamic body) =>
+      _send('PATCH', path, body: body);
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
   Future<dynamic> _send(
     String method,
     String path, {
-    Map<String, dynamic>? body,
+    dynamic body,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final headers = <String, String>{'Content-Type': 'application/json'};
@@ -72,6 +74,7 @@ class ApiClient {
       'GET' => await http.get(uri, headers: headers),
       'POST' => await http.post(uri, headers: headers, body: jsonEncode(body)),
       'PUT' => await http.put(uri, headers: headers, body: jsonEncode(body)),
+      'PATCH' => await http.patch(uri, headers: headers, body: jsonEncode(body)),
       'DELETE' => await http.delete(uri, headers: headers),
       _ => throw UnsupportedError('Unsupported method $method'),
     };

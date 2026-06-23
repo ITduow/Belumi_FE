@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
+import '../../features/auth/application/auth_controller.dart';
 import '../widgets/belumi_luxury.dart';
 
-class PricingScreen extends StatefulWidget {
+class PricingScreen extends ConsumerStatefulWidget {
   const PricingScreen({super.key, required this.repository});
 
   final BelumiRepository repository;
 
   @override
-  State<PricingScreen> createState() => _PricingScreenState();
+  ConsumerState<PricingScreen> createState() => _PricingScreenState();
 }
 
-class _PricingScreenState extends State<PricingScreen> {
+class _PricingScreenState extends ConsumerState<PricingScreen> {
   bool _isYearly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(authControllerProvider.notifier).restoreSession();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +151,9 @@ class _PricingScreenState extends State<PricingScreen> {
             ),
             const SizedBox(height: 28),
             
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 780;
+            Builder(
+              builder: (context) {
+                final isWide = MediaQuery.sizeOf(context).width >= 780;
                 final cards = displayPlans
                     .map(
                       (plan) => _PlanCard(repository: widget.repository, plan: plan),

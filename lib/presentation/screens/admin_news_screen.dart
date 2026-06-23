@@ -6,9 +6,10 @@ import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
 
 class AdminNewsScreen extends StatefulWidget {
-  const AdminNewsScreen({super.key, required this.repository});
+  const AdminNewsScreen({super.key, required this.repository, this.embedMode = false});
 
   final BelumiRepository repository;
+  final bool embedMode;
 
   @override
   State<AdminNewsScreen> createState() => _AdminNewsScreenState();
@@ -39,57 +40,51 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(copy.t('Quản lý tin tức', 'News management')),
-        leading: IconButton(
-          onPressed: () => context.go('/admin'),
-          icon: const Icon(Icons.arrow_back),
-        ),
-      ),
-      body: LuxuryPage(
-        children: [
-          LuxuryHero(
-            title: copy.t('Tin tức Belumi', 'Belumi News'),
-            subtitle: copy.t(
-              'Tạo, chỉnh sửa, ẩn bài viết và theo dõi hiệu quả nội dung.',
-              'Create, edit, hide articles and track content performance.',
+    final body = LuxuryPage(
+      children: [
+        LuxuryHero(
+          title: copy.t('Tin tức Belumi', 'Belumi News'),
+          subtitle: copy.t(
+            'Tạo, chỉnh sửa, ẩn bài viết và theo dõi hiệu quả nội dung.',
+            'Create, edit, hide articles and track content performance.',
+          ),
+          imageUrl:
+              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+          actions: [
+            LuxuryButton(
+              label: copy.t('Thêm bài viết', 'New article'),
+              icon: Icons.add,
+              onPressed: () => _openForm(),
             ),
-            imageUrl:
-                'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-            actions: [
-              LuxuryButton(
-                label: copy.t('Thêm bài viết', 'New article'),
-                icon: Icons.add,
-                onPressed: () => _openForm(),
+          ],
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<Map<String, dynamic>>(
+          future: widget.repository.adminNewsStatistics(),
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? const <String, dynamic>{};
+            return LuxuryPanel(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _StatTile(label: 'Total', value: data['total']),
+                  _StatTile(label: 'Published', value: data['published']),
+                  _StatTile(label: 'Draft', value: data['draft']),
+                  _StatTile(label: 'Hidden', value: data['hidden']),
+                  _StatTile(label: 'Views', value: data['totalViews']),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          FutureBuilder<Map<String, dynamic>>(
-            future: widget.repository.adminNewsStatistics(),
-            builder: (context, snapshot) {
-              final data = snapshot.data ?? const <String, dynamic>{};
-              return LuxuryPanel(
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _StatTile(label: 'Total', value: data['total']),
-                    _StatTile(label: 'Published', value: data['published']),
-                    _StatTile(label: 'Draft', value: data['draft']),
-                    _StatTile(label: 'Hidden', value: data['hidden']),
-                    _StatTile(label: 'Views', value: data['totalViews']),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          LuxuryPanel(
-            child: Column(
-              children: [
-                TextField(
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        LuxuryPanel(
+          child: Column(
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1040),
+                child: TextField(
                   controller: _searchController,
                   onSubmitted: (_) => _reload(),
                   decoration: InputDecoration(
@@ -101,80 +96,95 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: Text(copy.t('Tất cả', 'All')),
-                      selected: _status == null,
-                      onSelected: (_) => setState(() => _status = null),
-                    ),
-                    ...const ['Draft', 'Published', 'Hidden'].map(
-                      (status) => ChoiceChip(
-                        label: Text(status),
-                        selected: _status == status,
-                        onSelected: (_) => setState(() => _status = status),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _CategoryManager(repository: widget.repository),
-          const SizedBox(height: 14),
-          FutureBuilder<List<NewsArticle>>(
-            key: ValueKey('admin-news-$_refresh-$_status'),
-            future: widget.repository.adminNews(
-              status: _status,
-              search: _searchController.text,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const LuxuryPanel(child: LinearProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return LuxuryPanel(
-                  child: Text(
-                    copy.t(
-                      'Không tải được tin tức admin. Kiểm tra quyền admin.',
-                      'Could not load admin news. Check admin permission.',
-                    ),
-                    style: const TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: Text(copy.t('Tất cả', 'All')),
+                    selected: _status == null,
+                    onSelected: (_) => setState(() => _status = null),
                   ),
-                );
-              }
-              final posts = snapshot.data ?? const <NewsArticle>[];
-              if (posts.isEmpty) {
-                return LuxuryPanel(
-                  child: Text(copy.t('Chưa có bài viết.', 'No articles yet.')),
-                );
-              }
-
-              return Column(
-                children: posts
-                    .map(
-                      (post) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _AdminNewsTile(
-                          post: post,
-                          onEdit: () => _openForm(post),
-                          onHide: () async {
-                            await widget.repository.deleteNews(post);
-                            _reload();
-                          },
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
+                  ...const ['Draft', 'Published', 'Hidden'].map(
+                    (status) => ChoiceChip(
+                      label: Text(status),
+                      selected: _status == status,
+                      onSelected: (_) => setState(() => _status = status),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
+        const SizedBox(height: 14),
+        _CategoryManager(repository: widget.repository),
+        const SizedBox(height: 14),
+        FutureBuilder<List<NewsArticle>>(
+          key: ValueKey('admin-news-$_refresh-$_status'),
+          future: widget.repository.adminNews(
+            status: _status,
+            search: _searchController.text,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LuxuryPanel(child: LinearProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return LuxuryPanel(
+                child: Text(
+                  copy.t(
+                    'Không tải được tin tức admin. Kiểm tra quyền admin.',
+                    'Could not load admin news. Check admin permission.',
+                  ),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+            final posts = snapshot.data ?? const <NewsArticle>[];
+            if (posts.isEmpty) {
+              return LuxuryPanel(
+                child: Text(copy.t('Chưa có bài viết.', 'No articles yet.')),
+              );
+            }
+
+            return Column(
+              children: posts
+                  .map(
+                    (post) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _AdminNewsTile(
+                        post: post,
+                        onEdit: () => _openForm(post),
+                        onHide: () async {
+                          await widget.repository.deleteNews(post);
+                          _reload();
+                        },
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+
+    if (widget.embedMode) {
+      return body;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(copy.t('Quản lý tin tức', 'News management')),
+        leading: IconButton(
+          onPressed: () => context.go('/admin'),
+          icon: const Icon(Icons.arrow_back),
+        ),
       ),
+      body: body,
     );
   }
 }
@@ -232,9 +242,9 @@ class _CategoryManagerState extends State<_CategoryManager> {
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 620;
+          Builder(
+            builder: (context) {
+              final compact = MediaQuery.sizeOf(context).width < 800;
               final fields = [
                 TextField(
                   controller: _nameController,

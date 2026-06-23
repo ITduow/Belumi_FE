@@ -6,9 +6,10 @@ import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
 
 class AdminIngredientsScreen extends StatefulWidget {
-  const AdminIngredientsScreen({super.key, required this.repository});
+  const AdminIngredientsScreen({super.key, required this.repository, this.embedMode = false});
 
   final BelumiRepository repository;
+  final bool embedMode;
 
   @override
   State<AdminIngredientsScreen> createState() => _AdminIngredientsScreenState();
@@ -65,34 +66,28 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(copy.t('Quản lý thành phần', 'Ingredient management')),
-        leading: IconButton(
-          onPressed: () => context.go('/admin'),
-          icon: const Icon(Icons.arrow_back),
-        ),
-      ),
-      body: LuxuryPage(
-        children: [
-          LuxuryHero(
-            title: copy.t('Dữ liệu thành phần', 'Ingredient Database'),
-            subtitle: copy.t(
-              'Tạo, chỉnh sửa và tìm kiếm dữ liệu INCI dùng trong app.',
-              'Create, edit, and search INCI data used by the app.',
-            ),
-            imageUrl:
-                'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1200&q=80',
-            actions: [
-              LuxuryButton(
-                label: copy.t('Thêm thành phần', 'New ingredient'),
-                icon: Icons.add,
-                onPressed: () => _openForm(),
-              ),
-            ],
+    final body = LuxuryPage(
+      children: [
+        LuxuryHero(
+          title: copy.t('Dữ liệu thành phần', 'Ingredient Database'),
+          subtitle: copy.t(
+            'Tạo, chỉnh sửa và tìm kiếm dữ liệu INCI dùng trong app.',
+            'Create, edit, and search INCI data used by the app.',
           ),
-          const SizedBox(height: 16),
-          LuxuryPanel(
+          imageUrl:
+              'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1200&q=80',
+          actions: [
+            LuxuryButton(
+              label: copy.t('Thêm thành phần', 'New ingredient'),
+              icon: Icons.add,
+              onPressed: () => _openForm(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        LuxuryPanel(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1040),
             child: TextField(
               controller: _searchController,
               onSubmitted: (_) => _reload(),
@@ -109,57 +104,72 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          FutureBuilder<IngredientListResult>(
-            key: ValueKey('admin-ingredients-$_refresh'),
-            future: widget.repository.searchIngredients(
-              search: _searchController.text,
-              pageSize: 100,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const LuxuryPanel(child: LinearProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return LuxuryPanel(
-                  child: Text(
-                    copy.t(
-                      'Không tải được dữ liệu ingredient. Kiểm tra quyền admin và backend.',
-                      'Could not load ingredients. Check admin permission and backend.',
-                    ),
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                );
-              }
-
-              final result = snapshot.data;
-              final ingredients = result?.items ?? const <Ingredient>[];
-              if (ingredients.isEmpty) {
-                return LuxuryPanel(
-                  child: Text(
-                    copy.t('Chưa có thành phần.', 'No ingredients yet.'),
-                  ),
-                );
-              }
-
-              return Column(
-                children: ingredients
-                    .map(
-                      (ingredient) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _AdminIngredientTile(
-                          ingredient: ingredient,
-                          onEdit: () => _openForm(ingredient),
-                          onDelete: () => _delete(ingredient),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
+        ),
+        const SizedBox(height: 14),
+        FutureBuilder<IngredientListResult>(
+          key: ValueKey('admin-ingredients-$_refresh'),
+          future: widget.repository.searchIngredients(
+            search: _searchController.text,
+            pageSize: 100,
           ),
-        ],
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LuxuryPanel(child: LinearProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return LuxuryPanel(
+                child: Text(
+                  copy.t(
+                    'Không tải được dữ liệu ingredient. Kiểm tra quyền admin và backend.',
+                    'Could not load ingredients. Check admin permission and backend.',
+                  ),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final result = snapshot.data;
+            final ingredients = result?.items ?? const <Ingredient>[];
+            if (ingredients.isEmpty) {
+              return LuxuryPanel(
+                child: Text(
+                  copy.t('Chưa có thành phần.', 'No ingredients yet.'),
+                ),
+              );
+            }
+
+            return Column(
+              children: ingredients
+                  .map(
+                    (ingredient) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _AdminIngredientTile(
+                        ingredient: ingredient,
+                        onEdit: () => _openForm(ingredient),
+                        onDelete: () => _delete(ingredient),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+
+    if (widget.embedMode) {
+      return body;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(copy.t('Quản lý thành phần', 'Ingredient management')),
+        leading: IconButton(
+          onPressed: () => context.go('/admin'),
+          icon: const Icon(Icons.arrow_back),
+        ),
       ),
+      body: body,
     );
   }
 }
