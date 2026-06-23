@@ -277,9 +277,11 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
-    final isCurrent = repository.currentPlan == plan.code;
+    final currentPlan = repository.currentPlan;
+    final isCurrent = currentPlan == plan.code;
     final isPremium = plan.code != 'free';
-    final isFreeDisabled = plan.code == 'free' && repository.currentPlan != 'free';
+    final isFreeDisabled = plan.code == 'free' && currentPlan != 'free';
+    final isMonthlyDisabled = plan.code == 'monthly' && currentPlan == 'yearly';
 
     final cardBg = isPremium
         ? const Color(0xFF193447)
@@ -529,20 +531,24 @@ class _PlanCard extends StatelessWidget {
                           )
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isCurrent ? Colors.grey.shade700 : const Color(0xFFFFE8E0),
+                              backgroundColor: (isCurrent || isMonthlyDisabled) ? Colors.grey.shade700 : const Color(0xFFFFE8E0),
                               foregroundColor: const Color(0xFF193447),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            onPressed: isCurrent
+                            onPressed: (isCurrent || isMonthlyDisabled)
                                 ? null
                                 : () {
                                     context.push('/payment/${plan.id ?? plan.code}');
                                   },
                             child: Text(
-                              isCurrent ? t('Đang Sử Dụng', 'Active') : t('Nâng Cấp Ngay', 'Upgrade Now'),
+                              isCurrent
+                                  ? t('Đang Sử Dụng', 'Active')
+                                  : isMonthlyDisabled
+                                      ? t('Không Thể Chọn', 'Unavailable')
+                                      : t('Nâng Cấp Ngay', 'Upgrade Now'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 14,

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
+import '../../features/auth/application/auth_controller.dart';
 import '../widgets/belumi_luxury.dart';
 
-class PaymentScreen extends StatefulWidget {
+class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({
     super.key,
     required this.repository,
@@ -17,10 +20,10 @@ class PaymentScreen extends StatefulWidget {
   final String planId;
 
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen> {
+class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   PayOsPaymentLinkResponse? _paymentLink;
@@ -51,6 +54,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'https://belumi.vn/payment-cancel',
         'https://belumi.vn/payment-success',
       );
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('pending_payment_order_code', payOsResponse.orderCode);
+        await prefs.setString('pending_payment_plan_code', _selectedPlan!.code);
+      } catch (_) {}
 
       setState(() {
         _paymentLink = payOsResponse;
@@ -98,6 +107,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
           widget.repository.activatePlan(_selectedPlan!.code);
         }
         
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('pending_payment_order_code');
+          await prefs.remove('pending_payment_plan_code');
+        } catch (_) {}
+        
+        // Cập nhật lại session trong AuthController để đồng bộ gói mới toàn bộ app
+        ref.read(authControllerProvider.notifier).restoreSession();
+
         setState(() {
           _paymentSuccess = true;
         });
