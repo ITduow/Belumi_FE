@@ -508,23 +508,51 @@ class BelumiRepository {
   }
 
   Future<List<Map<String, dynamic>>> adminContacts() async {
-    final data = await api.get('/admin/contacts') as List<dynamic>;
-    return data.cast<Map<String, dynamic>>();
+    final data = await api.get('/admin/contacts');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   Future<Map<String, dynamic>> adminDashboard() async {
-    final data = await api.get('/admin/dashboard') as Map<String, dynamic>;
-    return data;
+    final data = await api.get('/admin/dashboard');
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    return const {};
+  }
+
+  Future<Map<String, dynamic>> adminDashboardAnalytics(String period) async {
+    final data = await api.get('/admin/dashboard/analytics?period=$period');
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    return const {};
   }
 
   Future<List<Map<String, dynamic>>> adminUsers() async {
-    final data = await api.get('/admin/users') as List<dynamic>;
-    return data.cast<Map<String, dynamic>>();
+    final data = await api.get('/admin/users');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> adminPayments() async {
+    final data = await api.get('/admin/payments');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   Future<List<Map<String, dynamic>>> adminAiUsage() async {
-    final data = await api.get('/admin/ai-usage') as List<dynamic>;
-    return data.cast<Map<String, dynamic>>();
+    final data = await api.get('/admin/ai-usage');
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   Future<List<NewsArticle>> adminNews({
@@ -537,10 +565,13 @@ class BelumiRepository {
       'category': category,
       'search': search,
     });
-    final data = await api.get('/admin/news$query') as List<dynamic>;
-    return data
-        .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
-        .toList();
+    final data = await api.get('/admin/news$query');
+    if (data is List) {
+      return data
+          .map((x) => NewsArticle.fromJson(x as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
   }
 
   Future<Map<String, dynamic>> adminNewsStatistics() async {

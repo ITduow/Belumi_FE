@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/belumi_models.dart';
 import '../../../data/repositories/belumi_repository.dart';
 import '../../../presentation/widgets/belumi_luxury.dart';
+import '../../auth/application/auth_controller.dart';
 
-class HomeScreenV2 extends StatelessWidget {
+class HomeScreenV2 extends ConsumerStatefulWidget {
   const HomeScreenV2({super.key, required this.repository});
 
   final BelumiRepository repository;
@@ -20,9 +22,28 @@ class HomeScreenV2 extends StatelessWidget {
   static const _muted = Color(0xFF816A5C);
 
   @override
+  ConsumerState<HomeScreenV2> createState() => _HomeScreenV2State();
+}
+
+class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
+  int _refreshKey = 0;
+
+  Future<void> _handleRefresh() async {
+    try {
+      await ref.read(authControllerProvider.notifier).restoreSession();
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _refreshKey++;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.wait([repository.products(), repository.news()]),
+      key: ValueKey(_refreshKey),
+      future: Future.wait([widget.repository.products(), widget.repository.news()]),
       builder: (context, snapshot) {
         final products = snapshot.hasData
             ? snapshot.data![0] as List<Product>
@@ -39,35 +60,40 @@ class HomeScreenV2 extends StatelessWidget {
               colors: [Color(0xFFF3E8DD), Color(0xFFFFFAF4)],
             ),
           ),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 34),
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1040),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _LuxuryHero(planCode: repository.currentPlan),
-                      const SizedBox(height: 26),
-                      const _BeautyStartSection(),
-                      const SizedBox(height: 28),
-                      const _ServicesSection(),
-                      const SizedBox(height: 28),
-                      _ProductLaunchSection(products: products),
-                      const SizedBox(height: 28),
-                      const _TransformationSection(),
-                      const SizedBox(height: 28),
-                      _CatalogueSection(products: products),
-                      const SizedBox(height: 28),
-                      _NewsAndReviewsSection(news: news),
-                      const SizedBox(height: 28),
-                      const _HomeFooter(),
-                    ],
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: HomeScreenV2._ink,
+            backgroundColor: HomeScreenV2._paper,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 34),
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1040),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _LuxuryHero(planCode: widget.repository.currentPlan),
+                        const SizedBox(height: 26),
+                        const _BeautyStartSection(),
+                        const SizedBox(height: 28),
+                        const _ServicesSection(),
+                        const SizedBox(height: 28),
+                        _ProductLaunchSection(products: products),
+                        const SizedBox(height: 28),
+                        const _TransformationSection(),
+                        const SizedBox(height: 28),
+                        _CatalogueSection(products: products),
+                        const SizedBox(height: 28),
+                        _NewsAndReviewsSection(news: news),
+                        const SizedBox(height: 28),
+                        const _HomeFooter(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
