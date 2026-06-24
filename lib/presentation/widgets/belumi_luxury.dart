@@ -169,12 +169,12 @@ class LuxuryPanel extends StatelessWidget {
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
+        color: Colors.white.withOpacity(0.94),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF1DFD8)),
         boxShadow: [
           BoxShadow(
-            color: BelumiLuxury.rose.withValues(alpha: 0.16),
+            color: BelumiLuxury.rose.withOpacity(0.16),
             blurRadius: 26,
             offset: const Offset(0, 16),
           ),
@@ -316,7 +316,7 @@ class LuxuryHero extends StatelessWidget {
                     child: Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: Colors.white.withOpacity(0.9),
                         height: 1.45,
                         fontWeight: FontWeight.w600,
                       ),
