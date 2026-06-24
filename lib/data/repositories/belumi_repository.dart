@@ -262,20 +262,6 @@ class BelumiRepository {
     List<String> allergies = const [],
   }) async {
     try {
-      // Use authenticated endpoint when logged in to get personalized compatibility
-      if (isLoggedIn && currentUser != null) {
-        final data =
-            await api.post('/ingredients/analyze-text', {
-                  'userId': currentUser!.userId,
-                  'inputText': rawTextOrImageUrl,
-                  'skinType': skinType,
-                  'allergies': allergies,
-                })
-                as Map<String, dynamic>;
-        return IngredientScanResult.fromJson(data);
-      }
-
-      // Fallback: public endpoint without personalization
       final data =
           await api.post('/ingredients/scan', {
                 'rawTextOrImageUrl': rawTextOrImageUrl,

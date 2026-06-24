@@ -683,14 +683,12 @@ class PersonalizedAssessment {
 
 class CompatibilityData {
   const CompatibilityData({
-    required this.score,
     required this.status,
     required this.beneficial,
     required this.harmful,
     required this.neutral,
   });
 
-  final int score;
   final String status;
   final List<CompatibilityIngredientItem> beneficial;
   final List<CompatibilityIngredientItem> harmful;
@@ -704,7 +702,6 @@ class CompatibilityData {
             .toList();
 
     return CompatibilityData(
-      score: json['score'] as int? ?? 70,
       status: json['status'] as String? ?? 'Phù hợp',
       beneficial: items('beneficial'),
       harmful: items('harmful'),

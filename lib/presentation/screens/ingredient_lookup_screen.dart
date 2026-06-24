@@ -789,11 +789,13 @@ class _ScanResultCard extends StatelessWidget {
     };
     final comp = result.compatibility;
     final compColor = comp != null
-        ? (comp.score >= 80
+        ? (comp.status.contains('Rất phù hợp')
             ? Colors.green
-            : comp.score >= 60
-                ? Colors.orange
-                : Colors.red)
+            : comp.status.contains('Phù hợp')
+                ? Colors.teal
+                : comp.status.contains('Cần lưu ý')
+                    ? Colors.orange
+                    : Colors.red)
         : Colors.grey;
 
     return _ToolCard(
@@ -803,7 +805,7 @@ class _ScanResultCard extends StatelessWidget {
           // ── Dual Score Row ──
           Row(
             children: [
-              // Safety Score
+              // Safety Score (numeric — from AI Layer)
               Expanded(
                 child: _ScoreCircle(
                   icon: Icons.shield_outlined,
@@ -813,29 +815,19 @@ class _ScanResultCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Compatibility Score (or empty state)
+              // Compatibility Status (label — from Decision Layer)
               Expanded(
                 child: comp != null
-                    ? _ScoreCircle(
+                    ? _StatusBadge(
                         icon: Icons.medical_services_outlined,
                         label: t('Tương thích da', 'Compatibility'),
-                        score: comp.score,
+                        status: comp.status,
                         color: compColor,
                       )
                     : _EmptyCompatibilityMini(),
               ),
             ],
           ),
-          if (comp != null) ...[
-            const SizedBox(height: 8),
-            Center(
-              child: Chip(
-                avatar: Icon(Icons.medical_services_outlined,
-                    size: 16, color: compColor),
-                label: Text(comp.status),
-              ),
-            ),
-          ],
           const Divider(height: 24),
           Text(result.summary),
 
@@ -929,6 +921,65 @@ class _ScoreCircle extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+/// Status badge widget for displaying Compatibility as a text label.
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.icon,
+    required this.label,
+    required this.status,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String status;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: 0.1),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 3),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(height: 2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                    color: color,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
