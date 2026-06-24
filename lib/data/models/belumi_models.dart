@@ -467,6 +467,7 @@ class Ingredient {
     required this.links,
     this.createdAt,
     this.updatedAt,
+    this.personalizedAssessment,
   });
 
   final String id;
@@ -477,6 +478,7 @@ class Ingredient {
   final String links;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final PersonalizedAssessment? personalizedAssessment;
 
   List<String> get linkList => links
       .split('|')
@@ -501,6 +503,7 @@ class Ingredient {
     String? links,
     DateTime? createdAt,
     DateTime? updatedAt,
+    PersonalizedAssessment? personalizedAssessment,
   }) => Ingredient(
     id: id ?? this.id,
     nameInc: nameInc ?? this.nameInc,
@@ -510,6 +513,7 @@ class Ingredient {
     links: links ?? this.links,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    personalizedAssessment: personalizedAssessment ?? this.personalizedAssessment,
   );
 
   factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
@@ -521,6 +525,10 @@ class Ingredient {
     links: json['links'] as String? ?? '',
     createdAt: _parseDate(json['createdAt']),
     updatedAt: _parseDate(json['updatedAt']),
+    personalizedAssessment: json['personalizedAssessment'] != null
+        ? PersonalizedAssessment.fromJson(
+            json['personalizedAssessment'] as Map<String, dynamic>)
+        : null,
   );
 
   static DateTime? _parseDate(Object? value) {
@@ -615,6 +623,7 @@ class IngredientScanResult {
     required this.neutral,
     required this.harmful,
     required this.recommendations,
+    this.compatibility,
   });
 
   final int safetyScore;
@@ -624,6 +633,7 @@ class IngredientScanResult {
   final List<IngredientScanItem> neutral;
   final List<IngredientScanItem> harmful;
   final List<String> recommendations;
+  final CompatibilityData? compatibility;
 
   factory IngredientScanResult.fromJson(Map<String, dynamic> json) {
     List<IngredientScanItem> items(String key) =>
@@ -641,8 +651,85 @@ class IngredientScanResult {
       recommendations: List<String>.from(
         json['recommendations'] as List<dynamic>? ?? const [],
       ),
+      compatibility: json['compatibility'] != null
+          ? CompatibilityData.fromJson(
+              json['compatibility'] as Map<String, dynamic>)
+          : null,
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Compatibility Engine Models
+// ─────────────────────────────────────────────────────────────────────
+
+class PersonalizedAssessment {
+  const PersonalizedAssessment({
+    required this.status,
+    required this.reasons,
+  });
+
+  final String status;
+  final List<String> reasons;
+
+  factory PersonalizedAssessment.fromJson(Map<String, dynamic> json) =>
+      PersonalizedAssessment(
+        status: json['status'] as String? ?? 'neutral',
+        reasons: List<String>.from(
+          json['reasons'] as List<dynamic>? ?? const [],
+        ),
+      );
+}
+
+class CompatibilityData {
+  const CompatibilityData({
+    required this.score,
+    required this.status,
+    required this.beneficial,
+    required this.harmful,
+    required this.neutral,
+  });
+
+  final int score;
+  final String status;
+  final List<CompatibilityIngredientItem> beneficial;
+  final List<CompatibilityIngredientItem> harmful;
+  final List<CompatibilityIngredientItem> neutral;
+
+  factory CompatibilityData.fromJson(Map<String, dynamic> json) {
+    List<CompatibilityIngredientItem> items(String key) =>
+        (json[key] as List<dynamic>? ?? const [])
+            .map((x) => CompatibilityIngredientItem.fromJson(
+                x as Map<String, dynamic>))
+            .toList();
+
+    return CompatibilityData(
+      score: json['score'] as int? ?? 70,
+      status: json['status'] as String? ?? 'Phù hợp',
+      beneficial: items('beneficial'),
+      harmful: items('harmful'),
+      neutral: items('neutral'),
+    );
+  }
+}
+
+class CompatibilityIngredientItem {
+  const CompatibilityIngredientItem({
+    required this.name,
+    required this.reason,
+    required this.personalReason,
+  });
+
+  final String name;
+  final String reason;
+  final String personalReason;
+
+  factory CompatibilityIngredientItem.fromJson(Map<String, dynamic> json) =>
+      CompatibilityIngredientItem(
+        name: json['name'] as String? ?? '',
+        reason: json['reason'] as String? ?? '',
+        personalReason: json['personalReason'] as String? ?? '',
+      );
 }
 
 class MakeupResult {

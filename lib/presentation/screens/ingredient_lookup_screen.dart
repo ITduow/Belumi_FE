@@ -345,9 +345,124 @@ class IngredientDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              // FE-2 + FE-3: Personalized Assessment Card or Empty State
+              _PersonalizedAssessmentCard(
+                assessment: ingredient.personalizedAssessment,
+              ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// FE-2: Card showing personalized assessment for a single ingredient.
+/// FE-3: Shows empty state banner when user has no skin analysis.
+class _PersonalizedAssessmentCard extends StatelessWidget {
+  const _PersonalizedAssessmentCard({required this.assessment});
+
+  final PersonalizedAssessment? assessment;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = belumiCopy(context).t;
+
+    // FE-3: Empty state - user has no skin analysis
+    if (assessment == null) {
+      return _ToolCard(
+        child: Column(
+          children: [
+            Icon(
+              Icons.medical_services_outlined,
+              size: 40,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t(
+                '🩺 Phân tích da để biết thành phần này có phù hợp với bạn hay không.',
+                '🩺 Analyze your skin to see if this ingredient is right for you.',
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () => context.go('/skin-analysis'),
+              icon: const Icon(Icons.camera_alt_outlined),
+              label: Text(t('Phân tích da ngay', 'Analyze skin now')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // FE-2: Personalized assessment card
+    final isBeneficial = assessment!.status == 'beneficial';
+    final isWarning = assessment!.status == 'warning';
+    final color = isBeneficial
+        ? Colors.green
+        : isWarning
+            ? Colors.orange
+            : Colors.grey;
+    final icon = isBeneficial
+        ? Icons.check_circle_outline
+        : isWarning
+            ? Icons.warning_amber_outlined
+            : Icons.info_outline;
+    final title = isBeneficial
+        ? t('Phù hợp với da của bạn', 'Suitable for your skin')
+        : isWarning
+            ? t('Cần lưu ý với da của bạn', 'Caution for your skin')
+            : t('Trung tính với da của bạn', 'Neutral for your skin');
+
+    return _ToolCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withValues(alpha: 0.14),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '🩺 ${t('Đánh giá với làn da của bạn', 'Assessment for your skin')}',
+                  style: _titleStyle,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...assessment!.reasons.map(
+            (reason) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isBeneficial ? '✓ ' : isWarning ? '⚠ ' : '• ',
+                    style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                  ),
+                  Expanded(child: Text(reason)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -667,54 +782,333 @@ class _ScanResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
-    final color = switch (result.status) {
+    final safetyColor = switch (result.status) {
       'danger' => Colors.red,
       'warning' => Colors.orange,
       _ => Colors.green,
     };
+    final comp = result.compatibility;
+    final compColor = comp != null
+        ? (comp.score >= 80
+            ? Colors.green
+            : comp.score >= 60
+                ? Colors.orange
+                : Colors.red)
+        : Colors.grey;
+
     return _ToolCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Dual Score Row ──
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.14),
-                child: Icon(Icons.verified_outlined, color: color),
-              ),
-              const SizedBox(width: 12),
+              // Safety Score
               Expanded(
-                child: Text(
-                  t(
-                    'Điểm an toàn ${result.safetyScore}/100',
-                    'Safety score ${result.safetyScore}/100',
-                  ),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                child: _ScoreCircle(
+                  icon: Icons.shield_outlined,
+                  label: t('An toàn chung', 'Safety'),
+                  score: result.safetyScore,
+                  color: safetyColor,
                 ),
               ),
-              Chip(label: Text(result.status.toUpperCase())),
+              const SizedBox(width: 12),
+              // Compatibility Score (or empty state)
+              Expanded(
+                child: comp != null
+                    ? _ScoreCircle(
+                        icon: Icons.medical_services_outlined,
+                        label: t('Tương thích da', 'Compatibility'),
+                        score: comp.score,
+                        color: compColor,
+                      )
+                    : _EmptyCompatibilityMini(),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          if (comp != null) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Chip(
+                avatar: Icon(Icons.medical_services_outlined,
+                    size: 16, color: compColor),
+                label: Text(comp.status),
+              ),
+            ),
+          ],
+          const Divider(height: 24),
           Text(result.summary),
-          _IngredientItems(
-            title: t('Thành phần có lợi', 'Beneficial Ingredients'),
-            items: result.beneficial,
-          ),
-          _IngredientItems(
-            title: t('Thành phần trung tính', 'Neutral Ingredients'),
-            items: result.neutral,
-          ),
-          _IngredientItems(
-            title: t('Điểm cần chú ý', 'Potential Concerns'),
-            items: result.harmful,
-          ),
+
+          // ── Compatibility-based Sections (personalized) ──
+          if (comp != null) ...[
+            _CompatibilitySection(
+              title: t('🟢 Có lợi cho da bạn', '🟢 Beneficial for your skin'),
+              items: comp.beneficial,
+              color: Colors.green,
+            ),
+            _CompatibilitySection(
+              title: t('🔴 Cần lưu ý với da bạn', '🔴 Caution for your skin'),
+              items: comp.harmful,
+              color: Colors.red,
+            ),
+            _CompatibilityCollapsible(
+              title: t(
+                '⚪ Khác (${comp.neutral.length})',
+                '⚪ Other (${comp.neutral.length})',
+              ),
+              items: comp.neutral,
+            ),
+          ] else ...[
+            // Fallback: generic sections without personalization
+            _IngredientItems(
+              title: t('Thành phần có lợi', 'Beneficial Ingredients'),
+              items: result.beneficial,
+            ),
+            _IngredientItems(
+              title: t('Điểm cần chú ý', 'Potential Concerns'),
+              items: result.harmful,
+            ),
+            _IngredientItems(
+              title: t('Thành phần trung tính', 'Neutral Ingredients'),
+              items: result.neutral,
+            ),
+            const SizedBox(height: 14),
+            // FE-3: Banner inviting user to analyze skin
+            _EmptyCompatibilityBanner(),
+          ],
           _ListSection(
             title: t('Gợi ý', 'Recommendations'),
             items: result.recommendations,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Score circle widget for displaying Safety or Compatibility score.
+class _ScoreCircle extends StatelessWidget {
+  const _ScoreCircle({
+    required this.icon,
+    required this.label,
+    required this.score,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final int score;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          width: 80,
+          height: 80,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: score / 100.0,
+                backgroundColor: color.withValues(alpha: 0.15),
+                color: color,
+                strokeWidth: 6,
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 18, color: color),
+                  Text(
+                    '$score',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+/// Mini empty state for compatibility score when user has no skin analysis.
+class _EmptyCompatibilityMini extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = belumiCopy(context).t;
+    return Column(
+      children: [
+        SizedBox(
+          width: 80,
+          height: 80,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: 0,
+                backgroundColor: Colors.grey.withValues(alpha: 0.15),
+                strokeWidth: 6,
+              ),
+              Icon(Icons.lock_outline, size: 28, color: Colors.grey.shade400),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          t('Tương thích da', 'Compatibility'),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+/// FE-3: Banner shown in scan results when user has no skin analysis.
+class _EmptyCompatibilityBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = belumiCopy(context).t;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            t(
+              '🩺 Phân tích da để biết sản phẩm này có phù hợp với bạn hay không.',
+              '🩺 Analyze your skin to see if this product suits you.',
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: () => context.go('/skin-analysis'),
+            icon: const Icon(Icons.camera_alt_outlined, size: 18),
+            label: Text(t('Phân tích da ngay', 'Analyze skin now')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Section for compatibility items (beneficial, harmful).
+class _CompatibilitySection extends StatelessWidget {
+  const _CompatibilitySection({
+    required this.title,
+    required this.items,
+    required this.color,
+  });
+
+  final String title;
+  final List<CompatibilityIngredientItem> items;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          ...items.map(
+            (item) => ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.circle, size: 9, color: color),
+              title: Text(
+                item.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                item.personalReason.isNotEmpty
+                    ? item.personalReason
+                    : item.reason,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Collapsible section for neutral/other items.
+class _CompatibilityCollapsible extends StatefulWidget {
+  const _CompatibilityCollapsible({
+    required this.title,
+    required this.items,
+  });
+
+  final String title;
+  final List<CompatibilityIngredientItem> items;
+
+  @override
+  State<_CompatibilityCollapsible> createState() =>
+      _CompatibilityCollapsibleState();
+}
+
+class _CompatibilityCollapsibleState extends State<_CompatibilityCollapsible> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+              ],
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 8),
+            ...widget.items.map(
+              (item) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.circle, size: 9, color: Colors.grey),
+                title: Text(item.name),
+                subtitle: Text(item.reason),
+              ),
+            ),
+          ],
         ],
       ),
     );
