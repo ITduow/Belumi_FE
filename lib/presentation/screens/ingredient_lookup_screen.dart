@@ -346,6 +346,16 @@ class IngredientDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              if ((ingredient.goodFor != null && ingredient.goodFor!.isNotEmpty) ||
+                  (ingredient.avoidFor != null && ingredient.avoidFor!.isNotEmpty)) ...[
+                LuxuryPanel(
+                  child: _SkinPreferenceChips(
+                    goodFor: ingredient.goodFor,
+                    avoidFor: ingredient.avoidFor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               // FE-2 + FE-3: Personalized Assessment Card or Empty State
               _PersonalizedAssessmentCard(
                 assessment: ingredient.personalizedAssessment,
@@ -355,6 +365,85 @@ class IngredientDetailScreen extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class _SkinPreferenceChips extends StatelessWidget {
+  const _SkinPreferenceChips({required this.goodFor, required this.avoidFor});
+
+  final List<String>? goodFor;
+  final List<String>? avoidFor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = belumiCopy(context).t;
+
+    if ((goodFor == null || goodFor!.isEmpty) && (avoidFor == null || avoidFor!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (goodFor != null && goodFor!.isNotEmpty) ...[
+          Text(
+            t('👍 Khuyên dùng cho da', '👍 Recommended for'),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: goodFor!.map((skin) {
+              return Chip(
+                avatar: const Icon(Icons.check, size: 14, color: Colors.green),
+                label: Text(_formatSkinTerm(skin, context)),
+                backgroundColor: Colors.green.withValues(alpha: 0.08),
+                side: BorderSide(color: Colors.green.withValues(alpha: 0.2)),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (avoidFor != null && avoidFor!.isNotEmpty) ...[
+          Text(
+            t('👎 Hạn chế cho da', '👎 Avoid for'),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: avoidFor!.map((skin) {
+              return Chip(
+                avatar: const Icon(Icons.close, size: 14, color: Colors.red),
+                label: Text(_formatSkinTerm(skin, context)),
+                backgroundColor: Colors.red.withValues(alpha: 0.08),
+                side: BorderSide(color: Colors.red.withValues(alpha: 0.2)),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  String _formatSkinTerm(String term, BuildContext context) {
+    final t = belumiCopy(context).t;
+    return switch (term.toLowerCase()) {
+      'dry' => t('Da khô', 'Dry skin'),
+      'oily' => t('Da dầu', 'Oily skin'),
+      'combination' => t('Da hỗn hợp', 'Combination skin'),
+      'sensitive' => t('Da nhạy cảm', 'Sensitive skin'),
+      'normal' => t('Da thường', 'Normal skin'),
+      'acne' => t('Mụn', 'Acne'),
+      'redness' => t('Mẩn đỏ', 'Redness'),
+      'dark_spots' => t('Thâm sạm', 'Dark spots'),
+      'dehydration' => t('Thiếu nước', 'Dehydration'),
+      'enlarged_pores' => t('Lỗ chân lông to', 'Enlarged pores'),
+      _ => term,
+    };
   }
 }
 
@@ -438,6 +527,32 @@ class _PersonalizedAssessmentCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 20),
+          if (assessment!.profileIsStale) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      t(
+                        '⚠️ Hồ sơ phân tích da đã cũ (>90 ngày). Đánh giá tương thích có thể không hoàn toàn chính xác.',
+                        '⚠️ Your skin profile is outdated (>90 days). Compatibility results might not be fully accurate.',
+                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Text(
             title,
             style: TextStyle(
@@ -829,6 +944,32 @@ class _ScanResultCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 24),
+          if (comp != null && comp.profileIsStale) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      t(
+                        '⚠️ Hồ sơ phân tích da đã cũ (>90 ngày). Đánh giá tương thích có thể không hoàn toàn chính xác.',
+                        '⚠️ Your skin profile is outdated (>90 days). Compatibility results might not be fully accurate.',
+                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Text(result.summary),
 
           // ── Compatibility-based Sections (personalized) ──

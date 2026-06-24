@@ -468,6 +468,8 @@ class Ingredient {
     this.createdAt,
     this.updatedAt,
     this.personalizedAssessment,
+    this.goodFor,
+    this.avoidFor,
   });
 
   final String id;
@@ -479,6 +481,8 @@ class Ingredient {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final PersonalizedAssessment? personalizedAssessment;
+  final List<String>? goodFor;
+  final List<String>? avoidFor;
 
   List<String> get linkList => links
       .split('|')
@@ -504,6 +508,8 @@ class Ingredient {
     DateTime? createdAt,
     DateTime? updatedAt,
     PersonalizedAssessment? personalizedAssessment,
+    List<String>? goodFor,
+    List<String>? avoidFor,
   }) => Ingredient(
     id: id ?? this.id,
     nameInc: nameInc ?? this.nameInc,
@@ -514,6 +520,8 @@ class Ingredient {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     personalizedAssessment: personalizedAssessment ?? this.personalizedAssessment,
+    goodFor: goodFor ?? this.goodFor,
+    avoidFor: avoidFor ?? this.avoidFor,
   );
 
   factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
@@ -529,6 +537,8 @@ class Ingredient {
         ? PersonalizedAssessment.fromJson(
             json['personalizedAssessment'] as Map<String, dynamic>)
         : null,
+    goodFor: (json['goodFor'] as List<dynamic>?)?.map((e) => e as String).toList(),
+    avoidFor: (json['avoidFor'] as List<dynamic>?)?.map((e) => e as String).toList(),
   );
 
   static DateTime? _parseDate(Object? value) {
@@ -667,10 +677,12 @@ class PersonalizedAssessment {
   const PersonalizedAssessment({
     required this.status,
     required this.reasons,
+    required this.profileIsStale,
   });
 
   final String status;
   final List<String> reasons;
+  final bool profileIsStale;
 
   factory PersonalizedAssessment.fromJson(Map<String, dynamic> json) =>
       PersonalizedAssessment(
@@ -678,18 +690,21 @@ class PersonalizedAssessment {
         reasons: List<String>.from(
           json['reasons'] as List<dynamic>? ?? const [],
         ),
+        profileIsStale: json['profileIsStale'] as bool? ?? false,
       );
 }
 
 class CompatibilityData {
   const CompatibilityData({
     required this.status,
+    required this.profileIsStale,
     required this.beneficial,
     required this.harmful,
     required this.neutral,
   });
 
   final String status;
+  final bool profileIsStale;
   final List<CompatibilityIngredientItem> beneficial;
   final List<CompatibilityIngredientItem> harmful;
   final List<CompatibilityIngredientItem> neutral;
@@ -703,6 +718,7 @@ class CompatibilityData {
 
     return CompatibilityData(
       status: json['status'] as String? ?? 'Phù hợp',
+      profileIsStale: json['profileIsStale'] as bool? ?? false,
       beneficial: items('beneficial'),
       harmful: items('harmful'),
       neutral: items('neutral'),
