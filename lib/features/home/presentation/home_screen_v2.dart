@@ -6,6 +6,8 @@ import '../../../data/models/belumi_models.dart';
 import '../../../data/repositories/belumi_repository.dart';
 import '../../../presentation/widgets/belumi_luxury.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/app_user.dart';
+import '../../onboarding/onboarding_quiz_sheet.dart';
 
 class HomeScreenV2 extends ConsumerStatefulWidget {
   const HomeScreenV2({super.key, required this.repository});
@@ -28,6 +30,32 @@ class HomeScreenV2 extends ConsumerStatefulWidget {
 class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
   int _refreshKey = 0;
 
+  /// Flag để tránh hiện quiz nhiều lần trong cùng 1 session.
+  bool _quizCheckedForSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Kiểm tra quiz sau frame đầu tiên (user có thể đã đăng nhập sẵn)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowQuiz(ref.read(authControllerProvider).valueOrNull);
+    });
+  }
+
+  /// Kiểm tra và hiện quiz nếu user chưa hoàn thành.
+  Future<void> _maybeShowQuiz(AppUser? user) async {
+    if (user == null || _quizCheckedForSession) return;
+    _quizCheckedForSession = true;
+    try {
+      final completed = await widget.repository.getQuizStatus();
+      if (!completed && mounted) {
+        await showOnboardingQuiz(context, repository: widget.repository);
+      }
+    } catch (_) {
+      // Quiz check thất bại → không block user
+    }
+  }
+
   Future<void> _handleRefresh() async {
     try {
       await ref.read(authControllerProvider.notifier).restoreSession();
@@ -41,6 +69,17 @@ class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen auth state: khi user thay đổi (login/register) → check quiz
+    ref.listen(authControllerProvider, (prev, next) {
+      final prevUser = prev?.valueOrNull;
+      final nextUser = next.valueOrNull;
+      // Chỉ trigger khi user mới login (từ null → có user)
+      if (prevUser == null && nextUser != null) {
+        _quizCheckedForSession = false; // reset để check lại
+        _maybeShowQuiz(nextUser);
+      }
+    });
+
     return FutureBuilder(
       key: ValueKey(_refreshKey),
       future: Future.wait([widget.repository.products(), widget.repository.news()]),
