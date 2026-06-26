@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/belumi_models.dart';
@@ -731,7 +732,15 @@ class BelumiRepository {
     try {
       _requireLogin();
       final data = await api.get('/skin/history/me/$id') as Map<String, dynamic>;
-      // Mapping API response to SkinAnalysisResult model.
+      
+      final aiResultStr = data['aiResult'] ?? data['AiResult'] ?? data['ai_result'];
+      if (aiResultStr != null && aiResultStr.toString().isNotEmpty) {
+        final Map<String, dynamic> aiJson = jsonDecode(aiResultStr.toString()) as Map<String, dynamic>;
+        final skinType = data['skinType'] ?? data['skin_type'] ?? data['SkinType'] ?? 'Normal';
+        return SkinAnalysisResult.fromApiJson(aiJson, skinType: skinType.toString());
+      }
+      
+      // Fallback in case the structure is different
       return SkinAnalysisResult.fromApiJson(data, skinType: data['skin_type'] as String? ?? 'Normal');
     } catch (_) {
       return null;
