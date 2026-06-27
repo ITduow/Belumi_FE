@@ -39,21 +39,23 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
   }
 
   Future<void> _delete(Ingredient ingredient) async {
+    final copy = belumiCopy(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete ingredient?'),
+        title: Text(copy.t('Xóa thành phần?', 'Delete ingredient?')),
         content: Text(
-          'Remove ${ingredient.nameInc} from the ingredient database.',
+          copy.t('Xóa ${ingredient.nameInc} khỏi cơ sở dữ liệu thành phần.', 'Remove ${ingredient.nameInc} from the ingredient database.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(copy.t('Hủy', 'Cancel')),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(copy.t('Xóa', 'Delete')),
           ),
         ],
       ),
@@ -66,25 +68,45 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
+    
+    final headerAction = LuxuryButton(
+      label: copy.t('Thêm thành phần', 'New ingredient'),
+      icon: Icons.add,
+      onPressed: () => _openForm(),
+    );
+
     final body = LuxuryPage(
       children: [
-        LuxuryHero(
-          title: copy.t('Dữ liệu thành phần', 'Ingredient Database'),
-          subtitle: copy.t(
-            'Tạo, chỉnh sửa và tìm kiếm dữ liệu INCI dùng trong app.',
-            'Create, edit, and search INCI data used by the app.',
-          ),
-          imageUrl:
-              'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1200&q=80',
-          actions: [
-            LuxuryButton(
-              label: copy.t('Thêm thành phần', 'New ingredient'),
-              icon: Icons.add,
-              onPressed: () => _openForm(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    copy.t('Dữ liệu thành phần', 'Ingredient Database'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: BelumiLuxury.black,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    copy.t(
+                      'Tạo, chỉnh sửa và tìm kiếm dữ liệu INCI dùng trong app.',
+                      'Create, edit, and search INCI data used by the app.',
+                    ),
+                    style: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 16),
+            headerAction,
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1040),
@@ -92,20 +114,35 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
               controller: _searchController,
               onSubmitted: (_) => _reload(),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
                 hintText: copy.t(
-                  'Tìm theo INCI, tên, danh mục',
-                  'Search by INCI, name, category',
+                  'Tìm theo INCI, tên, danh mục...',
+                  'Search by INCI, name, category...',
+                ),
+                prefixIcon: const Icon(Icons.search, color: BelumiLuxury.muted),
+                fillColor: Colors.white,
+                filled: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
                 ),
                 suffixIcon: IconButton(
                   onPressed: _reload,
-                  icon: const Icon(Icons.arrow_forward),
+                  icon: const Icon(Icons.arrow_forward, color: BelumiLuxury.ink),
                 ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         FutureBuilder<IngredientListResult>(
           key: ValueKey('admin-ingredients-$_refresh'),
           future: widget.repository.searchIngredients(
@@ -123,7 +160,7 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
                     'Không tải được dữ liệu ingredient. Kiểm tra quyền admin và backend.',
                     'Could not load ingredients. Check admin permission and backend.',
                   ),
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               );
             }
@@ -132,25 +169,99 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
             final ingredients = result?.items ?? const <Ingredient>[];
             if (ingredients.isEmpty) {
               return LuxuryPanel(
-                child: Text(
-                  copy.t('Chưa có thành phần.', 'No ingredients yet.'),
+                child: Center(
+                  child: Text(
+                    copy.t('Chưa có thành phần nào.', 'No ingredients yet.'),
+                    style: const TextStyle(color: BelumiLuxury.muted),
+                  ),
                 ),
               );
             }
 
-            return Column(
-              children: ingredients
-                  .map(
-                    (ingredient) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _AdminIngredientTile(
-                        ingredient: ingredient,
-                        onEdit: () => _openForm(ingredient),
-                        onDelete: () => _delete(ingredient),
+            return LuxuryPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Table(
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      columnWidths: const {
+                        0: FixedColumnWidth(180), // INCI name
+                        1: FixedColumnWidth(180), // Display name
+                        2: FixedColumnWidth(120), // Category
+                        3: FixedColumnWidth(300), // Description
+                        4: FixedColumnWidth(125), // Actions
+                      },
+                      border: TableBorder(
+                        horizontalInside: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 0.5,
+                        ),
                       ),
+                      children: [
+                        TableRow(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                            ),
+                          ),
+                          children: [
+                            _tHead(copy.t('Tên INCI', 'INCI Name')),
+                            _tHead(copy.t('Tên hiển thị', 'Display Name')),
+                            _tHead(copy.t('Danh mục', 'Category')),
+                            _tHead(copy.t('Mô tả', 'Description')),
+                            _tHead(copy.t('Hành động', 'Actions')),
+                          ],
+                        ),
+                        ...ingredients.map((ingredient) {
+                          return TableRow(
+                            children: [
+                              _tCell(ingredient.nameInc, bold: true),
+                              _tCell(ingredient.name),
+                              _tCell(ingredient.category),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                child: Text(
+                                  ingredient.description,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, height: 1.3, color: BelumiLuxury.black),
+                                ),
+                              ),
+                              _tCellWidget(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, color: BelumiLuxury.ink),
+                                      onPressed: () => _openForm(ingredient),
+                                      tooltip: copy.t('Sửa', 'Edit'),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _delete(ingredient),
+                                      tooltip: copy.t('Xóa', 'Delete'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                  _buildPaginationRow(
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalItems: ingredients.length,
+                    onPrevious: null,
+                    onNext: null,
+                    t: copy.t,
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -163,13 +274,76 @@ class _AdminIngredientsScreenState extends State<AdminIngredientsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(copy.t('Quản lý thành phần', 'Ingredient management')),
+        title: Text(copy.t('Dữ liệu thành phần', 'Ingredient Database')),
         leading: IconButton(
           onPressed: () => context.go('/admin'),
           icon: const Icon(Icons.arrow_back),
         ),
       ),
       body: body,
+    );
+  }
+
+  Padding _tHead(String s) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Text(s,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Color(0xFF1F1F2C))),
+      );
+
+  Padding _tCell(String s, {bool bold = false, Color? color}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Text(s,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+                color: color ?? const Color(0xFF1F1F2C))),
+      );
+
+  Padding _tCellWidget(Widget child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: child,
+      );
+
+  Widget _buildPaginationRow({
+    required int currentPage,
+    required int totalPages,
+    required int totalItems,
+    required VoidCallback? onPrevious,
+    required VoidCallback? onNext,
+    required String Function(String, String) t,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            t('Tổng số: $totalItems bản ghi', 'Total: $totalItems records'),
+            style: const TextStyle(fontSize: 12, color: BelumiLuxury.muted),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onPrevious,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: t('Trang trước', 'Previous Page'),
+              ),
+              Text(
+                t('Trang $currentPage / $totalPages', 'Page $currentPage of $totalPages'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: onNext,
+                icon: const Icon(Icons.chevron_right),
+                tooltip: t('Trang sau', 'Next Page'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -213,7 +387,6 @@ class _IngredientFormDialogState extends State<_IngredientFormDialog> {
     _links.dispose();
     super.dispose();
   }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -243,10 +416,25 @@ class _IngredientFormDialogState extends State<_IngredientFormDialog> {
     }
   }
 
+  String? _validateLinks(String? value) {
+    final copy = belumiCopy(context);
+    if (value == null || value.trim().isEmpty) return null;
+    final parts = value.split('|');
+    for (final p in parts) {
+      final t = p.trim();
+      if (t.isEmpty) continue;
+      if (!t.startsWith('http://') && !t.startsWith('https://')) {
+        return copy.t('Các liên kết phải bắt đầu bằng http:// hoặc https://', 'Links must start with http:// or https://');
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
     return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       insetPadding: const EdgeInsets.all(18),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -262,9 +450,7 @@ class _IngredientFormDialogState extends State<_IngredientFormDialog> {
                   widget.ingredient == null
                       ? copy.t('Thêm thành phần', 'New ingredient')
                       : copy.t('Sửa thành phần', 'Edit ingredient'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F1F2C)),
                 ),
                 const SizedBox(height: 14),
                 _RequiredField(controller: _nameInc, label: 'INCI name'),
@@ -297,12 +483,16 @@ class _IngredientFormDialogState extends State<_IngredientFormDialog> {
                     ),
                     const SizedBox(width: 10),
                     FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: BelumiLuxury.black,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: _saving ? null : _save,
                       icon: _saving
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.save_outlined),
                       label: Text(copy.t('Lưu', 'Save')),
@@ -315,21 +505,6 @@ class _IngredientFormDialogState extends State<_IngredientFormDialog> {
         ),
       ),
     );
-  }
-
-  String? _validateLinks(String? value) {
-    final raw = value?.trim() ?? '';
-    if (raw.isEmpty) return 'Required';
-    for (final link in raw.split('|').map((item) => item.trim())) {
-      final uri = Uri.tryParse(link);
-      if (uri == null || uri.host.isEmpty) {
-        return 'Links must be valid HTTP/HTTPS URLs separated by |';
-      }
-      if (uri.scheme != 'http' && uri.scheme != 'https') {
-        return 'Links must be valid HTTP/HTTPS URLs separated by |';
-      }
-    }
-    return null;
   }
 }
 
@@ -346,64 +521,44 @@ class _RequiredField extends StatelessWidget {
   final int maxLines;
   final String? Function(String?)? validator;
 
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+      fillColor: Colors.white,
+      filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      decoration: InputDecoration(labelText: label),
-      validator:
-          validator ??
-          (value) => value == null || value.trim().isEmpty ? 'Required' : null,
-    );
-  }
-}
-
-class _AdminIngredientTile extends StatelessWidget {
-  const _AdminIngredientTile({
-    required this.ingredient,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final Ingredient ingredient;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return LuxuryPanel(
-      padding: const EdgeInsets.all(12),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const CircleAvatar(child: Icon(Icons.science_outlined)),
-        title: Text(
-          ingredient.nameInc,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          '${ingredient.name} - ${ingredient.category}\n${ingredient.description}',
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Wrap(
-          spacing: 4,
-          children: [
-            IconButton(
-              tooltip: 'Edit',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-            ),
-            IconButton(
-              tooltip: 'Delete',
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
-            ),
-          ],
-        ),
-      ),
+      decoration: _inputDecoration(label),
+      validator: validator ?? (value) =>
+          value == null || value.trim().isEmpty ? 'Required' : null,
     );
   }
 }
