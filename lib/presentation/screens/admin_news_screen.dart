@@ -40,60 +40,91 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
+    
+    final headerAction = LuxuryButton(
+      label: copy.t('Thêm bài viết', 'New article'),
+      icon: Icons.add,
+      onPressed: () => _openForm(),
+    );
+
     final body = LuxuryPage(
       children: [
-        LuxuryHero(
-          title: copy.t('Tin tức Belumi', 'Belumi News'),
-          subtitle: copy.t(
-            'Tạo, chỉnh sửa, ẩn bài viết và theo dõi hiệu quả nội dung.',
-            'Create, edit, hide articles and track content performance.',
-          ),
-          imageUrl:
-              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-          actions: [
-            LuxuryButton(
-              label: copy.t('Thêm bài viết', 'New article'),
-              icon: Icons.add,
-              onPressed: () => _openForm(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    copy.t('Quản lý tin tức', 'News Management'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: BelumiLuxury.black,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    copy.t(
+                      'Tạo, chỉnh sửa, ẩn bài viết và theo dõi hiệu quả nội dung.',
+                      'Create, edit, hide articles and track content performance.',
+                    ),
+                    style: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 16),
+            headerAction,
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         FutureBuilder<Map<String, dynamic>>(
           future: widget.repository.adminNewsStatistics(),
           builder: (context, snapshot) {
             final data = snapshot.data ?? const <String, dynamic>{};
-            return LuxuryPanel(
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _StatTile(label: 'Total', value: data['total']),
-                  _StatTile(label: 'Published', value: data['published']),
-                  _StatTile(label: 'Draft', value: data['draft']),
-                  _StatTile(label: 'Hidden', value: data['hidden']),
-                  _StatTile(label: 'Views', value: data['totalViews']),
-                ],
-              ),
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _StatTile(label: copy.t('Tổng số', 'Total'), value: data['total'], icon: Icons.collections_bookmark_outlined),
+                _StatTile(label: copy.t('Đã đăng', 'Published'), value: data['published'], icon: Icons.public_outlined, color: Colors.teal),
+                _StatTile(label: copy.t('Bản nháp', 'Draft'), value: data['draft'], icon: Icons.edit_note_outlined, color: Colors.orange),
+                _StatTile(label: copy.t('Đã ẩn', 'Hidden'), value: data['hidden'], icon: Icons.visibility_off_outlined, color: Colors.red),
+                _StatTile(label: copy.t('Lượt xem', 'Views'), value: data['totalViews'], icon: Icons.remove_red_eye_outlined, color: Colors.blue),
+              ],
             );
           },
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1040),
-                child: TextField(
-                  controller: _searchController,
-                  onSubmitted: (_) => _reload(),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: copy.t('Tìm bài viết admin', 'Search admin news'),
-                    suffixIcon: IconButton(
-                      onPressed: _reload,
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
+              TextField(
+                controller: _searchController,
+                onSubmitted: (_) => _reload(),
+                decoration: InputDecoration(
+                  hintText: copy.t('Tìm bài viết...', 'Search articles...'),
+                  prefixIcon: const Icon(Icons.search, color: BelumiLuxury.muted),
+                  fillColor: Colors.white,
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+                  ),
+                  suffixIcon: IconButton(
+                    onPressed: _reload,
+                    icon: const Icon(Icons.arrow_forward, color: BelumiLuxury.ink),
                   ),
                 ),
               ),
@@ -105,23 +136,36 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                   ChoiceChip(
                     label: Text(copy.t('Tất cả', 'All')),
                     selected: _status == null,
+                    selectedColor: const Color(0xFFFFE8E0),
+                    labelStyle: TextStyle(
+                      color: _status == null ? BelumiLuxury.ink : Colors.black87,
+                      fontWeight: _status == null ? FontWeight.bold : FontWeight.normal,
+                    ),
                     onSelected: (_) => setState(() => _status = null),
                   ),
-                  ...const ['Draft', 'Published', 'Hidden'].map(
-                    (status) => ChoiceChip(
-                      label: Text(status),
-                      selected: _status == status,
-                      onSelected: (_) => setState(() => _status = status),
-                    ),
+                  ...['Draft', 'Published', 'Hidden'].map(
+                    (status) {
+                      final isSel = _status == status;
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: isSel,
+                        selectedColor: const Color(0xFFFFE8E0),
+                        labelStyle: TextStyle(
+                          color: isSel ? BelumiLuxury.ink : Colors.black87,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        onSelected: (_) => setState(() => _status = status),
+                      );
+                    },
                   ),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         _CategoryManager(repository: widget.repository),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         FutureBuilder<List<NewsArticle>>(
           key: ValueKey('admin-news-$_refresh-$_status'),
           future: widget.repository.adminNews(
@@ -139,33 +183,135 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
                     'Không tải được tin tức admin. Kiểm tra quyền admin.',
                     'Could not load admin news. Check admin permission.',
                   ),
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               );
             }
             final posts = snapshot.data ?? const <NewsArticle>[];
             if (posts.isEmpty) {
               return LuxuryPanel(
-                child: Text(copy.t('Chưa có bài viết.', 'No articles yet.')),
+                child: Center(
+                  child: Text(
+                    copy.t('Chưa có bài viết nào.', 'No articles yet.'),
+                    style: const TextStyle(color: BelumiLuxury.muted),
+                  ),
+                ),
               );
             }
 
-            return Column(
-              children: posts
-                  .map(
-                    (post) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _AdminNewsTile(
-                        post: post,
-                        onEdit: () => _openForm(post),
-                        onHide: () async {
-                          await widget.repository.deleteNews(post);
-                          _reload();
-                        },
+            return LuxuryPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Table(
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      columnWidths: const {
+                        0: FixedColumnWidth(80),  // Ảnh bìa
+                        1: FixedColumnWidth(280), // Tiêu đề
+                        2: FixedColumnWidth(120), // Danh mục
+                        3: FixedColumnWidth(100), // Trạng thái
+                        4: FixedColumnWidth(100), // Lượt xem
+                        5: FixedColumnWidth(125), // Hành động
+                      },
+                      border: TableBorder(
+                        horizontalInside: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 0.5,
+                        ),
                       ),
+                      children: [
+                        TableRow(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                            ),
+                          ),
+                          children: [
+                            _tHead(copy.t('Hình ảnh', 'Cover')),
+                            _tHead(copy.t('Tiêu đề', 'Title')),
+                            _tHead(copy.t('Danh mục', 'Category')),
+                            _tHead(copy.t('Trạng thái', 'Status')),
+                            _tHead(copy.t('Lượt xem', 'Views')),
+                            _tHead(copy.t('Hành động', 'Actions')),
+                          ],
+                        ),
+                        ...posts.map((post) {
+                          return TableRow(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    width: 50,
+                                    height: 50,
+                                    child: Image.network(
+                                      post.coverImageUrl ?? '',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Icon(Icons.image, color: Colors.grey),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                child: Text(
+                                  post.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: BelumiLuxury.black,
+                                  ),
+                                ),
+                              ),
+                              _tCell(post.category),
+                              _tCellWidget(
+                                _buildStatusBadge(post.status),
+                              ),
+                              _tCell('${post.viewCount}'),
+                              _tCellWidget(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, color: BelumiLuxury.ink),
+                                      onPressed: () => _openForm(post),
+                                      tooltip: copy.t('Sửa', 'Edit'),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.visibility_off_outlined, color: Colors.red),
+                                      onPressed: () async {
+                                        await widget.repository.deleteNews(post);
+                                        _reload();
+                                      },
+                                      tooltip: copy.t('Ẩn', 'Hide'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                  _buildPaginationRow(
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalItems: posts.length,
+                    onPrevious: null,
+                    onNext: null,
+                    t: copy.t,
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -178,13 +324,124 @@ class _AdminNewsScreenState extends State<AdminNewsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(copy.t('Quản lý tin tức', 'News management')),
+        title: Text(copy.t('Quản lý tin tức', 'News Management')),
         leading: IconButton(
           onPressed: () => context.go('/admin'),
           icon: const Icon(Icons.arrow_back),
         ),
       ),
       body: body,
+    );
+  }
+
+  Padding _tHead(String s) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Text(s,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Color(0xFF1F1F2C))),
+      );
+
+  Padding _tCell(String s, {bool bold = false, Color? color}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Text(s,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+                color: color ?? const Color(0xFF1F1F2C))),
+      );
+
+  Padding _tCellWidget(Widget child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: child,
+      );
+
+  Widget _buildStatusBadge(String status) {
+    final t = belumiCopy(context).t;
+    Color bg = Colors.grey.shade50;
+    Color fg = Colors.grey.shade800;
+    String label = status;
+
+    final s = status.toLowerCase();
+
+    if (s == 'paid' || s == 'mockpaid' || s == 'active' || s == 'resolved' || s == 'true') {
+      bg = Colors.teal.shade50;
+      fg = Colors.teal.shade800;
+      label = s == 'true' || s == 'active'
+          ? t('Hoạt động', 'Active')
+          : (s == 'resolved' ? t('Đã xử lý', 'Resolved') : t('Thành công', 'Success'));
+    } else if (s == 'pending' || s == 'inprogress' || s == 'draft') {
+      bg = Colors.orange.shade50;
+      fg = Colors.orange.shade800;
+      label = s == 'pending'
+          ? t('Chờ xử lý', 'Pending')
+          : (s == 'inprogress' ? t('Đang xử lý', 'In Progress') : t('Bản nháp', 'Draft'));
+    } else if (s == 'new' || s == 'false' || s == 'blocked' || s == 'hidden') {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade800;
+      label = s == 'new'
+          ? t('Yêu cầu mới', 'New')
+          : (s == 'false' || s == 'blocked'
+              ? t('Đã khóa', 'Blocked')
+              : t('Bị ẩn', 'Hidden'));
+    } else if (s == 'published') {
+      bg = Colors.blue.shade50;
+      fg = Colors.blue.shade800;
+      label = t('Xuất bản', 'Published');
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: fg.withOpacity(0.18)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildPaginationRow({
+    required int currentPage,
+    required int totalPages,
+    required int totalItems,
+    required VoidCallback? onPrevious,
+    required VoidCallback? onNext,
+    required String Function(String, String) t,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            t('Tổng số: $totalItems bản ghi', 'Total: $totalItems records'),
+            style: const TextStyle(fontSize: 12, color: BelumiLuxury.muted),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onPrevious,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: t('Trang trước', 'Previous Page'),
+              ),
+              Text(
+                t('Trang $currentPage / $totalPages', 'Page $currentPage of $totalPages'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: onNext,
+                icon: const Icon(Icons.chevron_right),
+                tooltip: t('Trang sau', 'Next Page'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -209,6 +466,28 @@ class _CategoryManagerState extends State<_CategoryManager> {
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+      fillColor: Colors.white,
+      filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+      ),
+    );
   }
 
   Future<void> _addCategory() async {
@@ -236,32 +515,30 @@ class _CategoryManagerState extends State<_CategoryManager> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            copy.t('Danh mục tin tức', 'News categories'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            copy.t('Danh mục tin tức', 'News Categories'),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F1F2C)),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Builder(
             builder: (context) {
               final compact = MediaQuery.sizeOf(context).width < 800;
               final fields = [
                 TextField(
                   controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: copy.t('Tên danh mục', 'Category name'),
-                  ),
+                  decoration: _inputDecoration(copy.t('Tên danh mục', 'Category name')),
                 ),
                 TextField(
                   controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: copy.t('Mô tả', 'Description'),
-                  ),
+                  decoration: _inputDecoration(copy.t('Mô tả', 'Description')),
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: IconButton.filled(
                     onPressed: _saving ? null : _addCategory,
+                    style: IconButton.styleFrom(
+                      backgroundColor: BelumiLuxury.black,
+                      foregroundColor: Colors.white,
+                    ),
                     icon: const Icon(Icons.add),
                   ),
                 ),
@@ -290,7 +567,7 @@ class _CategoryManagerState extends State<_CategoryManager> {
               );
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           FutureBuilder<List<Map<String, dynamic>>>(
             key: ValueKey('categories-$_refresh'),
             future: widget.repository.adminNewsCategories(),
@@ -380,6 +657,36 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+      fillColor: Colors.white,
+      filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -426,6 +733,7 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
   Widget build(BuildContext context) {
     final copy = belumiCopy(context);
     return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       insetPadding: const EdgeInsets.all(18),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -441,16 +749,14 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
                   widget.post == null
                       ? copy.t('Thêm bài viết', 'New article')
                       : copy.t('Sửa bài viết', 'Edit article'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F1F2C)),
                 ),
                 const SizedBox(height: 14),
                 _RequiredField(controller: _title, label: 'Title'),
                 const SizedBox(height: 10),
-                TextField(
+                TextFormField(
                   controller: _slug,
-                  decoration: const InputDecoration(labelText: 'Slug'),
+                  decoration: _inputDecoration('Slug'),
                 ),
                 const SizedBox(height: 10),
                 _RequiredField(
@@ -465,9 +771,9 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
                   maxLines: 7,
                 ),
                 const SizedBox(height: 10),
-                TextField(
+                TextFormField(
                   controller: _thumbnail,
-                  decoration: const InputDecoration(labelText: 'Thumbnail URL'),
+                  decoration: _inputDecoration('Thumbnail URL'),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -488,14 +794,14 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                TextField(
+                TextFormField(
                   controller: _tags,
-                  decoration: const InputDecoration(labelText: 'Tags'),
+                  decoration: _inputDecoration('Tags'),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'Status'),
+                  value: _status,
+                  decoration: _inputDecoration('Status'),
                   items: const ['Draft', 'Published', 'Hidden']
                       .map(
                         (status) => DropdownMenuItem(
@@ -520,12 +826,16 @@ class _NewsFormDialogState extends State<_NewsFormDialog> {
                     ),
                     const SizedBox(width: 10),
                     FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: BelumiLuxury.black,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: _saving ? null : _save,
                       icon: _saving
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.save_outlined),
                       label: Text(copy.t('Lưu', 'Save')),
@@ -552,110 +862,105 @@ class _RequiredField extends StatelessWidget {
   final String label;
   final int maxLines;
 
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+      fillColor: Colors.white,
+      filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      decoration: InputDecoration(labelText: label),
+      decoration: _inputDecoration(label),
       validator: (value) =>
           value == null || value.trim().isEmpty ? 'Required' : null,
     );
   }
 }
 
-class _AdminNewsTile extends StatelessWidget {
-  const _AdminNewsTile({
-    required this.post,
-    required this.onEdit,
-    required this.onHide,
-  });
-
-  final NewsArticle post;
-  final VoidCallback onEdit;
-  final VoidCallback onHide;
-
-  @override
-  Widget build(BuildContext context) {
-    return LuxuryPanel(
-      padding: const EdgeInsets.all(12),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: SizedBox(
-            width: 58,
-            height: 58,
-            child: Image.network(
-              post.coverImageUrl ?? '',
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) =>
-                  ColoredBox(color: Colors.grey.shade100),
-            ),
-          ),
-        ),
-        title: Text(
-          post.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          '${post.category} · ${post.status} · ${post.viewCount} views',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Wrap(
-          spacing: 4,
-          children: [
-            IconButton(
-              tooltip: 'Edit',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-            ),
-            IconButton(
-              tooltip: 'Hide',
-              onPressed: onHide,
-              icon: const Icon(Icons.visibility_off_outlined),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.label, required this.value});
+  const _StatTile({required this.label, required this.value, required this.icon, this.color});
 
   final String label;
   final Object? value;
+  final IconData icon;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 128,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: BelumiLuxury.peach,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.94),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1DFD8)),
+        boxShadow: [
+          BoxShadow(
+            color: BelumiLuxury.rose.withOpacity(0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${value ?? 0}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: BelumiLuxury.muted,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              Text(label),
+              Icon(icon, size: 16, color: color ?? BelumiLuxury.ink),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            '${value ?? 0}',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: BelumiLuxury.black,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -808,6 +808,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 color: color ?? const Color(0xFF1F1F2C))),
       );
 
+  Padding _tCellWidget(Widget child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: child,
+      );
+
   // -- Subscription Plan Distribution --
   Widget _buildPlanDistribution(
       String Function(String, String) t, Map<String, dynamic> dist) {
@@ -1423,172 +1428,261 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       return email.contains(q) || name.contains(q);
     }).toList();
 
-    return LuxuryPage(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              t('Quản lý người dùng', 'User Management'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: BelumiLuxury.black,
-                    fontWeight: FontWeight.w900,
-                  ),
+    final totalUsers = usersList.length;
+    final activeUsers = usersList.where((u) => (u['isActive'] ?? u['IsActive']) as bool? ?? true).length;
+    final blockedUsers = usersList.where((u) => !((u['isActive'] ?? u['IsActive']) as bool? ?? true)).length;
+    final premiumUsers = usersList.where((u) {
+      final p = (u['subscriptionPlan'] ?? u['SubscriptionPlan']) as String? ?? 'Free';
+      return p != 'Free';
+    }).length;
+
+    Widget userStatCard(String label, int value, IconData icon, Color color) {
+      return Container(
+        width: 140,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.94),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF1DFD8)),
+          boxShadow: [
+            BoxShadow(
+              color: BelumiLuxury.rose.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
-              onPressed: _fetchUsers,
-            )
           ],
         ),
-        const SizedBox(height: 12),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1040),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: t('Tìm kiếm theo Email, Tên...', 'Search email, name...'),
-              prefixIcon: const Icon(Icons.search),
-              fillColor: Colors.white,
-              filled: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: BelumiLuxury.muted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                Icon(icon, size: 16, color: color),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$value',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: BelumiLuxury.black,
               ),
             ),
-            onChanged: (val) => setState(() => _userSearchQuery = val),
+          ],
+        ),
+      );
+    }
+
+    return LuxuryPage(
+      children: [
+        _buildPageHeader(
+          title: t('Quản lý người dùng', 'User Management'),
+          description: t(
+            'Quản lý thông tin tài khoản và phân quyền khách hàng.',
+            'Manage account information and customer roles.',
+          ),
+          action: IconButton(
+            icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+            onPressed: _fetchUsers,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            userStatCard(t('Tổng số', 'Total'), totalUsers, Icons.people_outline, BelumiLuxury.ink),
+            userStatCard(t('Hoạt động', 'Active'), activeUsers, Icons.check_circle_outline, Colors.teal),
+            userStatCard(t('Premium', 'Premium'), premiumUsers, Icons.star_outline, Colors.orange),
+            userStatCard(t('Đã khóa', 'Blocked'), blockedUsers, Icons.block_outlined, Colors.red),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _buildSearchBar(
+          hintText: t('Tìm kiếm theo Email, Tên...', 'Search email, name...'),
+          onChanged: (val) => setState(() => _userSearchQuery = val),
+        ),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_loadingUsers) const LinearProgressIndicator(),
+              if (_loadingUsers) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+              ],
               if (filtered.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: Text(t('Không tìm thấy người dùng nào.', 'No users match criteria.')),
+                    child: Text(
+                      t('Không tìm thấy người dùng nào.', 'No users match criteria.'),
+                      style: const TextStyle(color: BelumiLuxury.muted),
+                    ),
                   ),
                 )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filtered.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, idx) {
-                    final user = filtered[idx];
-                    final isActive = (user['isActive'] ?? user['IsActive']) as bool? ?? true;
-                    final email = (user['email'] ?? user['Email']) as String? ?? '';
-                    final name = (user['fullName'] ?? user['FullName']) as String? ?? 'Chưa đặt tên';
-                    final roleVal = user['role'] ?? user['Role'];
-                    final role = roleVal is int
-                        ? (roleVal == 1 ? 'Admin' : 'Customer')
-                        : (roleVal?.toString() ?? 'Customer');
-                    final plan = (user['subscriptionPlan'] ?? user['SubscriptionPlan']) as String? ?? 'Free';
-                    final regDate = (user['createdAt'] ?? user['CreatedAt']) as String? ?? '';
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Color(0xFFF1DFD8), width: 0.5)),
+              else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: const {
+                      0: FixedColumnWidth(240), // Khách hàng
+                      1: FixedColumnWidth(100), // Vai trò
+                      2: FixedColumnWidth(110), // Gói dịch vụ
+                      3: FixedColumnWidth(130), // Trạng thái
+                      4: FixedColumnWidth(130), // Ngày đăng ký
+                      5: FixedColumnWidth(80),  // Hành động khóa
+                    },
+                    border: TableBorder(
+                      horizontalInside: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 0.5,
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    if (role == 'Admin')
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange.shade800,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text('Admin', style: TextStyle(color: Colors.white, fontSize: 9)),
-                                      ),
-                                    const SizedBox(width: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: plan == 'Free' ? Colors.grey.shade400 : BelumiLuxury.ink,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        plan,
-                                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        'Đăng ký: ${_formatDate(regDate)}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 11, color: BelumiLuxury.muted),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: isActive ? Colors.teal.shade50 : Colors.red.shade50,
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: (isActive ? Colors.teal.shade700 : Colors.red.shade700).withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        isActive ? 'Đang hoạt động' : 'Đã khóa',
-                                        style: TextStyle(
-                                          color: isActive ? Colors.teal.shade700 : Colors.red.shade700,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                    ),
+                    children: [
+                      TableRow(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
                           ),
-                          const SizedBox(width: 8),
-                          if (role != 'Admin')
-                            Switch(
-                              value: isActive,
-                              activeThumbColor: Colors.teal.shade700,
-                              inactiveTrackColor: Colors.red.shade100,
-                              inactiveThumbColor: Colors.red.shade700,
-                              onChanged: (_) => _toggleUserStatus(user),
-                            ),
+                        ),
+                        children: [
+                          _tHead(t('Khách hàng', 'Customer')),
+                          _tHead(t('Vai trò', 'Role')),
+                          _tHead(t('Gói dịch vụ', 'Plan')),
+                          _tHead(t('Trạng thái', 'Status')),
+                          _tHead(t('Ngày tham gia', 'Joined Date')),
+                          _tHead(t('Khóa/Mở', 'Lock/Unlock')),
                         ],
                       ),
-                    );
-                  },
+                      ...filtered.map((user) {
+                        final isActive = (user['isActive'] ?? user['IsActive']) as bool? ?? true;
+                        final email = (user['email'] ?? user['Email']) as String? ?? '';
+                        final name = (user['fullName'] ?? user['FullName']) as String? ?? t('Chưa đặt tên', 'Unnamed');
+                        final roleVal = user['role'] ?? user['Role'];
+                        final role = roleVal is int
+                            ? (roleVal == 1 ? 'Admin' : 'Customer')
+                            : (roleVal?.toString() ?? 'Customer');
+                        final plan = (user['subscriptionPlan'] ?? user['SubscriptionPlan']) as String? ?? 'Free';
+                        final regDate = (user['createdAt'] ?? user['CreatedAt']) as String? ?? '';
+
+                        return TableRow(
+                          children: [
+                            // Customer name & email
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: BelumiLuxury.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    email,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: BelumiLuxury.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Role Badge
+                            _tCellWidget(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: role == 'Admin' ? Colors.orange.shade50 : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: (role == 'Admin' ? Colors.orange : Colors.grey).withOpacity(0.2)),
+                                ),
+                                child: Text(
+                                  role,
+                                  style: TextStyle(
+                                    color: role == 'Admin' ? Colors.orange.shade900 : Colors.grey.shade700,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Subscription Plan
+                            _tCellWidget(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: plan == 'Free' ? Colors.grey.shade50 : const Color(0xFFE8F4FD),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: (plan == 'Free' ? Colors.grey : const Color(0xFF1B76FF)).withOpacity(0.2)),
+                                ),
+                                child: Text(
+                                  plan,
+                                  style: TextStyle(
+                                    color: plan == 'Free' ? Colors.grey.shade700 : const Color(0xFF193447),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Status badge
+                            _tCellWidget(
+                              _buildStatusBadge(isActive ? 'Active' : 'Blocked'),
+                            ),
+                            // Joined date
+                            _tCell(_formatDate(regDate)),
+                            // Toggle Action
+                            _tCellWidget(
+                              role == 'Admin'
+                                  ? const SizedBox.shrink()
+                                  : Transform.scale(
+                                      scale: 0.8,
+                                      child: Switch(
+                                        value: isActive,
+                                        activeColor: Colors.teal.shade700,
+                                        activeTrackColor: Colors.teal.shade100,
+                                        inactiveThumbColor: Colors.red.shade700,
+                                        inactiveTrackColor: Colors.red.shade100,
+                                        onChanged: (_) => _toggleUserStatus(user),
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
+                _buildPaginationRow(
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalItems: filtered.length,
+                  onPrevious: null,
+                  onNext: null,
+                ),
+              ],
             ],
           ),
         ),
@@ -1609,129 +1703,204 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     return LuxuryPage(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              t('Lịch sử cuộc gọi AI', 'AI Usage Logs'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: BelumiLuxury.black,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
-              onPressed: _fetchAiLogs,
-            )
-          ],
+        _buildPageHeader(
+          title: t('Lịch sử cuộc gọi AI', 'AI Usage Logs'),
+          description: t(
+            'Theo dõi hoạt động và lượng token tiêu thụ của hệ thống AI.',
+            'Monitor activity and token consumption of the AI system.',
+          ),
+          action: IconButton(
+            icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+            onPressed: _fetchAiLogs,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_loadingAiLogs) const LinearProgressIndicator(),
-              if (logs.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: Text('Chưa có bản ghi hoạt động AI nào.')),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: logs.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, idx) {
-                    final log = logs[idx];
-                    final id = (log['id'] ?? log['Id'])?.toString() ?? idx.toString();
-                    final feature = (log['featureName'] ?? log['FeatureName']) as String? ?? 'N/A';
-                    final token = (log['tokenUsed'] ?? log['TokenUsed']) as num? ?? 0;
-                    final date = (log['createdAt'] ?? log['CreatedAt']) as String? ?? '';
-                    final userMap = (log['user'] ?? log['User']) as Map<String, dynamic>?;
-                    final userEmail = userMap != null ? ((userMap['email'] ?? userMap['Email']) as String? ?? 'Ẩn danh') : 'Ẩn danh';
-                    final isExpanded = _expandedLogIds.contains(id);
-
-                    return Column(
+              if (_loadingAiLogs) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+              ] else if (logs.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      t('Chưa có bản ghi hoạt động AI nào.', 'No AI activity logs yet.'),
+                      style: const TextStyle(color: BelumiLuxury.muted),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: 620,
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Row(
+                        // Table Header Row
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                            ),
+                          ),
+                          child: Row(
                             children: [
-                              Text(feature, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: Colors.purple.shade200),
-                                ),
-                                child: Text(
-                                  '$token tokens',
-                                  style: TextStyle(color: Colors.purple.shade800, fontSize: 9, fontWeight: FontWeight.bold),
-                                ),
-                              )
+                              Expanded(flex: 2, child: Text(t('Tính năng', 'Feature'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1F1F2C)))),
+                              Expanded(flex: 3, child: Text(t('Người dùng', 'User'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1F1F2C)))),
+                              Expanded(flex: 2, child: Text(t('Số Tokens', 'Tokens'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1F1F2C)))),
+                              Expanded(flex: 3, child: Text(t('Thời gian', 'Time'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1F1F2C)))),
+                              const SizedBox(width: 48), // Match Expand icon button width
                             ],
                           ),
-                          subtitle: Text('User: $userEmail\nThời gian: ${_formatDate(date)}'),
-                          trailing: Icon(
-                            isExpanded ? Icons.expand_less : Icons.expand_more,
-                            color: BelumiLuxury.muted,
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (isExpanded) {
-                                _expandedLogIds.remove(id);
-                              } else {
-                                _expandedLogIds.add(id);
-                              }
-                            });
-                          },
                         ),
-                        if (isExpanded)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: logs.length,
+                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          itemBuilder: (context, idx) {
+                            final log = logs[idx];
+                            final id = (log['id'] ?? log['Id'])?.toString() ?? idx.toString();
+                            final feature = (log['featureName'] ?? log['FeatureName']) as String? ?? 'N/A';
+                            final token = (log['tokenUsed'] ?? log['TokenUsed']) as num? ?? 0;
+                            final date = (log['createdAt'] ?? log['CreatedAt']) as String? ?? '';
+                            final userMap = (log['user'] ?? log['User']) as Map<String, dynamic>?;
+                            final userEmail = userMap != null ? ((userMap['email'] ?? userMap['Email']) as String? ?? 'Ẩn danh') : 'Ẩn danh';
+                            final isExpanded = _expandedLogIds.contains(id);
+
+                            return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Dữ liệu gửi lên:',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: BelumiLuxury.ink),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isExpanded) {
+                                        _expandedLogIds.remove(id);
+                                      } else {
+                                        _expandedLogIds.add(id);
+                                      }
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                            feature,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: BelumiLuxury.black),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text(
+                                            userEmail,
+                                            style: const TextStyle(fontSize: 12, color: BelumiLuxury.black),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.shade50,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: Colors.purple.shade200),
+                                                ),
+                                                child: Text(
+                                                  '$token tokens',
+                                                  style: TextStyle(
+                                                    color: Colors.purple.shade800,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text(
+                                            _formatDate(date),
+                                            style: const TextStyle(fontSize: 12, color: BelumiLuxury.black),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 48,
+                                          child: Icon(
+                                            isExpanded ? Icons.expand_less : Icons.expand_more,
+                                            color: BelumiLuxury.muted,
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  (log['requestData'] ?? log['RequestData'])?.toString() ?? 'Trống',
-                                  style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.grey.shade800),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Kết quả phản hồi:',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: BelumiLuxury.ink),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  log['responseData'] as String? ?? 'Trống',
-                                  style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.grey.shade800),
-                                ),
+                                if (isExpanded)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFFF1DFD8)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Dữ liệu gửi lên:',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: BelumiLuxury.ink),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          (log['requestData'] ?? log['RequestData'])?.toString() ?? 'Trống',
+                                          style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.grey.shade800),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        const Text(
+                                          'Kết quả phản hồi:',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: BelumiLuxury.ink),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          log['responseData'] as String? ?? 'Trống',
+                                          style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.grey.shade800),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
-                            ),
-                          )
+                            );
+                          },
+                        ),
                       ],
-                    );
-                  },
-                )
+                    ),
+                  ),
+                ),
+                _buildPaginationRow(
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalItems: logs.length,
+                  onPrevious: null,
+                  onNext: null,
+                ),
+              ],
             ],
           ),
-        )
+        ),
       ],
     );
   }
@@ -1747,143 +1916,346 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     final list = _contacts ?? [];
 
+    String translateS(String s) {
+      if (s == 'New') return t('Chưa xử lý', 'New');
+      if (s == 'InProgress') return t('Đang xử lý', 'In Progress');
+      if (s == 'Resolved') return t('Đã giải quyết', 'Resolved');
+      return s;
+    }
+
     return LuxuryPage(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              t('Yêu cầu hỗ trợ', 'Contact Requests'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: BelumiLuxury.black,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
-              onPressed: _fetchContacts,
-            )
-          ],
+        _buildPageHeader(
+          title: t('Yêu cầu hỗ trợ', 'Contact Requests'),
+          description: t(
+            'Xem và phản hồi yêu cầu tư vấn, hỗ trợ từ khách hàng.',
+            'View and reply to consultation and support requests from customers.',
+          ),
+          action: IconButton(
+            icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+            onPressed: _fetchContacts,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_loadingContacts) const LinearProgressIndicator(),
+              if (_loadingContacts) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+              ],
               if (list.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: Text('Chưa có yêu cầu hỗ trợ nào.')),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      t('Chưa có yêu cầu hỗ trợ nào.', 'No contact requests yet.'),
+                      style: const TextStyle(color: BelumiLuxury.muted),
+                    ),
+                  ),
                 )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: list.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, idx) {
-                    final item = list[idx];
-                    final name = (item['fullName'] ?? item['FullName']) as String? ?? 'N/A';
-                    final phone = (item['phone'] ?? item['Phone']) as String? ?? 'N/A';
-                    final email = (item['email'] ?? item['Email']) as String? ?? 'N/A';
-                    final msg = (item['message'] ?? item['Message']) as String? ?? 'Trống';
-                    final status = _parseContactStatus(item['status'] ?? item['Status']);
-                    final date = (item['createdAt'] ?? item['CreatedAt']) as String? ?? '';
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              _buildStatusBadge(status),
-                            ],
+              else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: const {
+                      0: FixedColumnWidth(220), // Khách hàng
+                      1: FixedColumnWidth(300), // Nội dung
+                      2: FixedColumnWidth(130), // Thời gian
+                      3: FixedColumnWidth(110), // Trạng thái
+                      4: FixedColumnWidth(120), // Hành động đổi
+                    },
+                    border: TableBorder(
+                      horizontalInside: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 0.5,
+                      ),
+                    ),
+                    children: [
+                      TableRow(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
                           ),
-                          const SizedBox(height: 4),
-                          Text('SĐT: $phone | Email: $email', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                          const SizedBox(height: 6),
-                          Text(msg, style: const TextStyle(fontSize: 13, height: 1.3)),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Gửi lúc: ${_formatDate(date)}',
-                                style: const TextStyle(fontSize: 10, color: BelumiLuxury.muted),
-                              ),
-                              Row(
-                                children: [
-                                  const Text('Đổi trạng thái: ', style: TextStyle(fontSize: 11)),
-                                  DropdownButton<String>(
-                                    value: status,
-                                    elevation: 2,
-                                    underline: const SizedBox(),
-                                    style: const TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold),
-                                    items: ['New', 'InProgress', 'Resolved'].map((s) {
-                                      return DropdownMenuItem<String>(
-                                        value: s,
-                                        child: Text(_translateStatus(s)),
-                                      );
-                                    }).toList(),
-                                    onChanged: (newVal) {
-                                      if (newVal != null && newVal != status) {
-                                        _updateContactStatus(item, newVal);
-                                      }
-                                    },
-                                  )
-                                ],
-                              )
-                            ],
-                          )
+                        ),
+                        children: [
+                          _tHead(t('Khách hàng', 'Customer')),
+                          _tHead(t('Nội dung yêu cầu', 'Message')),
+                          _tHead(t('Gửi lúc', 'Sent At')),
+                          _tHead(t('Trạng thái', 'Status')),
+                          _tHead(t('Đổi trạng thái', 'Change Status')),
                         ],
                       ),
-                    );
-                  },
-                )
+                      ...list.map((item) {
+                        final name = (item['fullName'] ?? item['FullName']) as String? ?? 'N/A';
+                        final phone = (item['phone'] ?? item['Phone']) as String? ?? 'N/A';
+                        final email = (item['email'] ?? item['Email']) as String? ?? 'N/A';
+                        final msg = (item['message'] ?? item['Message']) as String? ?? 'Trống';
+                        final status = _parseContactStatus(item['status'] ?? item['Status']);
+                        final date = (item['createdAt'] ?? item['CreatedAt']) as String? ?? '';
+
+                        return TableRow(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: BelumiLuxury.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'SĐT: $phone',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: BelumiLuxury.muted,
+                                    ),
+                                  ),
+                                  Text(
+                                    email,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: BelumiLuxury.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                              child: Text(
+                                msg,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.3,
+                                  color: BelumiLuxury.black,
+                                ),
+                              ),
+                            ),
+                            _tCell(_formatDate(date)),
+                            _tCellWidget(
+                              _buildStatusBadge(status),
+                            ),
+                            _tCellWidget(
+                              DropdownButton<String>(
+                                value: status,
+                                elevation: 2,
+                                underline: const SizedBox(),
+                                style: const TextStyle(fontSize: 12, color: BelumiLuxury.ink, fontWeight: FontWeight.bold),
+                                items: ['New', 'InProgress', 'Resolved'].map((s) {
+                                  return DropdownMenuItem<String>(
+                                    value: s,
+                                    child: Text(translateS(s)),
+                                  );
+                                }).toList(),
+                                onChanged: (newVal) {
+                                  if (newVal != null && newVal != status) {
+                                    _updateContactStatus(item, newVal);
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                _buildPaginationRow(
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalItems: list.length,
+                  onPrevious: null,
+                  onNext: null,
+                ),
+              ],
             ],
           ),
-        )
+        ),
       ],
     );
   }
 
+  Widget _buildPageHeader({
+    required String title,
+    required String description,
+    Widget? action,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: BelumiLuxury.black,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        if (action != null) ...[
+          const SizedBox(width: 16),
+          action,
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSearchBar({
+    required String hintText,
+    required ValueChanged<String> onChanged,
+    List<Widget> filters = const [],
+  }) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1040),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  onChanged: onChanged,
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    prefixIcon: const Icon(Icons.search, color: BelumiLuxury.muted),
+                    fillColor: Colors.white,
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: BelumiLuxury.ink, width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (filters.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: filters,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationRow({
+    required int currentPage,
+    required int totalPages,
+    required int totalItems,
+    required VoidCallback? onPrevious,
+    required VoidCallback? onNext,
+  }) {
+    final t = belumiCopy(context).t;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            t('Tổng số: $totalItems bản ghi', 'Total: $totalItems records'),
+            style: const TextStyle(fontSize: 12, color: BelumiLuxury.muted),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: onPrevious,
+                icon: const Icon(Icons.chevron_left),
+                tooltip: t('Trang trước', 'Previous Page'),
+              ),
+              Text(
+                t('Trang $currentPage / $totalPages', 'Page $currentPage of $totalPages'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: onNext,
+                icon: const Icon(Icons.chevron_right),
+                tooltip: t('Trang sau', 'Next Page'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusBadge(String status) {
-    Color bg = Colors.grey.shade100;
+    final t = belumiCopy(context).t;
+    Color bg = Colors.grey.shade50;
     Color fg = Colors.grey.shade800;
-    if (status == 'New') {
-      bg = Colors.red.shade50;
-      fg = Colors.red.shade800;
-    } else if (status == 'InProgress') {
+    String label = status;
+
+    final s = status.toLowerCase();
+
+    if (s == 'paid' || s == 'mockpaid' || s == 'active' || s == 'resolved' || s == 'true') {
+      bg = Colors.teal.shade50;
+      fg = Colors.teal.shade800;
+      label = s == 'true' || s == 'active'
+          ? t('Hoạt động', 'Active')
+          : (s == 'resolved' ? t('Đã xử lý', 'Resolved') : t('Thành công', 'Success'));
+    } else if (s == 'pending' || s == 'inprogress' || s == 'draft') {
       bg = Colors.orange.shade50;
       fg = Colors.orange.shade800;
-    } else if (status == 'Resolved') {
-      bg = Colors.green.shade50;
-      fg = Colors.green.shade800;
+      label = s == 'pending'
+          ? t('Chờ xử lý', 'Pending')
+          : (s == 'inprogress' ? t('Đang xử lý', 'In Progress') : t('Bản nháp', 'Draft'));
+    } else if (s == 'new' || s == 'false' || s == 'blocked' || s == 'hidden') {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade800;
+      label = s == 'new'
+          ? t('Yêu cầu mới', 'New')
+          : (s == 'false' || s == 'blocked'
+              ? t('Đã khóa', 'Blocked')
+              : t('Bị ẩn', 'Hidden'));
+    } else if (s == 'published') {
+      bg = Colors.blue.shade50;
+      fg = Colors.blue.shade800;
+      label = t('Xuất bản', 'Published');
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: fg.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: fg.withOpacity(0.18)),
       ),
       child: Text(
-        _translateStatus(status),
+        label,
         style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
-  }
-
-  String _translateStatus(String s) {
-    if (s == 'New') return 'Chưa xử lý';
-    if (s == 'InProgress') return 'Đang xử lý';
-    if (s == 'Resolved') return 'Đã xong';
-    return s;
   }
 
   String _formatDate(String isoString) {
@@ -1931,23 +2303,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     return LuxuryPage(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              t('Quản lý doanh thu', 'Revenue Management'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: BelumiLuxury.black,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
-              onPressed: _fetchPayments,
-            )
-          ],
+        _buildPageHeader(
+          title: t('Quản lý doanh thu', 'Revenue Management'),
+          description: t(
+            'Xem danh sách giao dịch và thông tin thanh toán.',
+            'View transactions and payment information.',
+          ),
+          action: IconButton(
+            icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+            onPressed: _fetchPayments,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         Wrap(
           spacing: 12,
           runSpacing: 12,
@@ -1994,137 +2361,152 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1040),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: t('Tìm kiếm theo Email, Tên, Mã giao dịch...', 'Search email, name, transaction code...'),
-              prefixIcon: const Icon(Icons.search),
-              fillColor: Colors.white,
-              filled: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFF1DFD8)),
-              ),
-            ),
-            onChanged: (val) => setState(() => _paymentSearchQuery = val),
-          ),
+        const SizedBox(height: 18),
+        _buildSearchBar(
+          hintText: t('Tìm kiếm theo Email, Tên, Mã giao dịch...', 'Search email, name, transaction code...'),
+          onChanged: (val) => setState(() => _paymentSearchQuery = val),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         LuxuryPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_loadingPayments) const LinearProgressIndicator(),
+              if (_loadingPayments) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+              ],
               if (filtered.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: Text(t('Không tìm thấy giao dịch nào.', 'No transactions found.')),
+                    child: Text(
+                      t('Không tìm thấy giao dịch nào.', 'No transactions found.'),
+                      style: const TextStyle(color: BelumiLuxury.muted),
+                    ),
                   ),
                 )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filtered.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, idx) {
-                    final payment = filtered[idx];
-                    final amount = (payment['amount'] ?? payment['Amount']) as num? ?? 0;
-                    final email = (payment['userEmail'] ?? payment['UserEmail']) as String? ?? 'Ẩn danh';
-                    final name = (payment['userFullName'] ?? payment['UserFullName']) as String? ?? 'Ẩn danh';
-                    final planName = (payment['planName'] ?? payment['PlanName']) as String? ?? 'Chưa rõ';
-                    final status = (payment['paymentStatus'] ?? payment['PaymentStatus']) as String? ?? 'Pending';
-                    final method = (payment['paymentMethod'] ?? payment['PaymentMethod']) as String? ?? 'Mock';
-                    final code = (payment['transactionCode'] ?? payment['TransactionCode']) as String? ?? 'N/A';
-                    final date = (payment['createdAt'] ?? payment['CreatedAt']) as String? ?? '';
-
-                    final isPaid = status == 'Paid' || status == 'MockPaid';
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Color(0xFFF1DFD8), width: 0.5)),
+              else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: const {
+                      0: FixedColumnWidth(220), // Khách hàng
+                      1: FixedColumnWidth(100), // Gói
+                      2: FixedColumnWidth(120), // Mã GD
+                      3: FixedColumnWidth(110), // Phương thức
+                      4: FixedColumnWidth(130), // Thời gian
+                      5: FixedColumnWidth(140), // Số tiền
+                      6: FixedColumnWidth(120), // Trạng thái
+                    },
+                    border: TableBorder(
+                      horizontalInside: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 0.5,
                       ),
-                      child: Row(
+                    ),
+                    children: [
+                      TableRow(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                          ),
+                        ),
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: isPaid ? Colors.teal.shade800 : Colors.red.shade800,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        isPaid ? 'Thành công' : 'Chờ xử lý',
-                                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade400,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        method,
-                                        style: const TextStyle(color: Colors.white, fontSize: 9),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Gói: $planName | Mã GD: $code',
-                                  style: const TextStyle(fontSize: 11, color: BelumiLuxury.muted),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Thời gian: ${_formatDate(date)}',
-                                  style: const TextStyle(fontSize: 11, color: BelumiLuxury.muted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatVND(amount.toDouble()),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15,
-                              color: isPaid ? Colors.teal.shade800 : Colors.red.shade800,
-                            ),
-                          ),
+                          _tHead(t('Khách hàng', 'Customer')),
+                          _tHead(t('Gói dịch vụ', 'Plan')),
+                          _tHead(t('Mã giao dịch', 'Tx Code')),
+                          _tHead(t('Phương thức', 'Method')),
+                          _tHead(t('Thời gian', 'Time')),
+                          _tHead(t('Số tiền', 'Amount')),
+                          _tHead(t('Trạng thái', 'Status')),
                         ],
                       ),
-                    );
-                  },
+                      ...filtered.map((payment) {
+                        final amount = (payment['amount'] ?? payment['Amount']) as num? ?? 0;
+                        final email = (payment['userEmail'] ?? payment['UserEmail']) as String? ?? 'Ẩn danh';
+                        final name = (payment['userFullName'] ?? payment['UserFullName']) as String? ?? 'Ẩn danh';
+                        final planName = (payment['planName'] ?? payment['PlanName']) as String? ?? 'Chưa rõ';
+                        final status = (payment['paymentStatus'] ?? payment['PaymentStatus']) as String? ?? 'Pending';
+                        final method = (payment['paymentMethod'] ?? payment['PaymentMethod']) as String? ?? 'Mock';
+                        final code = (payment['transactionCode'] ?? payment['TransactionCode']) as String? ?? 'N/A';
+                        final date = (payment['createdAt'] ?? payment['CreatedAt']) as String? ?? '';
+                        final isPaid = status == 'Paid' || status == 'MockPaid';
+
+                        return TableRow(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: BelumiLuxury.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    email,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: BelumiLuxury.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _tCell(planName),
+                            _tCell(code),
+                            _tCellWidget(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                                ),
+                                child: Text(
+                                  method,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            _tCell(_formatDate(date)),
+                            _tCellWidget(
+                              Text(
+                                _formatVND(amount.toDouble()),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                  color: isPaid ? Colors.teal.shade800 : Colors.red.shade800,
+                                ),
+                              ),
+                            ),
+                            _tCellWidget(
+                              _buildStatusBadge(status),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
+                _buildPaginationRow(
+                  currentPage: 1,
+                  totalPages: 1,
+                  totalItems: filtered.length,
+                  onPrevious: null,
+                  onNext: null,
+                ),
+              ],
             ],
           ),
         ),
