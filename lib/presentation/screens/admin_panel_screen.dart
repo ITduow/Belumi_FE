@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/repositories/belumi_repository.dart';
@@ -462,6 +463,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 children: [
                   _buildOverviewCards(t, overview),
                   const SizedBox(height: 24),
+                  _buildRevenueChart(t, timeSeries),
+                  const SizedBox(height: 24),
+                  _buildUsersChart(t, timeSeries),
+                  const SizedBox(height: 24),
                   _buildTimeSeriesTable(t, timeSeries),
                   const SizedBox(height: 24),
                   _buildPlanDistribution(t, distributions),
@@ -875,6 +880,414 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           }),
         ],
       ),
+    );
+  }
+
+  // -- Revenue Bar Chart --
+  Widget _buildRevenueChart(
+      String Function(String, String) t, List<dynamic> series) {
+    if (series.isEmpty) return const SizedBox.shrink();
+
+    final labels = <String>[];
+    final revenues = <double>[];
+    for (final pt in series) {
+      labels.add((pt['label'] ?? pt['Label']) as String? ?? '');
+      revenues.add(
+          ((pt['revenue'] ?? pt['Revenue']) as num? ?? 0).toDouble());
+    }
+    final maxY = revenues.fold<double>(0, (a, b) => a > b ? a : b);
+    final ceilY = maxY <= 0 ? 100.0 : (maxY * 1.2);
+
+    return LuxuryPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B76FF),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(t('Biểu đồ Doanh thu', 'Revenue Chart'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Color(0xFF1F1F2C))),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 220,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: ceilY,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipRoundedRadius: 8,
+                    getTooltipItem: (group, groupIdx, rod, rodIdx) {
+                      final label = groupIdx < labels.length
+                          ? labels[groupIdx]
+                          : '';
+                      return BarTooltipItem(
+                        '$label\n${_formatVND(rod.toY)}',
+                        const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= labels.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final step = (labels.length / 6).ceil().clamp(1, labels.length);
+                        final isFirst = idx == 0;
+                        final isLast = idx == labels.length - 1;
+                        if (!isFirst && !isLast && idx % step != 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(labels[idx],
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF8A94A6))),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 50,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const SizedBox.shrink();
+                        String label;
+                        if (value >= 1000000) {
+                          label = '${(value / 1000000).toStringAsFixed(1)}M';
+                        } else if (value >= 1000) {
+                          label = '${(value / 1000).toStringAsFixed(0)}K';
+                        } else {
+                          label = value.toStringAsFixed(0);
+                        }
+                        return Text(label,
+                            style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF8A94A6)));
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: ceilY / 4,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: const Color(0xFFE8EAF0),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(revenues.length, (i) {
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: revenues[i],
+                        width: revenues.length > 12 ? 8 : 16,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4)),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF1B76FF),
+                            Color(0xFF64B5F6)
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -- Users & Premium Line Chart --
+  Widget _buildUsersChart(
+      String Function(String, String) t, List<dynamic> series) {
+    if (series.isEmpty) return const SizedBox.shrink();
+
+    final labels = <String>[];
+    final users = <double>[];
+    final premiums = <double>[];
+    final articles = <double>[];
+    for (final pt in series) {
+      labels.add((pt['label'] ?? pt['Label']) as String? ?? '');
+      users.add(
+          ((pt['newUsers'] ?? pt['NewUsers']) as num? ?? 0).toDouble());
+      premiums.add(((pt['premiumPurchases'] ??
+                  pt['PremiumPurchases']) as num? ??
+              0)
+          .toDouble());
+      articles.add(((pt['newArticles'] ?? pt['NewArticles']) as num? ?? 0)
+          .toDouble());
+    }
+
+    final allVals = [...users, ...premiums, ...articles];
+    final maxY = allVals.fold<double>(0, (a, b) => a > b ? a : b);
+    final ceilY = maxY <= 0 ? 5.0 : (maxY * 1.3).ceilToDouble();
+
+    List<FlSpot> toSpots(List<double> data) {
+      return List.generate(
+          data.length, (i) => FlSpot(i.toDouble(), data[i]));
+    }
+
+    return LuxuryPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2ECC71),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                    t('Biểu đồ Người dùng & Hoạt động',
+                        'Users & Activity Chart'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Color(0xFF1F1F2C))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Legend
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            children: [
+              _chartLegend(const Color(0xFF2ECC71),
+                  t('Người dùng mới', 'New Users')),
+              _chartLegend(const Color(0xFFE67E22),
+                  t('Mua Premium', 'Premium')),
+              _chartLegend(const Color(0xFF9B59B6),
+                  t('Bài viết mới', 'New Articles')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: ceilY,
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    tooltipRoundedRadius: 8,
+                    getTooltipItems: (spots) {
+                      return spots.map((spot) {
+                        final lbl = spot.spotIndex < labels.length
+                            ? labels[spot.spotIndex]
+                            : '';
+                        String seriesName;
+                        if (spot.barIndex == 0) {
+                          seriesName = t('TV mới', 'Users');
+                        } else if (spot.barIndex == 1) {
+                          seriesName = 'Premium';
+                        } else {
+                          seriesName = t('Bài viết', 'Articles');
+                        }
+                        return LineTooltipItem(
+                          '$lbl\n$seriesName: ${spot.y.toInt()}',
+                          TextStyle(
+                              color: spot.bar.color ?? Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= labels.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final step = (labels.length / 6).ceil().clamp(1, labels.length);
+                        final isFirst = idx == 0;
+                        final isLast = idx == labels.length - 1;
+                        if (!isFirst && !isLast && idx % step != 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(labels[idx],
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF8A94A6))),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const SizedBox.shrink();
+                        return Text(value.toInt().toString(),
+                            style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF8A94A6)));
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: ceilY > 0 ? ceilY / 4 : 1,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: const Color(0xFFE8EAF0),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  // New Users line
+                  LineChartBarData(
+                    spots: toSpots(users),
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    color: const Color(0xFF2ECC71),
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) =>
+                          FlDotCirclePainter(
+                        radius: 3,
+                        color: const Color(0xFF2ECC71),
+                        strokeWidth: 1.5,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF2ECC71)
+                          .withOpacity(0.08),
+                    ),
+                  ),
+                  // Premium purchases line
+                  LineChartBarData(
+                    spots: toSpots(premiums),
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    color: const Color(0xFFE67E22),
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) =>
+                          FlDotCirclePainter(
+                        radius: 2.5,
+                        color: const Color(0xFFE67E22),
+                        strokeWidth: 1.5,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  // New articles line
+                  LineChartBarData(
+                    spots: toSpots(articles),
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    color: const Color(0xFF9B59B6),
+                    barWidth: 2,
+                    isStrokeCapRound: true,
+                    dashArray: [5, 3],
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, pct, bar, idx) =>
+                          FlDotCirclePainter(
+                        radius: 2.5,
+                        color: const Color(0xFF9B59B6),
+                        strokeWidth: 1.5,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chartLegend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11, color: Color(0xFF8A94A6))),
+      ],
     );
   }
 
