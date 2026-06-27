@@ -306,9 +306,14 @@ class SkinAnalysisResult {
     required this.recommendations,
     this.acneLevel = 'none',
     this.acneTypes = const [],
-    this.darkSpots = false,
-    this.enlargedPores = false,
-    this.redness = false,
+    // Level strings: "low" | "medium" | "high"
+    this.pigmentationLevel = 'low',
+    this.poreVisibilityLevel = 'low',
+    this.visibleRednessLevel = 'low',
+    this.oilinessLevel = 'low',
+    this.oilinessZones = const [],
+    this.skinToneEvennessLevel = 'low',
+    this.visibleWrinkleLevel = 'low',
     this.confidence = 0,
     this.skinCondition = '',
     this.description = '',
@@ -323,9 +328,28 @@ class SkinAnalysisResult {
   final String recommendations;
   final String acneLevel;
   final List<String> acneTypes;
-  final bool darkSpots;
-  final bool enlargedPores;
-  final bool redness;
+
+  /// Pigmentation/dark spots level: "low" | "medium" | "high"
+  final String pigmentationLevel;
+
+  /// Pore visibility level: "low" | "medium" | "high"
+  final String poreVisibilityLevel;
+
+  /// Visible redness level: "low" | "medium" | "high"
+  final String visibleRednessLevel;
+
+  /// Oiliness/shine level: "low" | "medium" | "high"
+  final String oilinessLevel;
+
+  /// Facial zones with visible oiliness: ["forehead", "nose", "chin", "cheeks"]
+  final List<String> oilinessZones;
+
+  /// Skin tone evenness: "low" = even, "high" = very uneven
+  final String skinToneEvennessLevel;
+
+  /// Visible wrinkle/fine line level: "low" | "medium" | "high"
+  final String visibleWrinkleLevel;
+
   final double confidence;
   final String skinCondition;
   final String description;
@@ -334,14 +358,23 @@ class SkinAnalysisResult {
   final List<IngredientRecommendation> recommendedIngredients;
   final List<IngredientRecommendation> avoidOrProfessionalOnly;
 
+  /// Convenience helpers for UI (replaces old bool fields)
+  bool get hasPigmentation => pigmentationLevel == 'medium' || pigmentationLevel == 'high';
+  bool get hasEnlargedPores => poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high';
+  bool get hasRedness => visibleRednessLevel == 'medium' || visibleRednessLevel == 'high';
+  bool get hasOiliness => oilinessLevel == 'medium' || oilinessLevel == 'high';
+  bool get hasWrinkles => visibleWrinkleLevel == 'medium' || visibleWrinkleLevel == 'high';
+
   String get signalSummary {
     final signals = <String>[
       'Acne: $acneLevel',
-      if (darkSpots) 'Dark spots',
-      if (enlargedPores) 'Enlarged pores',
-      if (redness) 'Redness',
-      if (acneTypes.isNotEmpty) 'Acne types: ${acneTypes.join(', ')}',
-      if (skinCondition.isNotEmpty) 'Condition: $skinCondition',
+      if (hasPigmentation) 'Thâm/sắc tố ($pigmentationLevel)',
+      if (hasEnlargedPores) 'Lỗ chân lông to ($poreVisibilityLevel)',
+      if (hasRedness) 'Đỏ da ($visibleRednessLevel)',
+      if (hasOiliness) 'Dầu bóng ($oilinessLevel)',
+      if (hasWrinkles) 'Nếp nhăn ($visibleWrinkleLevel)',
+      if (acneTypes.isNotEmpty) 'Loại mụn: ${acneTypes.join(', ')}',
+      if (skinCondition.isNotEmpty) 'Tình trạng: $skinCondition',
     ];
     return signals.join('\n');
   }
@@ -360,6 +393,18 @@ class SkinAnalysisResult {
       json['avoid_or_professional_only'],
     );
     final description = json['description'] as String? ?? '';
+
+    final pigmentationLevel = json['pigmentation_level'] as String? ?? 'low';
+    final poreVisibilityLevel = json['pore_visibility_level'] as String? ?? 'low';
+    final visibleRednessLevel = json['visible_redness_level'] as String? ?? 'low';
+
+    final concernsList = [
+      if ((json['acne_level'] as String? ?? 'none').toLowerCase().trim() != 'none') 'acne',
+      if (pigmentationLevel == 'medium' || pigmentationLevel == 'high') 'pigmentation',
+      if (poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high') 'enlarged_pores',
+      if (visibleRednessLevel == 'medium' || visibleRednessLevel == 'high') 'redness',
+    ];
+
     final recommendations = [
       if (description.isNotEmpty) description,
       if (advice.isNotEmpty)
@@ -370,18 +415,17 @@ class SkinAnalysisResult {
 
     return SkinAnalysisResult(
       skinType: skinType,
-      concerns: _concernsFromSignals(
-        acneLevel: json['acne_level'] as String? ?? 'none',
-        darkSpots: json['dark_spots'] as bool? ?? false,
-        enlargedPores: json['enlarged_pores'] as bool? ?? false,
-        redness: json['redness'] as bool? ?? false,
-      ).join(', '),
+      concerns: concernsList.join(', '),
       recommendations: recommendations,
       acneLevel: json['acne_level'] as String? ?? 'none',
       acneTypes: acneTypes,
-      darkSpots: json['dark_spots'] as bool? ?? false,
-      enlargedPores: json['enlarged_pores'] as bool? ?? false,
-      redness: json['redness'] as bool? ?? false,
+      pigmentationLevel: pigmentationLevel,
+      poreVisibilityLevel: poreVisibilityLevel,
+      visibleRednessLevel: visibleRednessLevel,
+      oilinessLevel: json['oiliness_level'] as String? ?? 'low',
+      oilinessZones: _stringList(json['oiliness_zones']),
+      skinToneEvennessLevel: json['skin_tone_evenness_level'] as String? ?? 'low',
+      visibleWrinkleLevel: json['visible_wrinkle_level'] as String? ?? 'low',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       skinCondition: json['skin_condition'] as String? ?? '',
       description: description,
@@ -413,20 +457,6 @@ class SkinAnalysisResult {
           .map((x) => x.toString())
           .where((x) => x.trim().isNotEmpty)
           .toList();
-
-  static List<String> _concernsFromSignals({
-    required String acneLevel,
-    required bool darkSpots,
-    required bool enlargedPores,
-    required bool redness,
-  }) {
-    return [
-      if (acneLevel.toLowerCase().trim() != 'none') 'acne',
-      if (darkSpots) 'dark_spots',
-      if (enlargedPores) 'enlarged_pores',
-      if (redness) 'redness',
-    ];
-  }
 
   static List<IngredientRecommendation> _ingredientRecommendations(
     Object? value,
@@ -914,4 +944,109 @@ class ChatbotResponse {
             .map(ChatbotSource.fromJson)
             .toList(),
       );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ONBOARDING QUIZ — BeautyProfile & QuizSubmitRequest
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Kết quả onboarding quiz lưu trên server (GET /api/profile/quiz)
+class BeautyProfile {
+  const BeautyProfile({
+    this.nickname,
+    this.gender,
+    this.ageGroup,
+    this.skinType,
+    this.skinGoals = const [],
+    this.skinSensitivity,
+    this.avoidedIngredients = const [],
+    this.budgetRange,
+    this.currentProducts,
+    this.quizCompletedAt,
+  });
+
+  /// Q1 — biệt danh
+  final String? nickname;
+
+  /// Q2 — "female" | "male" | "other"
+  final String? gender;
+
+  /// Q3 — "under18" | "18-22" | "23-26" | "over27"
+  final String? ageGroup;
+
+  /// Q4 — "normal" | "dry" | "combination" | "oily"
+  final String? skinType;
+
+  /// Q5 — max 3: "hydration" | "brightening" | "pore_control" | "dark_spot" | "anti_aging" | "soothing"
+  final List<String> skinGoals;
+
+  /// Q6 — "stable" | "mild" | "sensitive"
+  final String? skinSensitivity;
+
+  /// Q7 — max 3: "fragrance" | "alcohol" | "paraben" | "mineral_oil" | "retinol" | "none" | custom
+  final List<String> avoidedIngredients;
+
+  /// Q8 — "under200k" | "200-300k" | "300-500k" | "500k-1m" | "over1m"
+  final String? budgetRange;
+
+  /// Q9 — free text, tên mỹ phẩm đang dùng
+  final String? currentProducts;
+
+  final DateTime? quizCompletedAt;
+
+  bool get quizCompleted => quizCompletedAt != null;
+
+  factory BeautyProfile.fromJson(Map<String, dynamic> json) => BeautyProfile(
+    nickname: json['nickname'] as String?,
+    gender: json['gender'] as String?,
+    ageGroup: json['age_group'] as String?,
+    skinType: json['skin_type'] as String?,
+    skinGoals: List<String>.from(json['skin_goals'] as List<dynamic>? ?? const []),
+    skinSensitivity: json['skin_sensitivity'] as String?,
+    avoidedIngredients: List<String>.from(
+      json['avoided_ingredients'] as List<dynamic>? ?? const [],
+    ),
+    budgetRange: json['budget_range'] as String?,
+    currentProducts: json['current_products'] as String?,
+    quizCompletedAt: json['quiz_completed_at'] != null
+        ? DateTime.tryParse(json['quiz_completed_at'] as String)
+        : null,
+  );
+}
+
+/// Request body cho POST/PUT /api/profile/quiz
+class QuizSubmitRequest {
+  const QuizSubmitRequest({
+    this.nickname,
+    this.gender,
+    this.ageGroup,
+    this.skinType,
+    this.skinGoals = const [],
+    this.skinSensitivity,
+    this.avoidedIngredients = const [],
+    this.budgetRange,
+    this.currentProducts,
+  });
+
+  final String? nickname;
+  final String? gender;
+  final String? ageGroup;
+  final String? skinType;
+  final List<String> skinGoals;
+  final String? skinSensitivity;
+  final List<String> avoidedIngredients;
+  final String? budgetRange;
+  final String? currentProducts;
+
+  Map<String, dynamic> toJson() => {
+    if (nickname != null) 'nickname': nickname,
+    if (gender != null) 'gender': gender,
+    if (ageGroup != null) 'age_group': ageGroup,
+    if (skinType != null) 'skin_type': skinType,
+    if (skinGoals.isNotEmpty) 'skin_goals': skinGoals,
+    if (skinSensitivity != null) 'skin_sensitivity': skinSensitivity,
+    if (avoidedIngredients.isNotEmpty) 'avoided_ingredients': avoidedIngredients,
+    if (budgetRange != null) 'budget_range': budgetRange,
+    if (currentProducts != null) 'current_products': currentProducts,
+  };
 }

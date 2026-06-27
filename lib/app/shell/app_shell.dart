@@ -7,6 +7,7 @@ import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../presentation/widgets/belumi_luxury.dart';
+import '../../presentation/screens/skin_analysis_screen.dart';
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.repository, required this.child});
@@ -59,6 +60,13 @@ class AppShell extends ConsumerWidget {
           else
             PopupMenuButton<String>(
               icon: const Icon(Icons.account_circle),
+              offset: const Offset(0, 48),
+              elevation: 4,
+              color: const Color(0xFFFFF9F5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFF1DFD8)),
+              ),
               onSelected: (value) {
                 if (value == 'logout') {
                   ref.read(authControllerProvider.notifier).logout();
@@ -67,25 +75,83 @@ class AppShell extends ConsumerWidget {
                   context.go('/admin');
                 } else if (value == 'profile') {
                   context.go('/profile');
+                } else if (value == 'history') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) => SkinAnalysisHistoryScreen(repository: repository),
+                    ),
+                  );
                 } else if (value == 'pricing') {
                   context.push('/pricing');
                 }
               },
               itemBuilder: (_) => [
-                PopupMenuItem(enabled: false, child: Text(user.email)),
-                const PopupMenuItem(value: 'profile', child: Text('Profile')),
+                PopupMenuItem(
+                  enabled: false,
+                  child: Text(
+                    user.email,
+                    style: const TextStyle(
+                      color: BelumiLuxury.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                PopupMenuItem(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_outline, size: 18, color: BelumiLuxury.ink),
+                      const SizedBox(width: 10),
+                      const Text('Hồ sơ'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'history',
+                  child: Row(
+                    children: [
+                      Icon(Icons.history_toggle_off, size: 18, color: BelumiLuxury.ink),
+                      const SizedBox(width: 10),
+                      Text(locale == 'vi' ? 'Lịch sử da' : 'Skin History'),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: 'pricing',
-                  child: Text(strings.t('pricing')),
+                  child: Row(
+                    children: [
+                      Icon(Icons.card_membership_outlined, size: 18, color: BelumiLuxury.ink),
+                      const SizedBox(width: 10),
+                      Text(strings.t('pricing')),
+                    ],
+                  ),
                 ),
                 if (user.role.toLowerCase() == 'admin')
                   PopupMenuItem(
                     value: 'admin',
-                    child: Text(strings.t('admin')),
+                    child: Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings_outlined, size: 18, color: BelumiLuxury.ink),
+                        const SizedBox(width: 10),
+                        Text(strings.t('admin')),
+                      ],
+                    ),
                   ),
+                const PopupMenuDivider(height: 1),
                 PopupMenuItem(
                   value: 'logout',
-                  child: Text(strings.t('logout')),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFB85C5C)),
+                      const SizedBox(width: 10),
+                      Text(
+                        strings.t('logout'),
+                        style: const TextStyle(color: Color(0xFFB85C5C), fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

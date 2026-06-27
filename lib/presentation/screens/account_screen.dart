@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../data/repositories/belumi_repository.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../widgets/belumi_luxury.dart';
+import 'skin_analysis_screen.dart';
+
 
 class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key, required this.repository});
@@ -54,6 +56,155 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
         ),
         const SizedBox(height: 24),
+        if (widget.repository.isLoggedIn) ...[
+          LuxuryPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LuxuryHeader(
+                  eyebrow: t('Dữ liệu cá nhân', 'Personal Data'),
+                  title: t('Hồ sơ & Lịch sử da', 'Skin Profile & History'),
+                  subtitle: t(
+                    'Xem lại các khảo sát đã trả lời và lịch sử phân tích da của bạn.',
+                    'Review your completed survey answers and skin analysis history.',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // 1. Hồ sơ Khảo sát sắc đẹp
+                InkWell(
+                  onTap: () async {
+                    final profile = await widget.repository.getBeautyProfile();
+                    if (context.mounted) {
+                      if (profile == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(t('Bạn chưa hoàn thành khảo sát nào.', 'No survey completed yet.'))),
+                        );
+                      } else {
+                        // Hiển thị dialog thông tin khảo sát
+                        showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            backgroundColor: const Color(0xFFFFF9F5),
+                            title: Row(
+                              children: [
+                                const Icon(Icons.assignment_outlined, color: BelumiLuxury.ink),
+                                const SizedBox(width: 8),
+                                Text(t('Khảo sát của bạn', 'Your Survey')),
+                              ],
+                            ),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: [
+                                  _surveyDetailItem(t('Biệt danh', 'Nickname'), profile.nickname ?? t('Chưa đặt', 'None')),
+                                  _surveyDetailItem(t('Giới tính', 'Gender'), profile.gender == 'female' ? t('Nữ', 'Female') : (profile.gender == 'male' ? t('Nam', 'Male') : t('Khác', 'Other'))),
+                                  _surveyDetailItem(t('Độ tuổi', 'Age group'), profile.ageGroup ?? t('Chưa rõ', 'Unknown')),
+                                  _surveyDetailItem(t('Loại da', 'Skin type'), profile.skinType == 'oily' ? t('Da dầu', 'Oily') : (profile.skinType == 'dry' ? t('Da khô', 'Dry') : (profile.skinType == 'combination' ? t('Da hỗn hợp', 'Combination') : t('Da thường', 'Normal')))),
+                                  _surveyDetailItem(t('Độ nhạy cảm', 'Sensitivity'), profile.skinSensitivity == 'sensitive' ? t('Rất nhạy cảm', 'Highly sensitive') : (profile.skinSensitivity == 'mild' ? t('Hơi nhạy cảm', 'Mildly sensitive') : t('Khá ổn định', 'Stable'))),
+                                  _surveyDetailItem(t('Ngân sách tối đa', 'Budget'), profile.budgetRange ?? ''),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text(t('Đóng', 'Close'), style: const TextStyle(color: BelumiLuxury.ink, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: BelumiLuxury.peach.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1DFD8)),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.assignment_turned_in_outlined, color: BelumiLuxury.rose),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t('Kết quả Khảo sát đầu vào', 'Entry Survey Result'),
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: BelumiLuxury.black),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                t('Bấm xem chi tiết câu trả lời khảo sát', 'Tap to view survey answers detail'),
+                                style: TextStyle(fontSize: 12, color: BelumiLuxury.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: BelumiLuxury.muted),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 2. Lịch sử phân tích da
+                InkWell(
+                  onTap: () async {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => SkinAnalysisHistoryScreen(repository: widget.repository),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: BelumiLuxury.peach.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1DFD8)),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.history_toggle_off, color: BelumiLuxury.rose),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t('Lịch sử phân tích da AI', 'AI Skin Analysis History'),
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: BelumiLuxury.black),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                t('Xem danh sách ảnh chụp & kết quả cũ', 'View list of selfies & past results'),
+                                style: TextStyle(fontSize: 12, color: BelumiLuxury.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: BelumiLuxury.muted),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         LuxuryPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,3 +399,37 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 }
+
+// Helper widget for Survey Detail items
+Widget _surveyDetailItem(String title, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            '$title:',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: BelumiLuxury.muted,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: BelumiLuxury.black,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+

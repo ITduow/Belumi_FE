@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/belumi_models.dart';
@@ -657,7 +658,96 @@ class BelumiRepository {
       throw const ApiException('Please login to continue.', statusCode: 401);
     }
   }
+
+  // ── Quiz / BeautyProfile ───────────────────────────────────────────────────
+
+  /// Kiểm tra user đã hoàn thành onboarding quiz chưa.
+  /// Returns true nếu quiz đã hoàn thành.
+  Future<bool> getQuizStatus() async {
+    try {
+      _requireLogin();
+      final data =
+          await api.get('/profile/quiz/status') as Map<String, dynamic>;
+      return data['quiz_completed'] as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Lấy dữ liệu BeautyProfile của user đã lưu.
+  /// Returns null nếu chưa có hoặc lỗi.
+  Future<BeautyProfile?> getBeautyProfile() async {
+    try {
+      _requireLogin();
+      final data =
+          await api.get('/profile/quiz') as Map<String, dynamic>;
+      return BeautyProfile.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Submit onboarding quiz lần đầu (POST).
+  /// Ném exception nếu quiz đã tồn tại (dùng [updateQuiz] để cập nhật).
+  Future<BeautyProfile> submitQuiz(QuizSubmitRequest request) async {
+    _requireLogin();
+    final data =
+        await api.post('/profile/quiz', request.toJson())
+            as Map<String, dynamic>;
+    return BeautyProfile.fromJson(data);
+  }
+
+  /// Cập nhật quiz đã làm (PUT).
+  Future<BeautyProfile> updateQuiz(QuizSubmitRequest request) async {
+    _requireLogin();
+    final data =
+        await api.put('/profile/quiz', request.toJson())
+            as Map<String, dynamic>;
+    return BeautyProfile.fromJson(data);
+  }
+
+  // ── Skin Analysis History ──────────────────────────────────────────────────
+
+  /// Lấy danh sách lịch sử phân tích da của user (GET /api/skin/history/me)
+  /// BE trả về dạng danh sách. Chúng ta bỏ '/api' prefix vì baseUrl đã có sẵn.
+  Future<List<Map<String, dynamic>>> getSkinHistory({int page = 1, int pageSize = 20}) async {
+    try {
+      _requireLogin();
+      final query = '?page=$page&pageSize=$pageSize';
+      final data = await api.get('/skin/history/me$query');
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      if (data is Map<String, dynamic> && data['items'] is List) {
+        return (data['items'] as List).cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Lấy thông tin chi tiết một lượt phân tích da (GET /api/skin/history/me/{id})
+  Future<SkinAnalysisResult?> getSkinHistoryDetail(String id) async {
+    try {
+      _requireLogin();
+      final data = await api.get('/skin/history/me/$id') as Map<String, dynamic>;
+      
+      final aiResultStr = data['aiResult'] ?? data['AiResult'] ?? data['ai_result'];
+      if (aiResultStr != null && aiResultStr.toString().isNotEmpty) {
+        final Map<String, dynamic> aiJson = jsonDecode(aiResultStr.toString()) as Map<String, dynamic>;
+        final skinType = data['skinType'] ?? data['skin_type'] ?? data['SkinType'] ?? 'Normal';
+        return SkinAnalysisResult.fromApiJson(aiJson, skinType: skinType.toString());
+      }
+      
+      // Fallback in case the structure is different
+      return SkinAnalysisResult.fromApiJson(data, skinType: data['skin_type'] as String? ?? 'Normal');
+    } catch (_) {
+      return null;
+    }
+  }
 }
+
 
 final sampleProducts = [
   Product(
