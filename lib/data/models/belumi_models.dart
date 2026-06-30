@@ -98,13 +98,13 @@ class PayOsPaymentLinkResponse {
   final int orderCode;
   final num amount;
 
-  factory PayOsPaymentLinkResponse.fromJson(Map<String, dynamic> json) => PayOsPaymentLinkResponse(
-    checkoutUrl: json['checkoutUrl'] as String? ?? '',
-    orderCode: json['orderCode'] as int? ?? 0,
-    amount: json['amount'] as num? ?? 0,
-  );
+  factory PayOsPaymentLinkResponse.fromJson(Map<String, dynamic> json) =>
+      PayOsPaymentLinkResponse(
+        checkoutUrl: json['checkoutUrl'] as String? ?? '',
+        orderCode: json['orderCode'] as int? ?? 0,
+        amount: json['amount'] as num? ?? 0,
+      );
 }
-
 
 class NewsArticle {
   NewsArticle({
@@ -318,6 +318,7 @@ class SkinAnalysisResult {
     this.skinCondition = '',
     this.description = '',
     this.advice = const [],
+    this.routine = const [],
     this.warnings = const [],
     this.recommendedIngredients = const [],
     this.avoidOrProfessionalOnly = const [],
@@ -353,17 +354,22 @@ class SkinAnalysisResult {
   final double confidence;
   final String skinCondition;
   final String description;
-  final List<String> advice;
-  final List<String> warnings;
+  final List<SkinAdvice> advice;
+  final List<SkinRoutineStep> routine;
+  final List<SkinWarning> warnings;
   final List<IngredientRecommendation> recommendedIngredients;
   final List<IngredientRecommendation> avoidOrProfessionalOnly;
 
   /// Convenience helpers for UI (replaces old bool fields)
-  bool get hasPigmentation => pigmentationLevel == 'medium' || pigmentationLevel == 'high';
-  bool get hasEnlargedPores => poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high';
-  bool get hasRedness => visibleRednessLevel == 'medium' || visibleRednessLevel == 'high';
+  bool get hasPigmentation =>
+      pigmentationLevel == 'medium' || pigmentationLevel == 'high';
+  bool get hasEnlargedPores =>
+      poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high';
+  bool get hasRedness =>
+      visibleRednessLevel == 'medium' || visibleRednessLevel == 'high';
   bool get hasOiliness => oilinessLevel == 'medium' || oilinessLevel == 'high';
-  bool get hasWrinkles => visibleWrinkleLevel == 'medium' || visibleWrinkleLevel == 'high';
+  bool get hasWrinkles =>
+      visibleWrinkleLevel == 'medium' || visibleWrinkleLevel == 'high';
 
   String get signalSummary {
     final signals = <String>[
@@ -384,8 +390,9 @@ class SkinAnalysisResult {
     required String skinType,
   }) {
     final acneTypes = _stringList(json['acne_types']);
-    final advice = _stringList(json['advice']);
-    final warnings = _stringList(json['warnings']);
+    final advice = _parseAdviceList(json['advice']);
+    final routine = _parseRoutineList(json['routine']);
+    final warnings = _parseWarningList(json['warnings']);
     final recommendedIngredients = _ingredientRecommendations(
       json['recommended_ingredients'],
     );
@@ -395,22 +402,25 @@ class SkinAnalysisResult {
     final description = json['description'] as String? ?? '';
 
     final pigmentationLevel = json['pigmentation_level'] as String? ?? 'low';
-    final poreVisibilityLevel = json['pore_visibility_level'] as String? ?? 'low';
-    final visibleRednessLevel = json['visible_redness_level'] as String? ?? 'low';
+    final poreVisibilityLevel =
+        json['pore_visibility_level'] as String? ?? 'low';
+    final visibleRednessLevel =
+        json['visible_redness_level'] as String? ?? 'low';
 
     final concernsList = [
-      if ((json['acne_level'] as String? ?? 'none').toLowerCase().trim() != 'none') 'acne',
-      if (pigmentationLevel == 'medium' || pigmentationLevel == 'high') 'pigmentation',
-      if (poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high') 'enlarged_pores',
-      if (visibleRednessLevel == 'medium' || visibleRednessLevel == 'high') 'redness',
+      if ((json['acne_level'] as String? ?? 'none').toLowerCase().trim() !=
+          'none')
+        'acne',
+      if (pigmentationLevel == 'medium' || pigmentationLevel == 'high')
+        'pigmentation',
+      if (poreVisibilityLevel == 'medium' || poreVisibilityLevel == 'high')
+        'enlarged_pores',
+      if (visibleRednessLevel == 'medium' || visibleRednessLevel == 'high')
+        'redness',
     ];
 
     final recommendations = [
       if (description.isNotEmpty) description,
-      if (advice.isNotEmpty)
-        'Lời khuyên:\n${advice.map((x) => '- $x').join('\n')}',
-      if (warnings.isNotEmpty)
-        'Cần lưu ý:\n${warnings.map((x) => '- $x').join('\n')}',
     ].join('\n\n');
 
     return SkinAnalysisResult(
@@ -424,12 +434,14 @@ class SkinAnalysisResult {
       visibleRednessLevel: visibleRednessLevel,
       oilinessLevel: json['oiliness_level'] as String? ?? 'low',
       oilinessZones: _stringList(json['oiliness_zones']),
-      skinToneEvennessLevel: json['skin_tone_evenness_level'] as String? ?? 'low',
+      skinToneEvennessLevel:
+          json['skin_tone_evenness_level'] as String? ?? 'low',
       visibleWrinkleLevel: json['visible_wrinkle_level'] as String? ?? 'low',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       skinCondition: json['skin_condition'] as String? ?? '',
       description: description,
       advice: advice,
+      routine: routine,
       warnings: warnings,
       recommendedIngredients: recommendedIngredients,
       avoidOrProfessionalOnly: avoidOrProfessionalOnly,
@@ -458,12 +470,88 @@ class SkinAnalysisResult {
           .where((x) => x.trim().isNotEmpty)
           .toList();
 
+  static List<SkinAdvice> _parseAdviceList(Object? value) =>
+      (value as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SkinAdvice.fromJson)
+          .toList();
+
+  static List<SkinRoutineStep> _parseRoutineList(Object? value) =>
+      (value as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SkinRoutineStep.fromJson)
+          .toList();
+
+  static List<SkinWarning> _parseWarningList(Object? value) =>
+      (value as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SkinWarning.fromJson)
+          .toList();
+
   static List<IngredientRecommendation> _ingredientRecommendations(
     Object? value,
   ) => (value as List<dynamic>? ?? const [])
       .whereType<Map<String, dynamic>>()
       .map(IngredientRecommendation.fromJson)
       .toList();
+}
+
+class SkinAdvice {
+  const SkinAdvice({
+    required this.concern,
+    required this.content,
+    required this.priority,
+  });
+
+  final String concern;
+  final String content;
+  final String priority;
+
+  factory SkinAdvice.fromJson(Map<String, dynamic> json) => SkinAdvice(
+        concern: json['concern'] as String? ?? '',
+        content: json['content'] as String? ?? '',
+        priority: json['priority'] as String? ?? 'low',
+      );
+}
+
+class SkinRoutineStep {
+  const SkinRoutineStep({
+    required this.period,
+    required this.step,
+    required this.category,
+    required this.content,
+  });
+
+  final String period;
+  final int step;
+  final String category;
+  final String content;
+
+  factory SkinRoutineStep.fromJson(Map<String, dynamic> json) =>
+      SkinRoutineStep(
+        period: json['period'] as String? ?? 'ANY',
+        step: json['step'] as int? ?? 1,
+        category: json['category'] as String? ?? '',
+        content: json['content'] as String? ?? '',
+      );
+}
+
+class SkinWarning {
+  const SkinWarning({
+    required this.content,
+    required this.priority,
+    required this.source,
+  });
+
+  final String content;
+  final String priority;
+  final String source;
+
+  factory SkinWarning.fromJson(Map<String, dynamic> json) => SkinWarning(
+        content: json['content'] as String? ?? '',
+        priority: json['priority'] as String? ?? 'low',
+        source: json['source'] as String? ?? '',
+      );
 }
 
 class IngredientRecommendation {
@@ -874,7 +962,7 @@ class BeautyProfile {
   /// Q3 — "under18" | "18-22" | "23-26" | "over27"
   final String? ageGroup;
 
-  /// Q4 — "normal" | "dry" | "combination" | "oily"
+  /// Q4 — "normal" | "dry" | "combination" | "oily" | "sensitive"
   final String? skinType;
 
   /// Q5 — max 3: "hydration" | "brightening" | "pore_control" | "dark_spot" | "anti_aging" | "soothing"
@@ -901,7 +989,9 @@ class BeautyProfile {
     gender: json['gender'] as String?,
     ageGroup: json['age_group'] as String?,
     skinType: json['skin_type'] as String?,
-    skinGoals: List<String>.from(json['skin_goals'] as List<dynamic>? ?? const []),
+    skinGoals: List<String>.from(
+      json['skin_goals'] as List<dynamic>? ?? const [],
+    ),
     skinSensitivity: json['skin_sensitivity'] as String?,
     avoidedIngredients: List<String>.from(
       json['avoided_ingredients'] as List<dynamic>? ?? const [],
@@ -945,7 +1035,8 @@ class QuizSubmitRequest {
     if (skinType != null) 'skin_type': skinType,
     if (skinGoals.isNotEmpty) 'skin_goals': skinGoals,
     if (skinSensitivity != null) 'skin_sensitivity': skinSensitivity,
-    if (avoidedIngredients.isNotEmpty) 'avoided_ingredients': avoidedIngredients,
+    if (avoidedIngredients.isNotEmpty)
+      'avoided_ingredients': avoidedIngredients,
     if (budgetRange != null) 'budget_range': budgetRange,
     if (currentProducts != null) 'current_products': currentProducts,
   };
