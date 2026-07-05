@@ -16,9 +16,7 @@ Future<BeautyProfile?> showOnboardingQuiz(
     context: context,
     barrierDismissible: false,
     builder: (_) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: const Color(0xFFFFF9F5),
       clipBehavior: Clip.antiAlias,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -173,81 +171,107 @@ class _OnboardingQuizSheetState extends State<OnboardingQuizSheet> {
           totalPages: _totalPages,
           onSkip: _skip,
         ),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (page) => setState(() => _currentPage = page),
-              children: [
-                _Q1Nickname(controller: _nicknameController),
-                _Q2Gender(
-                  selected: _gender,
-                  onSelect: (v) => setState(() => _gender = v),
-                ),
-                _Q3AgeGroup(
-                  selected: _ageGroup,
-                  onSelect: (v) => setState(() => _ageGroup = v),
-                ),
-                _Q4SkinType(
-                  selected: _skinType,
-                  onSelect: (v) => setState(() => _skinType = v),
-                ),
-                _Q5SkinGoals(
-                  selected: _skinGoals,
-                  onToggle: (v) => setState(() {
-                    if (_skinGoals.contains(v)) {
-                      _skinGoals.remove(v);
-                    } else if (_skinGoals.length < 3) {
-                      _skinGoals.add(v);
-                    }
-                  }),
-                ),
-                _Q6SkinSensitivity(
-                  selected: _skinSensitivity,
-                  onSelect: (v) => setState(() => _skinSensitivity = v),
-                ),
-                _Q7AvoidedIngredients(
-                  selected: _avoidedIngredients,
-                  customController: _customIngredientController,
-                  onToggle: (v) => setState(() {
-                    if (v == 'none') {
-                      _avoidedIngredients.clear();
-                      _avoidedIngredients.add('none');
-                    } else {
-                      _avoidedIngredients.remove('none');
-                      if (_avoidedIngredients.contains(v)) {
-                        _avoidedIngredients.remove(v);
-                      } else if (_avoidedIngredients.length < 3) {
-                        _avoidedIngredients.add(v);
-                      }
-                    }
-                  }),
-                ),
-                _Q8BudgetRange(
-                  selected: _budgetRange,
-                  onSelect: (v) => setState(() => _budgetRange = v),
-                ),
-                _Q9CurrentProducts(controller: _currentProductsController),
-              ],
-            ),
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.red, fontSize: 13),
+        Expanded(
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (page) => setState(() => _currentPage = page),
+            children: [
+              _Q1Nickname(controller: _nicknameController),
+              _Q2Gender(
+                selected: _gender,
+                onSelect: (v) => setState(() => _gender = v),
               ),
-            ),
-          _QuizFooter(
-            currentPage: _currentPage,
-            totalPages: _totalPages,
-            submitting: _submitting,
-            onBack: _currentPage > 0 ? _prevPage : null,
-            onNext: _nextPage,
+              _Q3AgeGroup(
+                selected: _ageGroup,
+                onSelect: (v) => setState(() => _ageGroup = v),
+              ),
+              _Q4SkinType(
+                selected: _skinType,
+                onSelect: (v) => setState(() => _skinType = v),
+              ),
+              _Q5SkinGoals(
+                selected: _skinGoals,
+                onToggle: (v) => setState(() {
+                  if (_skinGoals.contains(v)) {
+                    _skinGoals.remove(v);
+                  } else if (_skinGoals.length < 3) {
+                    _skinGoals.add(v);
+                  }
+                }),
+              ),
+              _Q6SkinSensitivity(
+                selected: _skinSensitivity,
+                onSelect: (v) => setState(() => _skinSensitivity = v),
+              ),
+              _Q7AvoidedIngredients(
+                selected: _avoidedIngredients,
+                customController: _customIngredientController,
+                onCustomChanged: () => setState(() {}),
+                onToggle: (v) => setState(() {
+                  if (v == 'none') {
+                    _avoidedIngredients.clear();
+                    _avoidedIngredients.add('none');
+                  } else {
+                    _avoidedIngredients.remove('none');
+                    if (_avoidedIngredients.contains(v)) {
+                      _avoidedIngredients.remove(v);
+                    } else if (_avoidedIngredients.length < 3) {
+                      _avoidedIngredients.add(v);
+                    }
+                  }
+                }),
+              ),
+              _Q8BudgetRange(
+                selected: _budgetRange,
+                onSelect: (v) => setState(() => _budgetRange = v),
+              ),
+              _Q9CurrentProducts(controller: _currentProductsController),
+            ],
           ),
-        ],
-      );
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+            child: Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
+          ),
+        _QuizFooter(
+          currentPage: _currentPage,
+          totalPages: _totalPages,
+          submitting: _submitting,
+          onBack: _currentPage > 0 ? _prevPage : null,
+          onNext: _isPageValid ? _nextPage : null,
+        ),
+      ],
+    );
+  }
+
+  bool get _isPageValid {
+    switch (_currentPage) {
+      case 0:
+        return true; // Nickname is optional
+      case 1:
+        return _gender != null;
+      case 2:
+        return _ageGroup != null;
+      case 3:
+        return _skinType != null;
+      case 4:
+        return _skinGoals.isNotEmpty;
+      case 5:
+        return _skinSensitivity != null;
+      case 6:
+        return _avoidedIngredients.isNotEmpty || _customIngredientController.text.trim().isNotEmpty;
+      case 7:
+        return _budgetRange != null;
+      case 8:
+        return true; // Products is optional
+      default:
+        return false;
+    }
   }
 }
 
@@ -279,15 +303,18 @@ class _QuizHeader extends StatelessWidget {
               const Spacer(),
               Text(
                 '${currentPage + 1} / $totalPages',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: BelumiLuxury.muted,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: BelumiLuxury.muted),
               ),
               const SizedBox(width: 8),
               TextButton(
                 onPressed: onSkip,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -330,7 +357,7 @@ class _QuizFooter extends StatelessWidget {
   final int currentPage;
   final int totalPages;
   final bool submitting;
-  final VoidCallback onNext;
+  final VoidCallback? onNext;
   final VoidCallback? onBack;
 
   bool get isLastPage => currentPage == totalPages - 1;
@@ -409,7 +436,10 @@ class _QuizPage extends StatelessWidget {
           ),
           if (hint != null) ...[
             const SizedBox(height: 6),
-            Text(hint!, style: TextStyle(color: BelumiLuxury.muted, fontSize: 13)),
+            Text(
+              hint!,
+              style: TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+            ),
           ],
           const SizedBox(height: 20),
           child,
@@ -441,7 +471,9 @@ class _OptionButton extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? BelumiLuxury.rose.withValues(alpha: 0.12) : Colors.white,
+          color: selected
+              ? BelumiLuxury.rose.withValues(alpha: 0.12)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? BelumiLuxury.rose : const Color(0xFFF1DFD8),
@@ -520,12 +552,14 @@ class _Q2Gender extends StatelessWidget {
           'Để gợi ý thông tin được cá nhân hóa và phù hợp hơn, bạn cho Belumi biết giới tính nhé?',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected == opt.$1,
-                  onTap: () => onSelect(opt.$1),
-                  emoji: opt.$3,
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected == opt.$1,
+                onTap: () => onSelect(opt.$1),
+                emoji: opt.$3,
+              ),
+            )
             .toList(),
       ),
     );
@@ -555,11 +589,13 @@ class _Q3AgeGroup extends StatelessWidget {
           'Vì làn da ở mỗi độ tuổi có nhu cầu khác nhau, bạn thuộc nhóm tuổi nào?',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected == opt.$1,
-                  onTap: () => onSelect(opt.$1),
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected == opt.$1,
+                onTap: () => onSelect(opt.$1),
+              ),
+            )
             .toList(),
       ),
     );
@@ -583,17 +619,24 @@ class _Q4SkinType extends StatelessWidget {
       ('dry', 'Da thường thấy khô căng, dễ bong, thiếu ẩm', '🌵'),
       ('combination', 'Vùng chữ T bóng dầu, hai má khô', '🌗'),
       ('oily', 'Da dễ tiết nhiều dầu và bóng nhờn', '💧'),
+      (
+        'sensitive',
+        'Your face feels itchy, tight, or easily irritated/reddened by the air or natural state.',
+        '🌬️',
+      ),
     ];
     return _QuizPage(
       question: 'Cảm nhận về làn da hiện tại của bạn giống mô tả nào nhất?',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected == opt.$1,
-                  onTap: () => onSelect(opt.$1),
-                  emoji: opt.$3,
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected == opt.$1,
+                onTap: () => onSelect(opt.$1),
+                emoji: opt.$3,
+              ),
+            )
             .toList(),
       ),
     );
@@ -625,12 +668,14 @@ class _Q5SkinGoals extends StatelessWidget {
       hint: 'Chọn tối đa 3 mục tiêu',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected.contains(opt.$1),
-                  onTap: () => onToggle(opt.$1),
-                  emoji: opt.$3,
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected.contains(opt.$1),
+                onTap: () => onToggle(opt.$1),
+                emoji: opt.$3,
+              ),
+            )
             .toList(),
       ),
     );
@@ -655,7 +700,7 @@ class _Q6SkinSensitivity extends StatelessWidget {
       (
         'sensitive',
         'Rất nhạy cảm với hầu hết sản phẩm, cần chọn cẩn thận',
-        '🔴'
+        '🔴',
       ),
     ];
     return _QuizPage(
@@ -663,12 +708,14 @@ class _Q6SkinSensitivity extends StatelessWidget {
           'Khi thử mỹ phẩm mới hoặc thời tiết thay đổi, bạn thường cảm thấy da như thế nào?',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected == opt.$1,
-                  onTap: () => onSelect(opt.$1),
-                  emoji: opt.$3,
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected == opt.$1,
+                onTap: () => onSelect(opt.$1),
+                emoji: opt.$3,
+              ),
+            )
             .toList(),
       ),
     );
@@ -684,11 +731,13 @@ class _Q7AvoidedIngredients extends StatelessWidget {
     required this.selected,
     required this.customController,
     required this.onToggle,
+    required this.onCustomChanged,
   });
 
   final Set<String> selected;
   final TextEditingController customController;
   final ValueChanged<String> onToggle;
+  final VoidCallback onCustomChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -706,16 +755,19 @@ class _Q7AvoidedIngredients extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...presets.map((opt) => _OptionButton(
-                label: opt.$2,
-                selected: selected.contains(opt.$1),
-                onTap: () => onToggle(opt.$1),
-                emoji: opt.$3,
-              )),
+          ...presets.map(
+            (opt) => _OptionButton(
+              label: opt.$2,
+              selected: selected.contains(opt.$1),
+              onTap: () => onToggle(opt.$1),
+              emoji: opt.$3,
+            ),
+          ),
           const SizedBox(height: 4),
           TextField(
             controller: customController,
             enabled: !selected.contains('none'),
+            onChanged: (_) => onCustomChanged(),
             decoration: const InputDecoration(
               hintText: 'Khác: điền tên thành phần...',
               prefixIcon: Icon(Icons.edit_outlined),
@@ -751,12 +803,14 @@ class _Q8BudgetRange extends StatelessWidget {
           'Mức chi trung bình cho 1 sản phẩm chăm sóc da của bạn khoảng bao nhiêu?',
       child: Column(
         children: options
-            .map((opt) => _OptionButton(
-                  label: opt.$2,
-                  selected: selected == opt.$1,
-                  onTap: () => onSelect(opt.$1),
-                  emoji: opt.$3,
-                ))
+            .map(
+              (opt) => _OptionButton(
+                label: opt.$2,
+                selected: selected == opt.$1,
+                onTap: () => onSelect(opt.$1),
+                emoji: opt.$3,
+              ),
+            )
             .toList(),
       ),
     );

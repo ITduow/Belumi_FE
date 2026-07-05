@@ -343,6 +343,22 @@ class _ChatbotSheetState extends State<_ChatbotSheet> {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
 
+    final allowed = await widget.repository.checkAndIncrementLimit('chatbot');
+    if (!allowed) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          const _ChatBubbleData(
+            text: '🔒 Bạn đã dùng hết lượt trò chuyện miễn phí hôm nay (1 lần/ngày). Vui lòng nâng cấp tài khoản lên gói Paid để trò chuyện không giới hạn với Chuyên gia AI!',
+            fromUser: false,
+            isError: true,
+          ),
+        );
+      });
+      _scrollToBottom();
+      return;
+    }
+
     setState(() {
       _messages.add(_ChatBubbleData(text: text, fromUser: true));
       _controller.clear();

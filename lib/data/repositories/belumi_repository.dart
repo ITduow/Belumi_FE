@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/belumi_models.dart';
@@ -14,6 +15,23 @@ class BelumiRepository {
   bool get isLoggedIn => currentUser != null;
   bool get isAdmin => currentUser?.isAdmin ?? false;
   bool get isPro => currentPlan == 'yearly';
+
+  Future<bool> checkAndIncrementLimit(String featureKey) async {
+    if (currentPlan != 'free') return true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+      final key = 'limit_${featureKey}_$todayStr';
+      final usedCount = prefs.getInt(key) ?? 0;
+      if (usedCount >= 1) {
+        return false;
+      }
+      await prefs.setInt(key, usedCount + 1);
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
 
   Future<AuthUser> login(String email, String password) =>
       throw UnsupportedError('Use Firebase AuthService for email login.');
@@ -55,6 +73,19 @@ class BelumiRepository {
           .toList();
     } catch (_) {
       return sampleProducts;
+    }
+  }
+
+  Future<List<Product>> recommendProductsBySkin(String skinType) async {
+    try {
+      final query = _query({'skinType': skinType});
+      final data = await api.get('/products/recommend-by-skin$query') as Map<String, dynamic>;
+      final suitable = data['suitableProducts'] as List<dynamic>? ?? [];
+      return suitable
+          .map((x) => Product.fromJson(x as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      return [];
     }
   }
 

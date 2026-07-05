@@ -104,23 +104,11 @@ class _VirtualMakeupScreenState extends State<VirtualMakeupScreen> {
               ),
               const SizedBox(height: 16),
               LuxuryButton(
-                label: !widget.repository.isPro
-                    ? t('Mở khóa Pro', 'Unlock Pro')
-                    : loading
+                label: loading
                     ? t('Đang tư vấn...', 'Consulting...')
                     : t('Tư vấn makeup', 'Consult makeup'),
                 icon: Icons.face_retouching_natural,
-                onPressed: !widget.repository.isPro
-                    ? () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                PricingScreen(repository: widget.repository),
-                          ),
-                        );
-                        setState(() {});
-                      }
-                    : _consultMakeup,
+                onPressed: _consultMakeup,
               ),
             ],
           ),
@@ -202,9 +190,7 @@ class _VirtualMakeupScreenState extends State<VirtualMakeupScreen> {
                           title: Text(item.name),
                           subtitle: Text('${item.productType} • ${item.shade}'),
                           trailing: FilledButton(
-                            onPressed: widget.repository.isPro
-                                ? () => _tryOn(item)
-                                : null,
+                            onPressed: () => _tryOn(item),
                             child: Text(item.isPro ? 'Try Pro' : 'Try'),
                           ),
                         ),
@@ -231,6 +217,41 @@ class _VirtualMakeupScreenState extends State<VirtualMakeupScreen> {
   }
 
   Future<void> _consultMakeup() async {
+    final allowed = await widget.repository.checkAndIncrementLimit('virtual_makeup');
+    if (!allowed) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Bạn đã dùng hết lượt tư vấn trang điểm miễn phí hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BelumiLuxury.rose,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PricingScreen(repository: widget.repository),
+                  ),
+                );
+              },
+              child: const Text('Nâng cấp ngay'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() => loading = true);
     final data = await widget.repository.consultMakeup(tone, occasion, style);
     if (!mounted) return;
@@ -254,6 +275,42 @@ class _VirtualMakeupScreenState extends State<VirtualMakeupScreen> {
       );
       return;
     }
+
+    final allowed = await widget.repository.checkAndIncrementLimit('virtual_makeup_tryon');
+    if (!allowed) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Bạn đã dùng hết lượt thử trang điểm ảo miễn phí hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BelumiLuxury.rose,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PricingScreen(repository: widget.repository),
+                  ),
+                );
+              },
+              child: const Text('Nâng cấp ngay'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() => loading = true);
     final data = await widget.repository.tryOnMakeup(item, selfie!.dataUrl);
     if (!mounted) return;

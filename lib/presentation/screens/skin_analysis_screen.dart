@@ -172,55 +172,113 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
     }
 
     // 3. Normal flow
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      child: switch (step) {
-        0 => _IntroStep(
-          key: const ValueKey('intro'),
-          locale: locale,
-          onStart: _next,
+    return Stack(
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: switch (step) {
+            0 => _IntroStep(
+              key: const ValueKey('intro'),
+              locale: locale,
+              onStart: _next,
+            ),
+            1 => _ConsentStep(
+              key: const ValueKey('consent'),
+              locale: locale,
+              consent: consent,
+              deleteAfter: deleteAfter,
+              onConsentChanged: (value) => setState(() => consent = value),
+              onDeleteChanged: (value) => setState(() => deleteAfter = value),
+              onBack: _back,
+              onNext: consent ? _next : null,
+            ),
+            2 => _PhotoStep(
+              key: const ValueKey('photo'),
+              locale: locale,
+              canUsePhotoAnalysis: canUsePhotoAnalysis,
+              image: pickedImage,
+              loading: loading,
+              onCamera: () => _pickImage(true),
+              onUpload: () => _pickImage(false),
+              onClear: () => setState(() => pickedImage = null),
+              onBack: _back,
+              onNext: pickedImage == null || loading ? null : _analyze,
+            ),
+            _ => _ResultStep(
+              key: const ValueKey('result'),
+              locale: locale,
+              result: result,
+              profile: _beautyProfile,
+              isDetailed: isPlusOrPro,
+              onRestart: _restart,
+              pickedImage: pickedImage,
+              repository: widget.repository,
+              onSave: () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isVi
+                        ? 'Đã lưu quy trình trong demo'
+                        : 'Routine saved in demo mode',
+                  ),
+                ),
+              ),
+            ),
+          },
         ),
-        1 => _ConsentStep(
-          key: const ValueKey('consent'),
-          locale: locale,
-          consent: consent,
-          deleteAfter: deleteAfter,
-          onConsentChanged: (value) => setState(() => consent = value),
-          onDeleteChanged: (value) => setState(() => deleteAfter = value),
-          onBack: _back,
-          onNext: consent ? _next : null,
-        ),
-        2 => _PhotoStep(
-          key: const ValueKey('photo'),
-          locale: locale,
-          canUsePhotoAnalysis: canUsePhotoAnalysis,
-          image: pickedImage,
-          onCamera: () => _pickImage(true),
-          onUpload: () => _pickImage(false),
-          onClear: () => setState(() => pickedImage = null),
-          onBack: _back,
-          // Nếu đã hoàn thành khảo sát, đi thẳng tới analyze
-          onNext: pickedImage == null ? null : _analyze,
-        ),
-        _ => _ResultStep(
-          key: const ValueKey('result'),
-          locale: locale,
-          result: result,
-          profile: _beautyProfile,
-          isDetailed: isPlusOrPro,
-          onRestart: _restart,
-          pickedImage: pickedImage,
-          onSave: () => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isVi
-                    ? 'Đã lưu quy trình trong demo'
-                    : 'Routine saved in demo mode',
+        // Loading overlay khi đang phân tích
+        if (loading)
+          Container(
+            color: Colors.black.withValues(alpha: 0.35),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: BelumiLuxury.rose.withValues(alpha: 0.2),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(BelumiLuxury.ink),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      locale == 'vi'
+                          ? 'AI đang phân tích da...'
+                          : 'AI is analyzing your skin...',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: BelumiLuxury.black,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      locale == 'vi' ? 'Thường mất 10–20 giây' : 'Usually takes 10–20 seconds',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: BelumiLuxury.muted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      },
+      ],
     );
   }
 
@@ -259,6 +317,37 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   }
 
   Future<void> _analyze() async {
+    final allowed = await widget.repository.checkAndIncrementLimit('skin_analysis');
+    if (!allowed) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Bạn đã dùng hết lượt phân tích da miễn phí của ngày hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BelumiLuxury.rose,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/pricing');
+              },
+              child: const Text('Nâng cấp ngay'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() {
       loading = true;
       error = null;
@@ -440,7 +529,6 @@ class _IntroStep extends StatelessWidget {
                     'Gợi ý được hỗ trợ bởi AI phù hợp với da của bạn',
                     'AI-supported recommendations tailored to your skin',
                   ),
-                  dark: true,
                 ),
                 const SizedBox(height: 10),
                 _NoticeBox(locale: locale),
@@ -543,6 +631,7 @@ class _PhotoStep extends StatelessWidget {
     required this.onClear,
     required this.onBack,
     required this.onNext,
+    this.loading = false,
   });
 
   final String locale;
@@ -553,6 +642,7 @@ class _PhotoStep extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onBack;
   final VoidCallback? onNext;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -703,6 +793,7 @@ class _ResultStep extends StatelessWidget {
     required this.onRestart,
     required this.onSave,
     this.pickedImage,
+    required this.repository,
   });
 
   final String locale;
@@ -712,6 +803,7 @@ class _ResultStep extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onSave;
   final PickedSkinImage? pickedImage;
+  final BelumiRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -742,7 +834,10 @@ class _ResultStep extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  l.t('Chào Mai!', 'Hello Mai!'),
+                  l.t(
+                    'Chào ${profile?.nickname ?? 'bạn'}!',
+                    'Hello ${profile?.nickname ?? 'there'}!',
+                  ),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: BelumiLuxury.black,
                         fontWeight: FontWeight.w900,
@@ -891,34 +986,16 @@ class _ResultStep extends StatelessWidget {
 
           _ResultCardGrid(
             children: [
-              _RoutineCard(
-                title: l.t('Lời khuyên skincare', 'Skincare Advice'),
-                color: BelumiLuxury.ink,
-                icon: Icons.spa_outlined,
-                body: _bulletList(
-                  data.advice,
-                  fallback: l.t(
-                    'Đang cập nhật lời khuyên từ AI.',
-                    'AI advice is being updated.',
-                  ),
-                ),
-              ),
-              _RoutineCard(
-                title: l.t('Lưu ý đặc biệt', 'Special Cautions'),
-                color: const Color(0xFFB85C5C),
-                icon: Icons.warning_amber_rounded,
-                body: _bulletList(
-                  data.warnings,
-                  fallback: l.t(
-                    'Chưa có cảnh báo đặc biệt.',
-                    'No special cautions detected.',
-                  ),
-                ),
-              ),
+              _AdviceWidget(advice: data.advice, locale: locale),
+              _RoutineWidget(routine: data.routine, locale: locale, isDetailed: isDetailed),
+              _WarningWidget(warnings: data.warnings, locale: locale),
             ],
           ),
           const SizedBox(height: 24),
-
+          _NoticeBox(locale: locale),
+          const SizedBox(height: 24),
+          _RecommendedProductsView(locale: locale, skinType: data.skinType, repository: repository),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
@@ -961,6 +1038,359 @@ class _ResultStep extends StatelessWidget {
 
   String _bulletList(List<String> items, {required String fallback}) =>
       items.isEmpty ? fallback : items.map((item) => '- $item').join('\n');
+}
+
+class _AdviceWidget extends StatelessWidget {
+  const _AdviceWidget({required this.advice, required this.locale});
+  final List<SkinAdvice> advice;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = _L(locale);
+    if (advice.isEmpty) return const SizedBox.shrink();
+
+    return _RoutineCard(
+      title: l.t('Lời khuyên skincare', 'Skincare Advice'),
+      color: BelumiLuxury.ink,
+      icon: Icons.lightbulb_outline_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: advice.map((item) {
+          final isHigh = item.priority.toLowerCase() == 'high';
+          final isMed = item.priority.toLowerCase() == 'medium';
+          // match app palette: high=rose accent, medium=peach-amber, low=ink soft
+          final badgeColor = isHigh
+              ? BelumiLuxury.rose
+              : isMed
+                  ? const Color(0xFFD9A090)   // warm peach-amber
+                  : BelumiLuxury.ink;
+          final badgeLabel = isHigh
+              ? l.t('Ưu tiên', 'Priority')
+              : isMed
+                  ? l.t('Lưu ý', 'Note')
+                  : l.t('Tham khảo', 'Info');
+          final color = badgeColor;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isHigh
+                        ? BelumiLuxury.rose.withValues(alpha: 0.18)
+                        : BelumiLuxury.peach,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isHigh
+                          ? BelumiLuxury.rose
+                          : BelumiLuxury.rose.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: isHigh ? const Color(0xFF8B3A2F) : BelumiLuxury.muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.concern,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          color: BelumiLuxury.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.content,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: BelumiLuxury.muted,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _RoutineWidget extends StatefulWidget {
+  const _RoutineWidget({required this.routine, required this.locale, required this.isDetailed});
+  final List<SkinRoutineStep> routine;
+  final String locale;
+  final bool isDetailed;
+
+  @override
+  State<_RoutineWidget> createState() => _RoutineWidgetState();
+}
+
+class _RoutineWidgetState extends State<_RoutineWidget> {
+  String _selectedTab = 'AM';
+
+  @override
+  Widget build(BuildContext context) {
+    final l = _L(widget.locale);
+    if (widget.routine.isEmpty) return const SizedBox.shrink();
+
+    final amSteps = widget.routine.where((s) => s.period == 'AM' || s.period == 'ANY').toList();
+    final pmSteps = widget.routine.where((s) => s.period == 'PM' || s.period == 'ANY').toList();
+    final allCurrentSteps = _selectedTab == 'AM' ? amSteps : pmSteps;
+
+    // If free plan, show only the first step
+    final currentSteps = widget.isDetailed ? allCurrentSteps : allCurrentSteps.take(1).toList();
+
+    return _RoutineCard(
+      title: l.t('Routine đề xuất', 'Suggested Routine'),
+      color: BelumiLuxury.ink,
+      icon: Icons.checklist_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _TabButton(
+                  label: l.t('Sáng', 'Morning'),
+                  isSelected: _selectedTab == 'AM',
+                  onTap: () => setState(() => _selectedTab = 'AM'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TabButton(
+                  label: l.t('Tối', 'Night'),
+                  isSelected: _selectedTab == 'PM',
+                  onTap: () => setState(() => _selectedTab = 'PM'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (currentSteps.isEmpty)
+            Text(
+              l.t('Không có bước nào cho buổi này.', 'No steps for this time.'),
+              style: const TextStyle(color: BelumiLuxury.muted),
+            )
+          else ...[
+            ...currentSteps.map((step) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: BelumiLuxury.rose.withValues(alpha: 0.25),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${step.step}',
+                          style: const TextStyle(
+                            color: BelumiLuxury.ink,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          step.content,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: BelumiLuxury.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+            if (!widget.isDetailed && allCurrentSteps.length > 1) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: BelumiLuxury.peach.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: BelumiLuxury.rose.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_outline_rounded, color: BelumiLuxury.rose, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l.t(
+                              '🔒 Các bước tiếp theo đã bị ẩn',
+                              '🔒 Next steps are hidden',
+                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8B3A2F)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l.t(
+                        'Nâng cấp lên gói Paid để mở khóa toàn bộ các bước skincare chi tiết từ PDF.',
+                        'Upgrade to a Paid package to unlock all detailed skincare steps from the PDF.',
+                      ),
+                      style: const TextStyle(fontSize: 12, color: BelumiLuxury.muted, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BelumiLuxury.rose,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onPressed: () => context.push('/pricing'),
+                        icon: const Icon(Icons.workspace_premium, size: 16),
+                        label: Text(l.t('Mở khóa Routine ngay 🔓', 'Unlock Routine Now 🔓'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? BelumiLuxury.rose : BelumiLuxury.peach.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? BelumiLuxury.rose : const Color(0xFFF1DFD8),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? const Color(0xFF6B2A1D) : BelumiLuxury.muted,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WarningWidget extends StatelessWidget {
+  const _WarningWidget({required this.warnings, required this.locale});
+  final List<SkinWarning> warnings;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = _L(locale);
+    if (warnings.isEmpty) return const SizedBox.shrink();
+
+    final highWarnings = warnings.where((w) => w.priority.toLowerCase() == 'high').toList();
+    final otherWarnings = warnings.where((w) => w.priority.toLowerCase() != 'high').toList();
+
+    return _RoutineCard(
+      title: l.t('Lưu ý đặc biệt', 'Special Cautions'),
+      color: BelumiLuxury.rose,
+      icon: Icons.warning_amber_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (highWarnings.isNotEmpty)
+            ...highWarnings.map((w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 16,
+                        color: BelumiLuxury.rose,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          w.content,
+                          style: const TextStyle(
+                            color: Color(0xFF6B2A1D),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          if (otherWarnings.isNotEmpty && highWarnings.isNotEmpty)
+            const Divider(color: Color(0xFFF1DFD8), height: 28),
+          if (otherWarnings.isNotEmpty)
+            ...otherWarnings.map((w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    w.content,
+                    style: const TextStyle(
+                      color: BelumiLuxury.muted,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
 }
 
 class _StepBadge extends StatelessWidget {
@@ -1068,17 +1498,35 @@ class _NoticeBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = _L(locale);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFAEC),
+        color: BelumiLuxury.peach,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC84D)),
+        border: Border.all(color: BelumiLuxury.rose),
       ),
-      child: Text(
-        l.t(
-          'Quan trọng: Đây chỉ là hướng dẫn thẩm mỹ, không phải tư vấn y tế. Hãy tham khảo bác sĩ da liễu khi có mối lo ngại về da.',
-          'Important: This is cosmetic guidance only, not medical advice. Please consult a dermatologist for skin health concerns.',
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: BelumiLuxury.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l.t(
+                'Lưu ý: Đây chỉ là hướng dẫn thẩm mỹ, không phải tư vấn y tế. Hãy tham khảo bác sĩ da liễu khi có mối lo ngại về da.',
+                'Note: This is cosmetic guidance only, not medical advice. Please consult a dermatologist for skin health concerns.',
+              ),
+              style: const TextStyle(
+                color: BelumiLuxury.muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1103,27 +1551,56 @@ class _ConsentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onChanged(!value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF1DFD8)),
+          color: value ? BelumiLuxury.peach.withValues(alpha: 0.5) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value ? BelumiLuxury.rose : const Color(0xFFF1DFD8),
+          ),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Checkbox(value: value, onChanged: (v) => onChanged(v ?? false)),
-            const SizedBox(width: 8),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: value ? BelumiLuxury.rose : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: value ? BelumiLuxury.rose : const Color(0xFFD0C4BF),
+                  width: 1.5,
+                ),
+              ),
+              child: value
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: BelumiLuxury.black,
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(subtitle),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: BelumiLuxury.muted,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1147,34 +1624,70 @@ class _GuideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = good ? Colors.green : Colors.red;
+    // Good = ink palette nhạt, Bad = rose rất nhạt
+    final bgColor = good
+        ? BelumiLuxury.ink.withValues(alpha: 0.04)
+        : BelumiLuxury.rose.withValues(alpha: 0.08);
+    final borderColor = good
+        ? BelumiLuxury.ink.withValues(alpha: 0.15)
+        : BelumiLuxury.rose.withValues(alpha: 0.35);
+    final titleColor = good ? BelumiLuxury.ink : BelumiLuxury.muted;
+    final textColor = good ? BelumiLuxury.black : BelumiLuxury.muted;
+    final icon = good ? Icons.check_circle_outline : Icons.cancel_outlined;
+    final iconColor = good
+        ? BelumiLuxury.ink
+        : BelumiLuxury.rose.withValues(alpha: 0.7);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 280, maxWidth: 340),
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.35)),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${good ? '' : 'X'} $title',
-              style: TextStyle(
-                color: color.shade700,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-              ),
+            Row(
+              children: [
+                Icon(icon, size: 20, color: iconColor),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: titleColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             ...items.map(
               (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '${good ? '' : 'X'} $item',
-                  style: TextStyle(color: color.shade700),
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      good ? Icons.check : Icons.close,
+                      size: 15,
+                      color: iconColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1200,23 +1713,35 @@ class _PhotoAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         height: 136,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFF1DFD8)),
+          color: BelumiLuxury.peach.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: BelumiLuxury.rose),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: BelumiLuxury.ink,
-              child: Icon(icon, color: Colors.white),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: BelumiLuxury.ink,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: Colors.white, size: 26),
             ),
-            const SizedBox(height: 14),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                color: BelumiLuxury.black,
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       ),
@@ -1263,17 +1788,35 @@ class _PaywallNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = _L(locale);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFAEC),
+        color: BelumiLuxury.peach,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC84D)),
+        border: Border.all(color: BelumiLuxury.rose),
       ),
-      child: Text(
-        l.t(
-          'Gói Pro mở phân tích ảnh selfie. Free/Plus vẫn có hồ sơ da và tư vấn bằng câu hỏi.',
-          'Pro unlocks selfie photo analysis. Free/Plus still support the skin profile and question-based consultation.',
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 18,
+            color: BelumiLuxury.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l.t(
+                'Gói Pro mở phân tích ảnh selfie. Free/Plus vẫn có hồ sơ da và tư vấn bằng câu hỏi.',
+                'Pro unlocks selfie photo analysis. Free/Plus still support the skin profile and question-based consultation.',
+              ),
+              style: const TextStyle(
+                color: BelumiLuxury.muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1402,28 +1945,28 @@ class _MetricBar extends StatelessWidget {
       case 'severe':
         alignmentValue = 1.0;
         label = isVi ? 'Nặng' : 'Severe';
-        pointerColor = const Color(0xFFB85C5C);
+        pointerColor = BelumiLuxury.rose;
         break;
       case 'medium':
       case 'moderate':
         alignmentValue = 0.0;
         label = isVi ? 'Vừa' : 'Moderate';
-        pointerColor = const Color(0xFFC9965D);
+        pointerColor = const Color(0xFFD9A090); // warm peach-amber
         break;
       case 'mild':
         alignmentValue = -0.5;
         label = isVi ? 'Nhẹ' : 'Mild';
-        pointerColor = const Color(0xFF4D8B6F);
+        pointerColor = BelumiLuxury.ink;
         break;
       case 'none':
         alignmentValue = -1.0;
         label = isVi ? 'Không có' : 'None';
-        pointerColor = const Color(0xFF4D8B6F);
+        pointerColor = BelumiLuxury.ink;
         break;
       default: // 'low'
         alignmentValue = -1.0;
         label = isVi ? 'Thấp' : 'Low';
-        pointerColor = const Color(0xFF4D8B6F);
+        pointerColor = BelumiLuxury.ink;
         break;
     }
 
@@ -1433,10 +1976,10 @@ class _MetricBar extends StatelessWidget {
         color: const Color(0xFFFFF9F5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: level.toLowerCase().trim() == 'high'
-              ? const Color(0xFFB85C5C)
+          color: level.toLowerCase().trim() == 'high' || level.toLowerCase().trim() == 'severe'
+              ? BelumiLuxury.rose
               : const Color(0xFFF1DFD8),
-          width: level.toLowerCase().trim() == 'high' ? 1.5 : 1,
+          width: level.toLowerCase().trim() == 'high' || level.toLowerCase().trim() == 'severe' ? 1.5 : 1,
         ),
       ),
       child: Column(
@@ -1578,12 +2121,12 @@ class _GoalChip extends StatelessWidget {
       label: Text(
         label,
         style: const TextStyle(
-          color: Color(0xFF2C5E47),
+          color: BelumiLuxury.ink,
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: const Color(0xFFE8F5EE),
-      side: const BorderSide(color: Color(0xFFD0EDDF)),
+      backgroundColor: BelumiLuxury.peach,
+      side: const BorderSide(color: Color(0xFFF1DFD8)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -1720,11 +2263,33 @@ class _NavRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton(onPressed: onBack, child: Text(backLabel)),
+          child: OutlinedButton(
+            onPressed: onBack,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: BelumiLuxury.black,
+              side: const BorderSide(color: Color(0xFFF1DFD8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: Text(backLabel),
+          ),
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: FilledButton(onPressed: onNext, child: Text(nextLabel)),
+          child: FilledButton(
+            onPressed: onNext,
+            style: FilledButton.styleFrom(
+              backgroundColor: onNext != null ? BelumiLuxury.ink : BelumiLuxury.muted,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: Text(nextLabel),
+          ),
         ),
       ],
     );
@@ -1765,13 +2330,13 @@ class _RoutineCard extends StatelessWidget {
   const _RoutineCard({
     required this.title,
     required this.color,
-    required this.body,
+    required this.child,
     this.icon,
   });
 
   final String title;
   final Color color;
-  final String body;
+  final Widget child;
   final IconData? icon;
 
   @override
@@ -1799,7 +2364,7 @@ class _RoutineCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(body.isEmpty ? 'Đang cập nhật gợi ý từ AI.' : body),
+          child,
         ],
       ),
     );
@@ -1881,6 +2446,7 @@ class _SkinAnalysisDetailScreenState extends ConsumerState<SkinAnalysisDetailScr
                   profile: _beautyProfile,
                   isDetailed: true,
                   onRestart: () => Navigator.of(context).pop(),
+                  repository: widget.repository,
                   onSave: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -2017,5 +2583,222 @@ class _SkinAnalysisHistoryScreenState extends ConsumerState<SkinAnalysisHistoryS
     );
   }
 }
+
+class _RecommendedProductsView extends StatefulWidget {
+  const _RecommendedProductsView({
+    required this.locale,
+    required this.skinType,
+    required this.repository,
+  });
+  final String locale;
+  final String skinType;
+  final BelumiRepository repository;
+
+  @override
+  State<_RecommendedProductsView> createState() => _RecommendedProductsViewState();
+}
+
+class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
+  List<Product>? _suitableProducts;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    final list = await widget.repository.recommendProductsBySkin(widget.skinType);
+    if (mounted) {
+      setState(() {
+        _suitableProducts = list;
+      });
+    }
+  }
+
+  void _showDetail(BuildContext context, Product product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProductDetailSheet(product: product, locale: widget.locale),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isVi = widget.locale == 'vi';
+
+    if (_suitableProducts == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_suitableProducts!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isVi ? 'Gợi ý sản phẩm cho da ${widget.skinType}' : 'Recommended for ${widget.skinType} skin',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: BelumiLuxury.black,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _suitableProducts!.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final product = _suitableProducts![index];
+              return GestureDetector(
+                onTap: () => _showDetail(context, product),
+                child: Container(
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF1DFD8)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                              ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
+                              : const Icon(Icons.image_not_supported, color: Colors.grey),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductDetailSheet extends StatelessWidget {
+  const _ProductDetailSheet({required this.product, required this.locale});
+  final Product product;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final isVi = locale == 'vi';
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    product.imageUrl!,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 100, color: Colors.grey),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (product.brand != null && product.brand!.isNotEmpty)
+              Text(
+                product.brand!.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: BelumiLuxury.rose,
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              product.name,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: BelumiLuxury.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isVi ? 'Thành phần' : 'Ingredients',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: BelumiLuxury.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              product.ingredients ?? '',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: BelumiLuxury.ink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(isVi ? 'Đóng' : 'Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 
