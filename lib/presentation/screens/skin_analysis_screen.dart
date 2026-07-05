@@ -317,6 +317,37 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   }
 
   Future<void> _analyze() async {
+    final allowed = await widget.repository.checkAndIncrementLimit('skin_analysis');
+    if (!allowed) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Bạn đã dùng hết lượt phân tích da miễn phí của ngày hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BelumiLuxury.rose,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/pricing');
+              },
+              child: const Text('Nâng cấp ngay'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() {
       loading = true;
       error = null;
@@ -956,7 +987,7 @@ class _ResultStep extends StatelessWidget {
           _ResultCardGrid(
             children: [
               _AdviceWidget(advice: data.advice, locale: locale),
-              _RoutineWidget(routine: data.routine, locale: locale),
+              _RoutineWidget(routine: data.routine, locale: locale, isDetailed: isDetailed),
               _WarningWidget(warnings: data.warnings, locale: locale),
             ],
           ),
@@ -1103,9 +1134,10 @@ class _AdviceWidget extends StatelessWidget {
 }
 
 class _RoutineWidget extends StatefulWidget {
-  const _RoutineWidget({required this.routine, required this.locale});
+  const _RoutineWidget({required this.routine, required this.locale, required this.isDetailed});
   final List<SkinRoutineStep> routine;
   final String locale;
+  final bool isDetailed;
 
   @override
   State<_RoutineWidget> createState() => _RoutineWidgetState();
@@ -1121,7 +1153,10 @@ class _RoutineWidgetState extends State<_RoutineWidget> {
 
     final amSteps = widget.routine.where((s) => s.period == 'AM' || s.period == 'ANY').toList();
     final pmSteps = widget.routine.where((s) => s.period == 'PM' || s.period == 'ANY').toList();
-    final currentSteps = _selectedTab == 'AM' ? amSteps : pmSteps;
+    final allCurrentSteps = _selectedTab == 'AM' ? amSteps : pmSteps;
+
+    // If free plan, show only the first step
+    final currentSteps = widget.isDetailed ? allCurrentSteps : allCurrentSteps.take(1).toList();
 
     return _RoutineCard(
       title: l.t('Routine đề xuất', 'Suggested Routine'),
@@ -1155,7 +1190,7 @@ class _RoutineWidgetState extends State<_RoutineWidget> {
               l.t('Không có bước nào cho buổi này.', 'No steps for this time.'),
               style: const TextStyle(color: BelumiLuxury.muted),
             )
-          else
+          else ...[
             ...currentSteps.map((step) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Row(
@@ -1192,6 +1227,61 @@ class _RoutineWidgetState extends State<_RoutineWidget> {
                     ],
                   ),
                 )),
+            if (!widget.isDetailed && allCurrentSteps.length > 1) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: BelumiLuxury.peach.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: BelumiLuxury.rose.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lock_outline_rounded, color: BelumiLuxury.rose, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l.t(
+                              '🔒 Các bước tiếp theo đã bị ẩn',
+                              '🔒 Next steps are hidden',
+                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8B3A2F)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      l.t(
+                        'Nâng cấp lên gói Paid để mở khóa toàn bộ các bước skincare chi tiết từ PDF.',
+                        'Upgrade to a Paid package to unlock all detailed skincare steps from the PDF.',
+                      ),
+                      style: const TextStyle(fontSize: 12, color: BelumiLuxury.muted, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BelumiLuxury.rose,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onPressed: () => context.push('/pricing'),
+                        icon: const Icon(Icons.workspace_premium, size: 16),
+                        label: Text(l.t('Mở khóa Routine ngay 🔓', 'Unlock Routine Now 🔓'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

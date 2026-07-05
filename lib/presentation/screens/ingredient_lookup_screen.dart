@@ -172,8 +172,42 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
     }
   }
 
+  Future<void> _showLimitDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Bạn đã dùng hết lượt tra cứu/phân tích thành phần miễn phí hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BelumiLuxury.rose,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/pricing');
+            },
+            child: const Text('Nâng cấp ngay'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _scan(String value) async {
     if (value.trim().isEmpty) return;
+    final allowed = await widget.repository.checkAndIncrementLimit('ingredient_scan');
+    if (!allowed) {
+      if (!mounted) return;
+      _showLimitDialog();
+      return;
+    }
     setState(() {
       loading = true;
       error = null;
@@ -213,6 +247,13 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
 
   /// Process image: show preview, run OCR, then send extracted text to backend.
   Future<void> _processImageForOcr(String imagePath) async {
+    final allowed = await widget.repository.checkAndIncrementLimit('ingredient_scan');
+    if (!allowed) {
+      if (!mounted) return;
+      _showLimitDialog();
+      return;
+    }
+
     // Create preview image
     final bytes = await File(imagePath).readAsBytes();
     final mimeType = imagePath.toLowerCase().endsWith('.png')
