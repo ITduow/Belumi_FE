@@ -212,6 +212,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
               isDetailed: isPlusOrPro,
               onRestart: _restart,
               pickedImage: pickedImage,
+              repository: widget.repository,
               onSave: () => ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -761,6 +762,7 @@ class _ResultStep extends StatelessWidget {
     required this.onRestart,
     required this.onSave,
     this.pickedImage,
+    required this.repository,
   });
 
   final String locale;
@@ -770,6 +772,7 @@ class _ResultStep extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onSave;
   final PickedSkinImage? pickedImage;
+  final BelumiRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -959,6 +962,8 @@ class _ResultStep extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _NoticeBox(locale: locale),
+          const SizedBox(height: 24),
+          _RecommendedProductsView(locale: locale, skinType: data.skinType, repository: repository),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -2351,6 +2356,7 @@ class _SkinAnalysisDetailScreenState extends ConsumerState<SkinAnalysisDetailScr
                   profile: _beautyProfile,
                   isDetailed: true,
                   onRestart: () => Navigator.of(context).pop(),
+                  repository: widget.repository,
                   onSave: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -2487,5 +2493,222 @@ class _SkinAnalysisHistoryScreenState extends ConsumerState<SkinAnalysisHistoryS
     );
   }
 }
+
+class _RecommendedProductsView extends StatefulWidget {
+  const _RecommendedProductsView({
+    required this.locale,
+    required this.skinType,
+    required this.repository,
+  });
+  final String locale;
+  final String skinType;
+  final BelumiRepository repository;
+
+  @override
+  State<_RecommendedProductsView> createState() => _RecommendedProductsViewState();
+}
+
+class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
+  List<Product>? _suitableProducts;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    final list = await widget.repository.recommendProductsBySkin(widget.skinType);
+    if (mounted) {
+      setState(() {
+        _suitableProducts = list;
+      });
+    }
+  }
+
+  void _showDetail(BuildContext context, Product product) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProductDetailSheet(product: product, locale: widget.locale),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isVi = widget.locale == 'vi';
+
+    if (_suitableProducts == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_suitableProducts!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isVi ? 'Gợi ý sản phẩm cho da ${widget.skinType}' : 'Recommended for ${widget.skinType} skin',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: BelumiLuxury.black,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _suitableProducts!.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final product = _suitableProducts![index];
+              return GestureDetector(
+                onTap: () => _showDetail(context, product),
+                child: Container(
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF1DFD8)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                              ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
+                              : const Icon(Icons.image_not_supported, color: Colors.grey),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductDetailSheet extends StatelessWidget {
+  const _ProductDetailSheet({required this.product, required this.locale});
+  final Product product;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final isVi = locale == 'vi';
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    product.imageUrl!,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 100, color: Colors.grey),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (product.brand != null && product.brand!.isNotEmpty)
+              Text(
+                product.brand!.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: BelumiLuxury.rose,
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              product.name,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: BelumiLuxury.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isVi ? 'Thành phần' : 'Ingredients',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: BelumiLuxury.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              product.ingredients ?? '',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: BelumiLuxury.ink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(isVi ? 'Đóng' : 'Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 

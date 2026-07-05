@@ -58,6 +58,19 @@ class BelumiRepository {
     }
   }
 
+  Future<List<Product>> recommendProductsBySkin(String skinType) async {
+    try {
+      final query = _query({'skinType': skinType});
+      final data = await api.get('/products/recommend-by-skin$query') as Map<String, dynamic>;
+      final suitable = data['suitableProducts'] as List<dynamic>? ?? [];
+      return suitable
+          .map((x) => Product.fromJson(x as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<NewsArticle>> news({
     String? category,
     String? search,

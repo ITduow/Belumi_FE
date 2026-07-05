@@ -338,6 +338,18 @@ class IngredientDetailScreen extends StatelessWidget {
                     Text(t('Mô tả', 'Description'), style: _titleStyle),
                     const SizedBox(height: 8),
                     Text(ingredient.description),
+                    if (ingredient.suitableSkin != null && ingredient.suitableSkin!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(t('Da phù hợp', 'Suitable Skin'), style: _titleStyle),
+                      const SizedBox(height: 8),
+                      _buildSkinChips(ingredient.suitableSkin!, Colors.green),
+                    ],
+                    if (ingredient.notForSkin != null && ingredient.notForSkin!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(t('Da không phù hợp', 'Not For Skin'), style: _titleStyle),
+                      const SizedBox(height: 8),
+                      _buildSkinChips(ingredient.notForSkin!, Colors.red),
+                    ],
                     if (ingredient.linkList.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       _LinkSection(links: ingredient.linkList),
@@ -350,6 +362,44 @@ class IngredientDetailScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Widget _buildSkinChips(String skinString, Color baseColor) {
+    final skins = skinString.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    if (skins.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: skins.map((skin) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: baseColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: baseColor.withOpacity(0.5)),
+          ),
+          child: Text(
+            _translateSkin(skin),
+            style: TextStyle(
+              color: baseColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _translateSkin(String skin) {
+    final s = skin.toLowerCase();
+    if (s.contains('oily')) return 'Da dầu';
+    if (s.contains('dry')) return 'Da khô';
+    if (s.contains('combination')) return 'Da hỗn hợp';
+    if (s.contains('normal')) return 'Da thường';
+    if (s.contains('sensitive')) return 'Da nhạy cảm';
+    if (s.contains('all')) return 'Mọi loại da';
+    return skin;
   }
 }
 

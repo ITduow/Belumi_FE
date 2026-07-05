@@ -6,6 +6,10 @@ class Product {
     required this.price,
     this.thumbnailUrl,
     this.categoryName,
+    this.brand,
+    this.ingredients,
+    this.benefits,
+    this.imageUrl,
   });
 
   final String id;
@@ -14,6 +18,10 @@ class Product {
   final num price;
   final String? thumbnailUrl;
   final String? categoryName;
+  final String? brand;
+  final String? ingredients;
+  final String? benefits;
+  final String? imageUrl;
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String,
@@ -22,6 +30,10 @@ class Product {
     price: json['price'] as num? ?? 0,
     thumbnailUrl: json['thumbnailUrl'] as String?,
     categoryName: json['categoryName'] as String?,
+    brand: json['brand'] as String?,
+    ingredients: json['ingredients'] as String?,
+    benefits: json['benefits'] as String?,
+    imageUrl: json['imageUrl'] as String?,
   );
 }
 
@@ -583,6 +595,8 @@ class Ingredient {
     required this.category,
     required this.description,
     required this.links,
+    this.suitableSkin,
+    this.notForSkin,
     this.createdAt,
     this.updatedAt,
   });
@@ -593,6 +607,8 @@ class Ingredient {
   final String category;
   final String description;
   final String links;
+  final String? suitableSkin;
+  final String? notForSkin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -608,6 +624,8 @@ class Ingredient {
     'category': category,
     'description': description,
     'links': links,
+    'suitableSkin': suitableSkin,
+    'notForSkin': notForSkin,
   };
 
   Ingredient copyWith({
@@ -617,6 +635,8 @@ class Ingredient {
     String? category,
     String? description,
     String? links,
+    String? suitableSkin,
+    String? notForSkin,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Ingredient(
@@ -626,6 +646,8 @@ class Ingredient {
     category: category ?? this.category,
     description: description ?? this.description,
     links: links ?? this.links,
+    suitableSkin: suitableSkin ?? this.suitableSkin,
+    notForSkin: notForSkin ?? this.notForSkin,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -637,6 +659,8 @@ class Ingredient {
     category: json['category'] as String? ?? '',
     description: json['description'] as String? ?? '',
     links: json['links'] as String? ?? '',
+    suitableSkin: json['suitableSkin'] as String?,
+    notForSkin: json['notForSkin'] as String?,
     createdAt: _parseDate(json['createdAt']),
     updatedAt: _parseDate(json['updatedAt']),
   );
