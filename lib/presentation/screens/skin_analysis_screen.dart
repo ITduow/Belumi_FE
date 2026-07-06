@@ -2445,7 +2445,7 @@ class _SkinAnalysisDetailScreenState extends ConsumerState<SkinAnalysisDetailScr
                   locale: locale,
                   result: _result,
                   profile: _beautyProfile,
-                  isDetailed: true,
+                  isDetailed: widget.repository.currentPlan == 'monthly' || widget.repository.currentPlan == 'yearly',
                   onRestart: () => Navigator.of(context).pop(),
                   repository: widget.repository,
                   onSave: () {

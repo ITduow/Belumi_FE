@@ -21,7 +21,8 @@ class BelumiRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       final todayStr = DateTime.now().toIso8601String().substring(0, 10);
-      final key = 'limit_${featureKey}_$todayStr';
+      final userId = currentUser?.userId ?? 'guest';
+      final key = 'limit_${userId}_${featureKey}_$todayStr';
       final usedCount = prefs.getInt(key) ?? 0;
       if (usedCount >= 1) {
         return false;
