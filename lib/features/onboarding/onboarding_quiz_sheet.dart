@@ -621,7 +621,7 @@ class _Q4SkinType extends StatelessWidget {
       ('oily', 'Da dễ tiết nhiều dầu và bóng nhờn', '💧'),
       (
         'sensitive',
-        'Your face feels itchy, tight, or easily irritated/reddened by the air or natural state.',
+        'Da dễ bị ngứa, khô căng, dễ kích ứng hoặc mẩn đỏ',
         '🌬️',
       ),
     ];
