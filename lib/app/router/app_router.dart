@@ -25,6 +25,8 @@ import '../../presentation/screens/skin_analysis_screen.dart';
 import '../../presentation/screens/virtual_makeup_screen.dart';
 import '../../presentation/screens/wishlist_screen.dart';
 import '../shell/app_shell.dart';
+import '../../features/onboarding/splash_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 
 final legacyRepositoryProvider = Provider<BelumiRepository>((ref) {
   final repository = BelumiRepository(ApiClient(
@@ -69,7 +71,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final legacyRepository = ref.watch(legacyRepositoryProvider);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final user = ref.read(authControllerProvider).valueOrNull;
       final loggedIn = user != null;
@@ -88,6 +90,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
