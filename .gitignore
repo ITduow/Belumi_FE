@@ -55,3 +55,6 @@ app.*.map.json
 # Android Gradle build outputs (auto-generated)
 /android/build/
 /android/.gradle/
+
+# Flutter generated plugin files for desktop platforms
+**/generated_plugins.cmake
