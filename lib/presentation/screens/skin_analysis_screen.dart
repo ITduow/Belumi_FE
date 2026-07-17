@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/i18n/app_strings.dart';
 import '../../core/platform/picked_skin_image.dart';
@@ -2790,11 +2791,37 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                              ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
-                              : const Icon(Icons.image_not_supported, color: Colors.grey),
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                                    ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
+                                    : const Icon(Icons.image_not_supported, color: Colors.grey),
+                              ),
+                            ),
+                            if (product.categoryName != null && product.categoryName!.isNotEmpty)
+                              Positioned(
+                                top: 6,
+                                left: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: BelumiLuxury.rose.withOpacity(0.85),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    product.categoryName!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Padding(
@@ -2861,16 +2888,38 @@ class _ProductDetailSheet extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 16),
-            if (product.brand != null && product.brand!.isNotEmpty)
-              Text(
-                product.brand!.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: BelumiLuxury.rose,
-                ),
-              ),
-            const SizedBox(height: 4),
+            Row(
+              children: [
+                if (product.brand != null && product.brand!.isNotEmpty)
+                  Text(
+                    product.brand!.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: BelumiLuxury.rose,
+                    ),
+                  ),
+                if (product.brand != null && product.brand!.isNotEmpty && product.categoryName != null && product.categoryName!.isNotEmpty)
+                  const Text('  •  ', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                if (product.categoryName != null && product.categoryName!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: BelumiLuxury.rose.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      product.categoryName!,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: BelumiLuxury.rose,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
               product.name,
               style: const TextStyle(
@@ -2879,6 +2928,69 @@ class _ProductDetailSheet extends StatelessWidget {
                 color: BelumiLuxury.black,
               ),
             ),
+            if (product.sourceUrl != null && product.sourceUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final uri = Uri.parse(product.sourceUrl!);
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isVi ? 'Không thể mở liên kết: $e' : 'Cannot open link: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFF1DFD8)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link, color: BelumiLuxury.rose, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isVi ? 'Liên kết sản phẩm / Mua ngay' : 'Product Link / Buy Now',
+                              style: const TextStyle(
+                                color: BelumiLuxury.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              product.sourceUrl!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontSize: 11,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.open_in_new, color: BelumiLuxury.rose, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Text(
               isVi ? 'Thành phần' : 'Ingredients',

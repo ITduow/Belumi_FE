@@ -10,6 +10,7 @@ class Product {
     this.ingredients,
     this.benefits,
     this.imageUrl,
+    this.sourceUrl,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class Product {
   final String? ingredients;
   final String? benefits;
   final String? imageUrl;
+  final String? sourceUrl;
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String,
@@ -34,6 +36,7 @@ class Product {
     ingredients: json['ingredients'] as String?,
     benefits: json['benefits'] as String?,
     imageUrl: json['imageUrl'] as String?,
+    sourceUrl: json['sourceUrl'] as String?,
   );
 }
 
