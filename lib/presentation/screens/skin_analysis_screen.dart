@@ -4,12 +4,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/i18n/app_strings.dart';
 import '../../core/platform/picked_skin_image.dart';
 import '../../core/platform/skin_image_picker.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
+import '../../features/auth/application/auth_controller.dart';
 import '../../features/onboarding/onboarding_quiz_sheet.dart';
 import '../widgets/belumi_luxury.dart';
 
@@ -83,7 +85,85 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(appLocaleProvider);
-    
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.valueOrNull;
+
+    ref.listen(authControllerProvider, (prev, next) {
+      final prevUser = prev?.valueOrNull;
+      final nextUser = next.valueOrNull;
+      if (prevUser == null && nextUser != null) {
+        _loadBeautyProfile();
+      }
+    });
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFFF9F5),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                size: 80,
+                color: BelumiLuxury.rose,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                isVi
+                    ? 'Yêu cầu đăng nhập'
+                    : 'Authentication required',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: BelumiLuxury.black,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isVi
+                    ? 'Vui lòng đăng nhập để sử dụng tính năng phân tích da AI này.'
+                    : 'Please log in to use this AI skin analysis feature.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: BelumiLuxury.muted,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    context.go('/login');
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BelumiLuxury.rose,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    isVi ? 'Đăng nhập ngay' : 'Log in now',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // 1. Loading state
     if (_hasProfile == null) {
       return const Scaffold(
@@ -2598,6 +2678,7 @@ class _RecommendedProductsView extends StatefulWidget {
 
 class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
   List<Product>? _suitableProducts;
+  int _visibleCount = 25;
 
   @override
   void initState() {
@@ -2635,6 +2716,9 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
       return const SizedBox.shrink();
     }
 
+    final hasMore = _suitableProducts!.length > _visibleCount;
+    final itemCount = hasMore ? _visibleCount + 1 : _suitableProducts!.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2651,9 +2735,48 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
           height: 180,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: _suitableProducts!.length,
+            itemCount: itemCount,
             separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
+              if (index == _visibleCount) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _visibleCount += 25;
+                    });
+                  },
+                  child: Container(
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1DFD8)),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.add_circle_outline,
+                            color: BelumiLuxury.rose,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isVi ? 'Xem thêm' : 'See more',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: BelumiLuxury.rose,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
               final product = _suitableProducts![index];
               return GestureDetector(
                 onTap: () => _showDetail(context, product),
@@ -2757,6 +2880,69 @@ class _ProductDetailSheet extends StatelessWidget {
                 color: BelumiLuxury.black,
               ),
             ),
+            if (product.sourceUrl != null && product.sourceUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final uri = Uri.parse(product.sourceUrl!);
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isVi ? 'Không thể mở liên kết: $e' : 'Cannot open link: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFF1DFD8)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link, color: BelumiLuxury.rose, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isVi ? 'Liên kết sản phẩm / Mua ngay' : 'Product Link / Buy Now',
+                              style: const TextStyle(
+                                color: BelumiLuxury.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              product.sourceUrl!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontSize: 11,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.open_in_new, color: BelumiLuxury.rose, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Text(
               isVi ? 'Thành phần' : 'Ingredients',

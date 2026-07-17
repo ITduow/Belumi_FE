@@ -30,10 +30,32 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Plan? _selectedPlan;
   bool _paymentSuccess = false;
 
+  final TextEditingController _voucherController = TextEditingController();
+  final FocusNode _voucherFocusNode = FocusNode();
+  bool _isValidatingVoucher = false;
+  String? _voucherError;
+  String? _appliedVoucherCode;
+  num _discountAmount = 0;
+
   @override
   void initState() {
     super.initState();
+    _voucherFocusNode.addListener(_onVoucherFocusChange);
     _initPayment();
+  }
+
+  @override
+  void dispose() {
+    _voucherFocusNode.removeListener(_onVoucherFocusChange);
+    _voucherFocusNode.dispose();
+    _voucherController.dispose();
+    super.dispose();
+  }
+
+  void _onVoucherFocusChange() {
+    if (!_voucherFocusNode.hasFocus) {
+      _applyVoucher();
+    }
   }
 
   Future<void> _initPayment() async {
@@ -75,6 +97,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Future<void> _launchPayOs() async {
     if (_paymentLink == null) return;
+    
+    final typedCode = _voucherController.text.trim().toUpperCase();
+    if (typedCode != (_appliedVoucherCode ?? '')) {
+      await _applyVoucher();
+      if (_voucherError != null) return;
+    }
+
+    if (_paymentLink == null) return;
     final uri = Uri.parse(_paymentLink!.checkoutUrl);
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -86,6 +116,89 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _applyVoucher() async {
+    final code = _voucherController.text.trim().toUpperCase();
+    
+    if (code.isEmpty) {
+      if (_appliedVoucherCode != null) {
+        setState(() {
+          _isValidatingVoucher = true;
+          _voucherError = null;
+        });
+        try {
+          final payOsResponse = await widget.repository.createPayOsLink(
+            widget.planId,
+            'https://belumi.vn/payment-cancel',
+            'https://belumi.vn/payment-success',
+          );
+          setState(() {
+            _appliedVoucherCode = null;
+            _discountAmount = 0;
+            _paymentLink = payOsResponse;
+            _isValidatingVoucher = false;
+          });
+        } catch (e) {
+          setState(() {
+            _voucherError = e.toString().replaceAll('Exception: ', '');
+            _isValidatingVoucher = false;
+          });
+        }
+      }
+      return;
+    }
+
+    if (code == _appliedVoucherCode) return;
+
+    setState(() {
+      _isValidatingVoucher = true;
+      _voucherError = null;
+    });
+
+    try {
+      final result = await widget.repository.validateVoucher(code, widget.planId);
+      if (!mounted) return;
+
+      if (result.isValid) {
+        final payOsResponse = await widget.repository.createPayOsLink(
+          widget.planId,
+          'https://belumi.vn/payment-cancel',
+          'https://belumi.vn/payment-success',
+          voucherCode: code,
+        );
+
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('pending_payment_order_code', payOsResponse.orderCode);
+        } catch (_) {}
+
+        setState(() {
+          _appliedVoucherCode = code;
+          _discountAmount = result.discountAmount;
+          _paymentLink = payOsResponse;
+          _voucherError = null;
+          _isValidatingVoucher = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Đã áp dụng mã giảm giá thành công!'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      } else {
+        setState(() {
+          _voucherError = result.message;
+          _isValidatingVoucher = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _voucherError = e.toString().replaceAll('Exception: ', '');
+        _isValidatingVoucher = false;
+      });
     }
   }
 
@@ -264,6 +377,27 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           ),
                         ],
                       ),
+                      const Divider(height: 24),
+                      _buildVoucherInput(context, t),
+                      if (_discountAmount > 0) ...[
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              t('Giảm giá', 'Discount'),
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            Text(
+                              '-${_formatPrice(_discountAmount)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,5 +691,86 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildVoucherInput(BuildContext context, String Function(String, String) t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 45,
+                child: TextField(
+                  controller: _voucherController,
+                  focusNode: _voucherFocusNode,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    hintText: t('Nhập mã voucher (nếu có)', 'Enter voucher code'),
+                    hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: BelumiLuxury.ink),
+                    ),
+                  ),
+                  onSubmitted: (_) => _applyVoucher(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 45,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BelumiLuxury.ink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onPressed: _isValidatingVoucher ? null : _applyVoucher,
+                child: _isValidatingVoucher
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(t('Áp dụng', 'Apply'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+        if (_voucherError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              _voucherError!,
+              style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+        if (_appliedVoucherCode != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              t('Đã áp dụng mã: $_appliedVoucherCode', 'Applied code: $_appliedVoucherCode'),
+              style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatPrice(num val) {
+    return '${val.toStringAsFixed(0)} VND';
   }
 }

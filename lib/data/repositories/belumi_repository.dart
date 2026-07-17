@@ -442,14 +442,54 @@ class BelumiRepository {
   Future<PayOsPaymentLinkResponse> createPayOsLink(
     String planId,
     String cancelUrl,
-    String returnUrl,
-  ) async {
+    String returnUrl, {
+    String? voucherCode,
+  }) async {
     final response = await api.post('/payments/payos-link', {
       'planId': planId,
       'cancelUrl': cancelUrl,
       'returnUrl': returnUrl,
+      if (voucherCode != null && voucherCode.isNotEmpty) 'voucherCode': voucherCode,
     }) as Map<String, dynamic>;
     return PayOsPaymentLinkResponse.fromJson(response);
+  }
+
+  Future<VoucherValidationResult> validateVoucher(String code, String planId) async {
+    final response = await api.post('/payments/validate-voucher', {
+      'code': code,
+      'planId': planId,
+    }) as Map<String, dynamic>;
+    return VoucherValidationResult.fromJson(response);
+  }
+
+  Future<List<Voucher>> adminVouchers() async {
+    final data = await api.get('/admin/vouchers') as List<dynamic>;
+    return data.map((x) => Voucher.fromJson(x as Map<String, dynamic>)).toList();
+  }
+
+  Future<Voucher> createVoucher(
+    String code,
+    DateTime expiryDate,
+    String type,
+    double discountValue,
+    String discountType,
+    int? usageLimit,
+  ) async {
+    final typeValue = type == 'SingleUse' ? 0 : 1;
+    final discountTypeValue = discountType == 'Percentage' ? 1 : 0;
+    final response = await api.post('/admin/vouchers', {
+      'code': code,
+      'expiryDate': expiryDate.toUtc().toIso8601String(),
+      'type': typeValue,
+      'discountValue': discountValue,
+      'discountType': discountTypeValue,
+      if (usageLimit != null) 'usageLimit': usageLimit,
+    }) as Map<String, dynamic>;
+    return Voucher.fromJson(response);
+  }
+
+  Future<void> deactivateVoucher(String voucherId) async {
+    await api.post('/admin/vouchers/$voucherId/deactivate', {});
   }
 
   Future<String> checkPaymentStatus(int orderCode) async {
