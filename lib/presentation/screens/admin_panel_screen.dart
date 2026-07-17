@@ -2561,26 +2561,24 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             'Tạo mới, theo dõi trạng thái và vô hiệu hóa mã giảm giá.',
             'Create, monitor status, and deactivate discount vouchers.',
           ),
-          action: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: BelumiLuxury.ink,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-                onPressed: _showCreateVoucherDialog,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(t('Tạo Voucher', 'Create Voucher'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
-                onPressed: _fetchVouchers,
-              ),
-            ],
+          action: IconButton(
+            icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+            onPressed: _fetchVouchers,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BelumiLuxury.ink,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onPressed: _showCreateVoucherDialog,
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(t('Tạo Voucher Mới', 'Create New Voucher'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ),
         ),
         const SizedBox(height: 18),
