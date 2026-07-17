@@ -20,6 +20,7 @@ class AppShell extends ConsumerWidget {
     '/skincare-ai',
     '/ingredient-lookup',
     '/news',
+    '/profile',
   ];
 
   @override
@@ -170,22 +171,27 @@ class AppShell extends ConsumerWidget {
           _BottomNavItem(
             icon: Icons.home_outlined,
             selectedIcon: Icons.home,
-            label: strings.t('home'),
+            label: locale == 'vi' ? 'Trang chủ' : 'Home',
           ),
           _BottomNavItem(
             icon: Icons.auto_awesome_outlined,
             selectedIcon: Icons.auto_awesome,
-            label: locale == 'vi' ? 'AI da' : 'Skin AI',
+            label: locale == 'vi' ? 'Phân tích' : 'Analysis',
           ),
           _BottomNavItem(
-            icon: Icons.document_scanner_outlined,
-            selectedIcon: Icons.document_scanner,
-            label: locale == 'vi' ? 'Thành phần' : 'Ingredients',
+            icon: Icons.center_focus_weak,
+            selectedIcon: Icons.center_focus_weak,
+            label: locale == 'vi' ? 'Tra cứu' : 'Lookup',
           ),
           _BottomNavItem(
             icon: Icons.article_outlined,
             selectedIcon: Icons.article,
-            label: strings.t('news'),
+            label: locale == 'vi' ? 'Bảng tin' : 'News',
+          ),
+          _BottomNavItem(
+            icon: Icons.person_outline,
+            selectedIcon: Icons.person,
+            label: locale == 'vi' ? 'Hồ sơ' : 'Profile',
           ),
         ],
       ),
@@ -231,20 +237,109 @@ class _BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(color: Color(0xFFFFF9F5)),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFF9F5),
+          border: Border(
+            top: BorderSide(color: Color(0xFFE6E1DC), width: 1),
+          ),
+        ),
         child: SizedBox(
-          height: 64,
-          child: Row(
+          height: 76,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              for (var index = 0; index < items.length; index++)
-                Expanded(
-                  child: _BottomNavTile(
-                    item: items[index],
-                    selected: selectedIndex == index,
-                    onTap: () => onSelected(index),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _BottomNavTile(
+                      item: items[0],
+                      selected: selectedIndex == 0,
+                      onTap: () => onSelected(0),
+                    ),
+                  ),
+                  Expanded(
+                    child: _BottomNavTile(
+                      item: items[1],
+                      selected: selectedIndex == 1,
+                      onTap: () => onSelected(1),
+                    ),
+                  ),
+                  const Expanded(
+                    child: SizedBox(),
+                  ),
+                  Expanded(
+                    child: _BottomNavTile(
+                      item: items[3],
+                      selected: selectedIndex == 3,
+                      onTap: () => onSelected(3),
+                    ),
+                  ),
+                  Expanded(
+                    child: _BottomNavTile(
+                      item: items[4],
+                      selected: selectedIndex == 4,
+                      onTap: () => onSelected(4),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                top: -16,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => onSelected(2),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFFFF9F5),
+                            border: Border.all(
+                              color: const Color(0xFFD3C5B7),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF976D48),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.center_focus_weak,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          items[2].label,
+                          style: TextStyle(
+                            color: selectedIndex == 2
+                                ? const Color(0xFF976D48)
+                                : const Color(0xFF816A5C),
+                            fontSize: 11,
+                            fontWeight: selectedIndex == 2
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -267,8 +362,8 @@ class _BottomNavTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? Theme.of(context).colorScheme.primary
-        : BelumiLuxury.muted;
+        ? const Color(0xFF976D48)
+        : const Color(0xFF816A5C);
 
     return InkWell(
       onTap: onTap,
@@ -277,19 +372,10 @@ class _BottomNavTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 44,
-              height: 24,
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFFFFE8E0) : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Icon(
-                selected ? item.selectedIcon : item.icon,
-                size: 20,
-                color: color,
-              ),
+            Icon(
+              selected ? item.selectedIcon : item.icon,
+              size: 24,
+              color: color,
             ),
             const SizedBox(height: 4),
             Text(
