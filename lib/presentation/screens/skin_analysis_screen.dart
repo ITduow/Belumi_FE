@@ -10,6 +10,7 @@ import '../../core/platform/picked_skin_image.dart';
 import '../../core/platform/skin_image_picker.dart';
 import '../../data/models/belumi_models.dart';
 import '../../data/repositories/belumi_repository.dart';
+import '../../features/auth/application/auth_controller.dart';
 import '../../features/onboarding/onboarding_quiz_sheet.dart';
 import '../widgets/belumi_luxury.dart';
 
@@ -83,7 +84,85 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(appLocaleProvider);
-    
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.valueOrNull;
+
+    ref.listen(authControllerProvider, (prev, next) {
+      final prevUser = prev?.valueOrNull;
+      final nextUser = next.valueOrNull;
+      if (prevUser == null && nextUser != null) {
+        _loadBeautyProfile();
+      }
+    });
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFFF9F5),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                size: 80,
+                color: BelumiLuxury.rose,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                isVi
+                    ? 'Yêu cầu đăng nhập'
+                    : 'Authentication required',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: BelumiLuxury.black,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isVi
+                    ? 'Vui lòng đăng nhập để sử dụng tính năng phân tích da AI này.'
+                    : 'Please log in to use this AI skin analysis feature.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: BelumiLuxury.muted,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    context.go('/login');
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BelumiLuxury.rose,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    isVi ? 'Đăng nhập ngay' : 'Log in now',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // 1. Loading state
     if (_hasProfile == null) {
       return const Scaffold(
@@ -2598,6 +2677,7 @@ class _RecommendedProductsView extends StatefulWidget {
 
 class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
   List<Product>? _suitableProducts;
+  int _visibleCount = 25;
 
   @override
   void initState() {
@@ -2635,6 +2715,9 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
       return const SizedBox.shrink();
     }
 
+    final hasMore = _suitableProducts!.length > _visibleCount;
+    final itemCount = hasMore ? _visibleCount + 1 : _suitableProducts!.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2651,9 +2734,48 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
           height: 180,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: _suitableProducts!.length,
+            itemCount: itemCount,
             separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
+              if (index == _visibleCount) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _visibleCount += 25;
+                    });
+                  },
+                  child: Container(
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1DFD8)),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.add_circle_outline,
+                            color: BelumiLuxury.rose,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isVi ? 'Xem thêm' : 'See more',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: BelumiLuxury.rose,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
               final product = _suitableProducts![index];
               return GestureDetector(
                 onTap: () => _showDetail(context, product),
