@@ -121,6 +121,91 @@ class PayOsPaymentLinkResponse {
       );
 }
 
+class VoucherValidationResult {
+  VoucherValidationResult({
+    required this.isValid,
+    required this.message,
+    required this.discountAmount,
+    required this.finalAmount,
+  });
+
+  final bool isValid;
+  final String message;
+  final num discountAmount;
+  final num finalAmount;
+
+  factory VoucherValidationResult.fromJson(Map<String, dynamic> json) =>
+      VoucherValidationResult(
+        isValid: json['isValid'] as bool? ?? false,
+        message: json['message'] as String? ?? '',
+        discountAmount: json['discountAmount'] as num? ?? 0,
+        finalAmount: json['finalAmount'] as num? ?? 0,
+      );
+}
+
+class Voucher {
+  Voucher({
+    required this.id,
+    required this.code,
+    required this.expiryDate,
+    required this.type,
+    required this.discountValue,
+    required this.discountType,
+    this.usageLimit,
+    required this.usageCount,
+    required this.isActive,
+    this.createdAt,
+  });
+
+  final String id;
+  final String code;
+  final DateTime expiryDate;
+  final String type; // "SingleUse" | "MultiUsePerUser"
+  final num discountValue;
+  final String discountType; // "FixedAmount" | "Percentage"
+  final int? usageLimit;
+  final int usageCount;
+  final bool isActive;
+  final DateTime? createdAt;
+
+  factory Voucher.fromJson(Map<String, dynamic> json) => Voucher(
+        id: json['id'] as String? ?? '',
+        code: json['code'] as String? ?? '',
+        expiryDate: DateTime.parse(json['expiryDate'] as String),
+        type: _parseVoucherType(json['type']),
+        discountValue: json['discountValue'] as num? ?? 0,
+        discountType: _parseDiscountType(json['discountType']),
+        usageLimit: json['usageLimit'] as int?,
+        usageCount: json['usageCount'] as int? ?? 0,
+        isActive: json['isActive'] as bool? ?? true,
+        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
+      );
+
+  static String _parseVoucherType(Object? value) {
+    if (value is String) return value;
+    if (value is num) return value.toInt() == 0 ? 'SingleUse' : 'MultiUsePerUser';
+    return 'MultiUsePerUser';
+  }
+
+  static String _parseDiscountType(Object? value) {
+    if (value is String) return value;
+    if (value is num) return value.toInt() == 1 ? 'Percentage' : 'FixedAmount';
+    return 'FixedAmount';
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'code': code,
+        'expiryDate': expiryDate.toIso8601String(),
+        'type': type,
+        'discountValue': discountValue,
+        'discountType': discountType,
+        'usageLimit': usageLimit,
+        'usageCount': usageCount,
+        'isActive': isActive,
+      };
+}
+
 class NewsArticle {
   NewsArticle({
     required this.id,

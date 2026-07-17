@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/repositories/belumi_repository.dart';
+import '../../data/models/belumi_models.dart';
 import '../widgets/belumi_luxury.dart';
 import 'admin_news_screen.dart';
 import 'admin_ingredients_screen.dart';
@@ -42,6 +43,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   List<Map<String, dynamic>>? _contacts;
   bool _loadingContacts = false;
 
+  // Vouchers tab state
+  List<Voucher>? _vouchers;
+  bool _loadingVouchers = false;
+  String _voucherSearchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +68,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       _fetchAiLogs();
     } else if (index == 6) {
       _fetchContacts();
+    } else if (index == 7) {
+      _fetchVouchers();
     }
   }
 
@@ -124,6 +132,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     } catch (e) {
       setState(() => _loadingContacts = false);
       _showErrorSnackBar('Lỗi tải yêu cầu tư vấn: $e');
+    }
+  }
+
+  Future<void> _fetchVouchers() async {
+    setState(() => _loadingVouchers = true);
+    try {
+      final data = await widget.repository.adminVouchers();
+      setState(() {
+        _vouchers = data;
+        _loadingVouchers = false;
+      });
+    } catch (e) {
+      setState(() => _loadingVouchers = false);
+      _showErrorSnackBar('Lỗi tải danh sách voucher: $e');
     }
   }
 
@@ -223,6 +245,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       {'title': t('Thành phần', 'Ingredients'), 'icon': Icons.science_outlined},
       {'title': t('Logs AI', 'AI Logs'), 'icon': Icons.auto_awesome},
       {'title': t('Liên hệ', 'Contacts'), 'icon': Icons.contact_mail_outlined},
+      {'title': t('Voucher', 'Vouchers'), 'icon': Icons.discount_outlined},
     ];
 
     Widget buildActiveView() {
@@ -241,6 +264,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           return _buildAiLogsTab();
         case 6:
           return _buildContactsTab();
+        case 7:
+          return _buildVouchersTab();
         default:
           return const SizedBox();
       }
@@ -2511,6 +2536,379 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVouchersTab() {
+    final t = belumiCopy(context).t;
+    if (_loadingVouchers && _vouchers == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final voucherList = _vouchers ?? [];
+
+    final filtered = voucherList.where((x) {
+      final code = x.code.toLowerCase();
+      final q = _voucherSearchQuery.toLowerCase();
+      return code.contains(q);
+    }).toList();
+
+    return LuxuryPage(
+      children: [
+        _buildPageHeader(
+          title: t('Quản lý Voucher', 'Voucher Management'),
+          description: t(
+            'Tạo mới, theo dõi trạng thái và vô hiệu hóa mã giảm giá.',
+            'Create, monitor status, and deactivate discount vouchers.',
+          ),
+          action: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BelumiLuxury.ink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onPressed: _showCreateVoucherDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(t('Tạo Voucher', 'Create Voucher'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: BelumiLuxury.ink),
+                onPressed: _fetchVouchers,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFF1DFD8)),
+          ),
+          child: TextField(
+            onChanged: (val) => setState(() => _voucherSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: t('Tìm kiếm theo mã voucher...', 'Search by voucher code...'),
+              hintStyle: const TextStyle(color: BelumiLuxury.muted, fontSize: 13),
+              border: InputBorder.none,
+              icon: const Icon(Icons.search, color: BelumiLuxury.muted, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        LuxuryPanel(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (filtered.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: Text(
+                      t('Không tìm thấy mã voucher nào.', 'No vouchers found.'),
+                      style: const TextStyle(color: BelumiLuxury.muted),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columnSpacing: 24,
+                    columns: [
+                      DataColumn(label: Text(t('Mã', 'Code'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Giảm giá', 'Discount'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Loại', 'Type'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Đã dùng', 'Usages'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Ngày hết hạn', 'Expiry Date'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Trạng thái', 'Status'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text(t('Hành động', 'Actions'), style: const TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                    rows: filtered.map((voucher) {
+                      final isExpired = voucher.expiryDate.isBefore(DateTime.now());
+                      final isActive = voucher.isActive && !isExpired && (voucher.usageLimit == null || voucher.usageCount < voucher.usageLimit!);
+
+                      return DataRow(
+                        cells: [
+                          DataCell(Text(
+                            voucher.code,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                          )),
+                          DataCell(Text(
+                            voucher.discountType == 'Percentage'
+                                ? '${voucher.discountValue.toStringAsFixed(0)}%'
+                                : _formatVND(voucher.discountValue.toDouble()),
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green),
+                          )),
+                          DataCell(Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: voucher.type == 'SingleUse'
+                                  ? Colors.orange.shade50
+                                  : Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              voucher.type == 'SingleUse'
+                                  ? t('1 Lần Dùng', 'Single Use')
+                                  : t('Theo Tài Khoản', 'Per User'),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: voucher.type == 'SingleUse'
+                                    ? Colors.orange.shade800
+                                    : Colors.blue.shade800,
+                              ),
+                            ),
+                          )),
+                          DataCell(Text(
+                            '${voucher.usageCount} / ${voucher.usageLimit ?? t('Không giới hạn', '∞')}',
+                            style: const TextStyle(fontFamily: 'monospace'),
+                          )),
+                          DataCell(Text(_formatDate(voucher.expiryDate.toIso8601String()))),
+                          DataCell(Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isActive ? Colors.green.shade50 : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isActive
+                                  ? t('Hoạt động', 'Active')
+                                  : (isExpired
+                                      ? t('Hết hạn', 'Expired')
+                                      : (voucher.usageLimit != null && voucher.usageCount >= voucher.usageLimit!
+                                          ? t('Hết lượt', 'Exhausted')
+                                          : t('Đã tắt', 'Inactive'))),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isActive ? Colors.green.shade800 : Colors.red.shade800,
+                              ),
+                            ),
+                          )),
+                          DataCell(
+                            isActive
+                                ? TextButton(
+                                    onPressed: () => _deactivateVoucher(voucher),
+                                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                    child: Text(t('Vô hiệu hóa', 'Deactivate')),
+                                  )
+                                : const Text('-'),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _deactivateVoucher(Voucher voucher) async {
+    try {
+      await widget.repository.deactivateVoucher(voucher.id);
+      _showSuccessSnackBar('Đã vô hiệu hóa voucher thành công.');
+      _fetchVouchers();
+    } catch (e) {
+      _showErrorSnackBar('Lỗi vô hiệu hóa voucher: $e');
+    }
+  }
+
+  void _showCreateVoucherDialog() {
+    final t = belumiCopy(context).t;
+    final codeCtrl = TextEditingController();
+    final discountCtrl = TextEditingController();
+    final limitCtrl = TextEditingController();
+    String selectedType = 'MultiUsePerUser';
+    String selectedDiscountType = 'FixedAmount';
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 30));
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(t('Tạo Voucher Mới', 'Create New Voucher'), style: const TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: codeCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        labelText: t('Mã voucher', 'Voucher Code'),
+                        hintText: 'VD: KHUYENMAI10',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedDiscountType,
+                      decoration: InputDecoration(
+                        labelText: t('Kiểu giảm giá', 'Discount Type'),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'FixedAmount',
+                          child: Text(t('Số tiền cố định (VND)', 'Fixed Amount (VND)')),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Percentage',
+                          child: Text(t('Giảm theo phần trăm (%)', 'Percentage (%)')),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedDiscountType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: discountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: selectedDiscountType == 'Percentage'
+                            ? t('Phần trăm giảm (%)', 'Discount value (%)')
+                            : t('Số tiền giảm (VND)', 'Discount value (VND)'),
+                        hintText: selectedDiscountType == 'Percentage' ? 'VD: 10' : 'VD: 20000',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      decoration: InputDecoration(
+                        labelText: t('Loại voucher', 'Voucher Type'),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'MultiUsePerUser',
+                          child: Text(t('Mỗi tài khoản dùng 1 lần', 'One use per account')),
+                        ),
+                        DropdownMenuItem(
+                          value: 'SingleUse',
+                          child: Text(t('Sử dụng là hết hạn luôn', 'Single use globally')),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: limitCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: t('Giới hạn số lượng sử dụng', 'Usage Limit'),
+                        hintText: t('Bỏ trống nếu không giới hạn', 'Leave blank for unlimited'),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      title: Text(t('Ngày hết hạn', 'Expiry Date')),
+                      subtitle: Text('${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedDate = DateTime(
+                              picked.year,
+                              picked.month,
+                              picked.day,
+                              23,
+                              59,
+                              59,
+                            );
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(t('Hủy', 'Cancel'), style: const TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BelumiLuxury.ink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () async {
+                    final code = codeCtrl.text.trim().toUpperCase();
+                    final discount = double.tryParse(discountCtrl.text.trim()) ?? 0;
+                    final usageLimit = int.tryParse(limitCtrl.text.trim());
+
+                    if (code.isEmpty || discount <= 0 || (selectedDiscountType == 'Percentage' && discount > 100)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(t('Vui lòng điền thông tin hợp lệ.', 'Please fill in valid information.')),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.pop(ctx); // Close dialog
+
+                    try {
+                      await widget.repository.createVoucher(
+                        code,
+                        selectedDate,
+                        selectedType,
+                        discount,
+                        selectedDiscountType,
+                        usageLimit,
+                      );
+                      _showSuccessSnackBar('Tạo voucher mới thành công.');
+                      _fetchVouchers();
+                    } catch (e) {
+                      _showErrorSnackBar('Lỗi tạo voucher: $e');
+                    }
+                  },
+                  child: Text(t('Tạo', 'Create'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
