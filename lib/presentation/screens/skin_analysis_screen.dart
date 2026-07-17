@@ -2791,37 +2791,11 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                    ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
-                                    : const Icon(Icons.image_not_supported, color: Colors.grey),
-                              ),
-                            ),
-                            if (product.categoryName != null && product.categoryName!.isNotEmpty)
-                              Positioned(
-                                top: 6,
-                                left: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: BelumiLuxury.rose.withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    product.categoryName!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                              ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
+                              : const Icon(Icons.image_not_supported, color: Colors.grey),
                         ),
                       ),
                       Padding(
@@ -2888,38 +2862,16 @@ class _ProductDetailSheet extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                if (product.brand != null && product.brand!.isNotEmpty)
-                  Text(
-                    product.brand!.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: BelumiLuxury.rose,
-                    ),
-                  ),
-                if (product.brand != null && product.brand!.isNotEmpty && product.categoryName != null && product.categoryName!.isNotEmpty)
-                  const Text('  •  ', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                if (product.categoryName != null && product.categoryName!.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: BelumiLuxury.rose.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      product.categoryName!,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: BelumiLuxury.rose,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
+            if (product.brand != null && product.brand!.isNotEmpty)
+              Text(
+                product.brand!.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: BelumiLuxury.rose,
+                ),
+              ),
+            const SizedBox(height: 4),
             Text(
               product.name,
               style: const TextStyle(
