@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/i18n/app_strings.dart';
@@ -14,6 +15,22 @@ import '../../data/repositories/belumi_repository.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/onboarding/onboarding_quiz_sheet.dart';
 import '../widgets/belumi_luxury.dart';
+
+// ─────────────────────────────────────────────
+// Design Tokens
+// ─────────────────────────────────────────────
+class _T {
+  _T._();
+  static const canvas = Color(0xFFF6F5F4);
+  static const ink = Color(0xFF4B3228);
+  static const muted = Color(0xFF816A5C);
+  static const sand = Color(0xFFE7D8C6);
+  static const cream = Color(0xFFF6EDE4);
+  static const paper = Color(0xFFFFFAF4);
+  static const accent = Color(0xFFC9965D);
+  static const espresso = Color(0xFF6A4634);
+  static const radius = 16.0;
+}
 
 class SkinAnalysisScreen extends ConsumerStatefulWidget {
   const SkinAnalysisScreen({super.key, required this.repository});
@@ -98,7 +115,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
 
     if (user == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFF9F5),
+        backgroundColor: _T.canvas,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -112,7 +129,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
               const Icon(
                 Icons.lock_outline,
                 size: 80,
-                color: BelumiLuxury.rose,
+                color: _T.ink,
               ),
               const SizedBox(height: 24),
               Text(
@@ -120,10 +137,12 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     ? 'Yêu cầu đăng nhập'
                     : 'Authentication required',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: BelumiLuxury.black,
-                    ),
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  color: _T.ink,
+                  fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -131,8 +150,8 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     ? 'Vui lòng đăng nhập để sử dụng tính năng phân tích da AI này.'
                     : 'Please log in to use this AI skin analysis feature.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: BelumiLuxury.muted,
+                style: GoogleFonts.monaSans(
+                  color: _T.muted,
                   fontSize: 15,
                   height: 1.4,
                 ),
@@ -145,16 +164,16 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     context.go('/login');
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: BelumiLuxury.rose,
+                    backgroundColor: _T.ink,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
                   child: Text(
                     isVi ? 'Đăng nhập ngay' : 'Log in now',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: GoogleFonts.monaSans(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
@@ -164,12 +183,11 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
       );
     }
 
-    // 1. Loading state
     if (_hasProfile == null) {
       return const Scaffold(
-        backgroundColor: Color(0xFFFFF9F5),
+        backgroundColor: _T.canvas,
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: _T.ink),
         ),
       );
     }
@@ -177,7 +195,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
     // 2. Block user if quiz not completed
     if (_hasProfile == false) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFF9F5),
+        backgroundColor: _T.canvas,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -191,7 +209,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
               const Icon(
                 Icons.assignment_turned_in_outlined,
                 size: 80,
-                color: BelumiLuxury.rose,
+                color: _T.ink,
               ),
               const SizedBox(height: 24),
               Text(
@@ -199,10 +217,12 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     ? 'Yêu cầu hoàn thành khảo sát'
                     : 'Survey completion required',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: BelumiLuxury.black,
-                    ),
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  color: _T.ink,
+                  fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -210,8 +230,8 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     ? 'Bạn cần hoàn thành bộ câu hỏi khảo sát cá nhân hóa trước khi tiến hành phân tích da AI.'
                     : 'You need to complete the personalized survey quiz before proceeding with AI skin analysis.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: BelumiLuxury.muted,
+                style: GoogleFonts.monaSans(
+                  color: _T.muted,
                   fontSize: 15,
                   height: 1.4,
                 ),
@@ -230,16 +250,16 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     }
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: BelumiLuxury.rose,
+                    backgroundColor: _T.ink,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(9999),
                     ),
                   ),
                   child: Text(
                     isVi ? 'Làm khảo sát ngay ✨' : 'Take survey now ✨',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: GoogleFonts.monaSans(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
@@ -250,8 +270,10 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
     }
 
     // 3. Normal flow
-    return Stack(
-      children: [
+    return Container(
+      color: _T.canvas,
+      child: Stack(
+        children: [
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           child: switch (step) {
@@ -315,7 +337,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: BelumiLuxury.rose.withValues(alpha: 0.2),
+                      color: _T.ink.withValues(alpha: 0.1),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
@@ -329,7 +351,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                       height: 48,
                       child: CircularProgressIndicator(
                         strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(BelumiLuxury.ink),
+                        valueColor: AlwaysStoppedAnimation<Color>(_T.ink),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -337,18 +359,18 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                       locale == 'vi'
                           ? 'AI đang phân tích da...'
                           : 'AI is analyzing your skin...',
-                      style: const TextStyle(
+                      style: GoogleFonts.monaSans(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: BelumiLuxury.black,
+                        color: _T.ink,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       locale == 'vi' ? 'Thường mất 10–20 giây' : 'Usually takes 10–20 seconds',
-                      style: const TextStyle(
+                      style: GoogleFonts.monaSans(
                         fontSize: 13,
-                        color: BelumiLuxury.muted,
+                        color: _T.muted,
                       ),
                     ),
                   ],
@@ -356,7 +378,8 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -402,23 +425,23 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
         context: context,
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Hết lượt sử dụng hôm nay 🔒', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text('Bạn đã dùng hết lượt phân tích da miễn phí của ngày hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!'),
+          title: Text('Hết lượt sử dụng hôm nay 🔒', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
+          content: Text('Bạn đã dùng hết lượt phân tích da miễn phí của ngày hôm nay (1 lần/ngày). Vui lòng nâng cấp gói Paid để sử dụng không giới hạn!', style: GoogleFonts.monaSans()),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Đóng', style: TextStyle(color: BelumiLuxury.muted)),
+              child: Text('Đóng', style: GoogleFonts.monaSans(color: _T.muted)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: BelumiLuxury.rose,
+                backgroundColor: _T.ink,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
                 Navigator.pop(context);
                 context.push('/pricing');
               },
-              child: const Text('Nâng cấp ngay'),
+              child: Text('Nâng cấp ngay', style: GoogleFonts.monaSans()),
             ),
           ],
         ),
@@ -478,6 +501,7 @@ class _PageShell extends StatelessWidget {
     this.badge,
     this.title,
     this.subtitle,
+    this.useLuxuryBackground = false,
   });
 
   final Widget child;
@@ -485,35 +509,58 @@ class _PageShell extends StatelessWidget {
   final String? badge;
   final String? title;
   final String? subtitle;
+  final bool useLuxuryBackground;
 
   @override
   Widget build(BuildContext context) {
-    return LuxuryPage(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-      children: [
+    final children = [
         if (badge != null) Center(child: _StepBadge(label: badge!)),
         if (title != null) ...[
           const SizedBox(height: 12),
-          Text(
-            title!,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: BelumiLuxury.black,
-              fontWeight: FontWeight.w900,
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              title!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: _T.ink,
+                height: 1.2,
+                fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
+              ),
             ),
           ),
         ],
         if (subtitle != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            subtitle!,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              subtitle!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.monaSans(
+                color: _T.muted,
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
         const SizedBox(height: 28),
         child,
-      ],
+    ];
+
+    if (useLuxuryBackground) {
+      return LuxuryPage(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+        children: children,
+      );
+    }
+    
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+      children: children,
     );
   }
 }
@@ -541,25 +588,41 @@ class _IntroStep extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 96,
+            height: 96,
             decoration: BoxDecoration(
-              color: BelumiLuxury.ink,
-              borderRadius: BorderRadius.circular(18),
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [_T.accent, _T.espresso],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _T.accent.withValues(alpha: 0.3),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.auto_awesome,
-              color: Colors.white,
-              size: 40,
+            child: const Center(
+              child: Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 44,
+              ),
             ),
           ),
           const SizedBox(height: 24),
           Text(
             l.t('Phân tích da bằng AI', 'AI Skin Analysis'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: BelumiLuxury.black,
-              fontWeight: FontWeight.w900,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: _T.ink,
+              height: 1.2,
+              fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
             ),
           ),
           const SizedBox(height: 10),
@@ -569,18 +632,22 @@ class _IntroStep extends StatelessWidget {
               'Get personalized skincare recommendations powered by AI analysis',
             ),
             textAlign: TextAlign.center,
+            style: GoogleFonts.monaSans(color: _T.muted, fontSize: 15),
           ),
           const SizedBox(height: 28),
           _GlassCard(
             child: Column(
               children: [
                 Text(
-                  l.t('Cách hoạt động:', 'How it works:'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  l.t('Cách hoạt động', 'How it works'),
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: _T.ink,
+                    fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
+                  ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 _HowItem(
                   number: '1',
                   title: l.t('Chụp ảnh selfie', 'Take a selfie'),
@@ -591,14 +658,6 @@ class _IntroStep extends StatelessWidget {
                 ),
                 _HowItem(
                   number: '2',
-                  title: l.t('Trả lời câu hỏi nhanh', 'Answer quick questions'),
-                  subtitle: l.t(
-                    '5 thao tác về da, không cần gõ',
-                    '5 simple skin profile steps, no typing needed',
-                  ),
-                ),
-                _HowItem(
-                  number: '3',
                   title: l.t(
                     'Nhận quy trình cá nhân',
                     'Receive a personalized routine',
@@ -615,11 +674,22 @@ class _IntroStep extends StatelessWidget {
           ),
           const SizedBox(height: 26),
           SizedBox(
-            width: 240,
-            child: FilledButton.icon(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
               onPressed: onStart,
-              icon: const Icon(Icons.auto_awesome),
-              label: Text(l.t('Bắt đầu phân tích da', 'Start skin analysis')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF976D48),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+              ),
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: Text(
+                l.t('Bắt đầu phân tích da', 'Start skin analysis'),
+                style: GoogleFonts.monaSans(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ),
           ),
         ],
@@ -653,7 +723,7 @@ class _ConsentStep extends StatelessWidget {
     final l = _L(locale);
     return _PageShell(
       locale: locale,
-      badge: l.t('Bước 1 / 3', 'Step 1 of 3'),
+      badge: l.t('Bước 1 / 2', 'Step 1 of 2'),
       title: l.t('Quyền riêng tư & Chấp thuận', 'Privacy & Consent'),
       subtitle: l.t('Dữ liệu của bạn, quyền của bạn', 'Your data, your rights'),
       child: _GlassCard(
@@ -727,7 +797,7 @@ class _PhotoStep extends StatelessWidget {
     final l = _L(locale);
     return _PageShell(
       locale: locale,
-      badge: l.t('Bước 2 / 3', 'Step 2 of 3'),
+      badge: l.t('Bước 2 / 2', 'Step 2 of 2'),
       title: l.t('Chụp ảnh selfie', 'Take a Selfie'),
       subtitle: l.t(
         'Để có kết quả tốt nhất, hãy làm theo hướng dẫn dưới đây',
@@ -791,7 +861,7 @@ class _PhotoStep extends StatelessWidget {
                     child: Container(
                       height: 330,
                       width: double.infinity,
-                      color: BelumiLuxury.cream,
+                      color: _T.cream,
                       child: _PickedImagePreview(image: image!),
                     ),
                   ),
@@ -801,16 +871,30 @@ class _PhotoStep extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: onClear,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF976D48),
+                            side: const BorderSide(color: Color(0xFF976D48)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
+                          ),
                           icon: const Icon(Icons.close),
-                          label: Text(l.t('Hủy', 'Cancel')),
+                          label: Text(l.t('Hủy', 'Cancel'), style: GoogleFonts.monaSans(fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
                           onPressed: onCamera,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF976D48),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
+                          ),
                           icon: const Icon(Icons.camera_alt_outlined),
-                          label: Text(l.t('Chụp lại', 'Retake')),
+                          label: Text(l.t('Chụp lại', 'Retake'), style: GoogleFonts.monaSans(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -890,6 +974,7 @@ class _ResultStep extends StatelessWidget {
     if (data == null) {
       return _PageShell(
         locale: locale,
+        useLuxuryBackground: true,
         child: Center(
           child: FilledButton(
             onPressed: onRestart,
@@ -903,6 +988,7 @@ class _ResultStep extends StatelessWidget {
 
     return _PageShell(
       locale: locale,
+      useLuxuryBackground: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1080,15 +1166,16 @@ class _ResultStep extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onRestart,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: BelumiLuxury.black,
-                    side: const BorderSide(color: Color(0xFFF1DFD8)),
+                    foregroundColor: _T.ink,
+                    side: const BorderSide(color: _T.ink),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: Text(
                     l.t('Bắt đầu phân tích mới', 'New Analysis'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -1097,14 +1184,14 @@ class _ResultStep extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onSave,
                   style: FilledButton.styleFrom(
-                    backgroundColor: BelumiLuxury.rose,
+                    backgroundColor: _T.ink,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(l.t('Lưu quy trình', 'Save Routine')),
+                  child: Text(l.t('Lưu quy trình', 'Save Routine'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -1496,12 +1583,12 @@ class _GlassCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1DFD8)),
+        color: const Color(0xFFF6F5F4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4D0CC)),
         boxShadow: [
           BoxShadow(
-            color: BelumiLuxury.rose.withValues(alpha: 0.16),
+            color: _T.ink.withValues(alpha: 0.1),
             blurRadius: 26,
             offset: const Offset(0, 12),
           ),
@@ -1528,36 +1615,37 @@ class _HowItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: BelumiLuxury.peach.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1DFD8)),
-      ),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            backgroundColor: dark ? BelumiLuxury.ink : BelumiLuxury.rose,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _T.sand.withValues(alpha: 0.4),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
             child: Text(
               number,
-              style: const TextStyle(
-                color: Colors.white,
+              style: GoogleFonts.monaSans(
+                color: _T.ink,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: GoogleFonts.monaSans(fontWeight: FontWeight.w800, color: _T.ink, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                Text(subtitle, style: GoogleFonts.monaSans(color: _T.muted, fontSize: 13, height: 1.4)),
               ],
             ),
           ),
@@ -1578,9 +1666,9 @@ class _NoticeBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: BelumiLuxury.peach,
+        color: _T.sand.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BelumiLuxury.rose),
+        border: Border.all(color: _T.sand),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1588,7 +1676,7 @@ class _NoticeBox extends StatelessWidget {
           const Icon(
             Icons.info_outline_rounded,
             size: 18,
-            color: BelumiLuxury.muted,
+            color: _T.muted,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1634,10 +1722,10 @@ class _ConsentTile extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: value ? BelumiLuxury.peach.withValues(alpha: 0.5) : Colors.white,
+          color: value ? _T.sand.withValues(alpha: 0.5) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: value ? BelumiLuxury.rose : const Color(0xFFF1DFD8),
+            color: value ? _T.accent : _T.sand,
           ),
         ),
         child: Row(
@@ -1647,10 +1735,10 @@ class _ConsentTile extends StatelessWidget {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: value ? BelumiLuxury.rose : Colors.transparent,
+                color: value ? _T.accent : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: value ? BelumiLuxury.rose : const Color(0xFFD0C4BF),
+                  color: value ? _T.accent : const Color(0xFFD0C4BF),
                   width: 1.5,
                 ),
               ),
@@ -1665,16 +1753,16 @@ class _ConsentTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: GoogleFonts.monaSans(
                       fontWeight: FontWeight.w900,
-                      color: BelumiLuxury.black,
+                      color: _T.ink,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: BelumiLuxury.muted,
+                    style: GoogleFonts.monaSans(
+                      color: _T.muted,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -1702,19 +1790,19 @@ class _GuideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Good = ink palette nhạt, Bad = rose rất nhạt
+    // Good = ink palette nhạt, Bad = red nhạt
     final bgColor = good
-        ? BelumiLuxury.ink.withValues(alpha: 0.04)
-        : BelumiLuxury.rose.withValues(alpha: 0.08);
+        ? const Color(0xFFE8F5E9)
+        : const Color(0xFFB85C5C).withValues(alpha: 0.08);
     final borderColor = good
-        ? BelumiLuxury.ink.withValues(alpha: 0.15)
-        : BelumiLuxury.rose.withValues(alpha: 0.35);
-    final titleColor = good ? BelumiLuxury.ink : BelumiLuxury.muted;
-    final textColor = good ? BelumiLuxury.black : BelumiLuxury.muted;
+        ? const Color(0xFFC8E6C9)
+        : const Color(0xFFB85C5C).withValues(alpha: 0.35);
+    final titleColor = good ? _T.ink : _T.muted;
+    final textColor = good ? _T.ink : _T.muted;
     final icon = good ? Icons.check_circle_outline : Icons.cancel_outlined;
     final iconColor = good
-        ? BelumiLuxury.ink
-        : BelumiLuxury.rose.withValues(alpha: 0.7);
+        ? _T.ink
+        : const Color(0xFFB85C5C).withValues(alpha: 0.7);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 280, maxWidth: 340),
@@ -1734,7 +1822,7 @@ class _GuideCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(
+                  style: GoogleFonts.monaSans(
                     color: titleColor,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -1758,7 +1846,7 @@ class _GuideCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item,
-                        style: TextStyle(
+                        style: GoogleFonts.monaSans(
                           color: textColor,
                           fontSize: 13,
                           height: 1.4,
@@ -1795,9 +1883,9 @@ class _PhotoAction extends StatelessWidget {
       child: Container(
         height: 136,
         decoration: BoxDecoration(
-          color: BelumiLuxury.peach.withValues(alpha: 0.5),
+          color: _T.sand.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: BelumiLuxury.rose),
+          border: Border.all(color: _T.accent),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1806,7 +1894,7 @@ class _PhotoAction extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: BelumiLuxury.ink,
+                color: _T.ink,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(icon, color: Colors.white, size: 26),
@@ -1814,9 +1902,9 @@ class _PhotoAction extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
+              style: GoogleFonts.monaSans(
                 fontWeight: FontWeight.w900,
-                color: BelumiLuxury.black,
+                color: _T.ink,
                 fontSize: 13,
               ),
             ),
@@ -1868,9 +1956,9 @@ class _PaywallNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: BelumiLuxury.peach,
+        color: _T.sand.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BelumiLuxury.rose),
+        border: Border.all(color: _T.sand),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1878,7 +1966,7 @@ class _PaywallNote extends StatelessWidget {
           const Icon(
             Icons.lock_outline_rounded,
             size: 18,
-            color: BelumiLuxury.muted,
+            color: _T.muted,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1887,8 +1975,8 @@ class _PaywallNote extends StatelessWidget {
                 'Gói Pro mở phân tích ảnh selfie. Free/Plus vẫn có hồ sơ da và tư vấn bằng câu hỏi.',
                 'Pro unlocks selfie photo analysis. Free/Plus still support the skin profile and question-based consultation.',
               ),
-              style: const TextStyle(
-                color: BelumiLuxury.muted,
+              style: GoogleFonts.monaSans(
+                color: _T.muted,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -2344,14 +2432,14 @@ class _NavRow extends StatelessWidget {
           child: OutlinedButton(
             onPressed: onBack,
             style: OutlinedButton.styleFrom(
-              foregroundColor: BelumiLuxury.black,
-              side: const BorderSide(color: Color(0xFFF1DFD8)),
+              foregroundColor: const Color(0xFF976D48),
+              side: const BorderSide(color: Color(0xFF976D48)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(9999),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(backLabel),
+            child: Text(backLabel, style: GoogleFonts.monaSans(fontWeight: FontWeight.bold)),
           ),
         ),
         const SizedBox(width: 14),
@@ -2359,14 +2447,14 @@ class _NavRow extends StatelessWidget {
           child: FilledButton(
             onPressed: onNext,
             style: FilledButton.styleFrom(
-              backgroundColor: onNext != null ? BelumiLuxury.ink : BelumiLuxury.muted,
+              backgroundColor: onNext != null ? const Color(0xFF976D48) : _T.muted.withValues(alpha: 0.5),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(9999),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(nextLabel),
+            child: Text(nextLabel, style: GoogleFonts.monaSans(fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -2700,7 +2788,7 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ProductDetailSheet(product: product, locale: widget.locale),
+      builder: (_) => ProductDetailSheet(product: product, locale: widget.locale),
     );
   }
 
@@ -2819,8 +2907,8 @@ class _RecommendedProductsViewState extends State<_RecommendedProductsView> {
   }
 }
 
-class _ProductDetailSheet extends StatelessWidget {
-  const _ProductDetailSheet({required this.product, required this.locale});
+class ProductDetailSheet extends StatelessWidget {
+  const ProductDetailSheet({super.key, required this.product, required this.locale});
   final Product product;
   final String locale;
 

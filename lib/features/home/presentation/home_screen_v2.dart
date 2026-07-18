@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../config/i18n/app_strings.dart';
 import '../../../data/models/belumi_models.dart';
@@ -173,139 +174,7 @@ class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
 }
 
 // ═════════════════════════════════════════════
-// 1. HEADER
-// ═════════════════════════════════════════════
-class _HomeHeader extends ConsumerWidget {
-  const _HomeHeader({required this.user});
-
-  final AppUser? user;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (user == null) {
-      // PRE-LOGIN
-      return Row(
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/belumi_logo_mark.png',
-                height: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Icon(Icons.spa, color: _T.ink),
-              ),
-              const SizedBox(width: 6),
-              Image.asset(
-                'assets/images/belumi_logo_wordmark.png',
-                height: 20,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Text(
-                  'belumi',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: _T.ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          _HeaderButton(
-            label: 'Đăng ký ngay',
-            filled: true,
-            onTap: () => context.go('/register'),
-          ),
-          const SizedBox(width: 8),
-          _HeaderButton(
-            label: 'Đăng nhập',
-            filled: false,
-            onTap: () => context.go('/login'),
-          ),
-        ],
-      );
-    } else {
-      // POST-LOGIN
-      return Row(
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/belumi_logo_mark.png',
-                height: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Icon(Icons.spa, color: _T.ink),
-              ),
-              const SizedBox(width: 6),
-              Image.asset(
-                'assets/images/belumi_logo_wordmark.png',
-                height: 20,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Text(
-                  'belumi',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: _T.ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => context.go('/profile'),
-            child: const CircleAvatar(
-              radius: 16,
-              backgroundColor: _T.ink,
-              child: Icon(Icons.person, color: Colors.white, size: 20),
-            ),
-          ),
-        ],
-      );
-    }
-  }
-}
-
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.label,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: filled ? _T.ink : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: filled ? _T.ink : _T.ink.withValues(alpha: 0.35),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: filled ? Colors.white : _T.ink,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Removed unused _HomeHeader
 
 // ═════════════════════════════════════════════
 // 2. GREETING
@@ -319,29 +188,29 @@ class _GreetingSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = user?.fullName ?? 'bạn mới';
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           'Mến chào $name,',
-          style: TextStyle(
-            color: Color(0xFF44403D),
-            fontFamily: 'Mona Sans',
+          style: GoogleFonts.monaSans(
+            color: const Color(0xFF44403D),
             fontSize: 14,
             fontWeight: FontWeight.w400,
             fontStyle: FontStyle.italic,
             height: 1.25,
             letterSpacing: 0.14,
+            fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
           ),
         ),
-        const Text(
+        Text(
           'Hôm nay làn da bạn thế nào?',
-          style: TextStyle(
-            color: Color(0xFF44403D),
-            fontFamily: 'Mona Sans',
+          style: GoogleFonts.monaSans(
+            color: const Color(0xFF44403D),
             fontSize: 18,
             fontWeight: FontWeight.w400,
             fontStyle: FontStyle.normal,
             height: 1.25,
+            fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
           ),
         ),
       ],
@@ -362,7 +231,7 @@ class _AiBanner extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF976D48).withOpacity(0.16),
+          color: const Color.fromRGBO(151, 109, 72, 0.16),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: const Color(0xFFD4D0CC), width: 1),
         ),
@@ -372,67 +241,77 @@ class _AiBanner extends StatelessWidget {
             // ── Background Box (Text & Button) ──
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'Thử ngay một liệu trình chăm sóc da chỉ dành riêng cho bạn.',
-                      style: TextStyle(
-                        color: Color(0xFF3F2E1E),
-                        fontFamily: 'Playfair Display',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        fontStyle: FontStyle.italic,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    constraints: const BoxConstraints(minHeight: 24),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF976D48),
-                      borderRadius: BorderRadius.circular(9999),
-                    ),
-                    child: const Row(
+                  Expanded(
+                    flex: 7,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Phân tích da AI',
-                          style: TextStyle(
-                            color: Color(0xFFF6F5F4),
-                            fontFamily: 'Mona Sans',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            height: 1.25,
-                            letterSpacing: 0.18,
+                          'Thử ngay một liệu trình\nchăm sóc da chỉ dành\nriêng cho bạn.',
+                          style: GoogleFonts.playfairDisplay(
+                            color: const Color(0xFF3F2E1E),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.italic,
+                            height: 1.2,
+                            fontFeatures: const [
+                              FontFeature.disable('liga'),
+                              FontFeature.disable('clig'),
+                            ],
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 16,
-                          color: Colors.white,
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF976D48),
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Phân tích da AI',
+                                style: GoogleFonts.monaSans(
+                                  color: const Color(0xFFF6F5F4),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.25,
+                                  letterSpacing: 0.18,
+                                  fontFeatures: const [FontFeature.disable('liga'), FontFeature.disable('clig')],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.auto_awesome, // Closest built-in to sparkle
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
+                  const Expanded(
+                    flex: 3,
+                    child: SizedBox(), // Space for image
+                  ),
                 ],
               ),
             ),
-
-            // ── Girl image (Absolute Positioned) ──
+            
+            // ── Girl image (Right side, slightly smaller) ──
             Positioned(
-              right: 7.433,
-              bottom: -12.208,
-              width: 158.208,
-              height: 158.208,
+              right: 8,
+              top: 12,
+              bottom: 0,
               child: Image.asset(
                 'assets/images/belumi_hero_girl.png',
-                fit: BoxFit.cover,
+                fit: BoxFit.fitHeight, // Make image span with margins
                 errorBuilder: (_, _, _) => const SizedBox(),
               ),
             ),
@@ -653,16 +532,6 @@ class _ProductCard extends StatelessWidget {
 
   final Product product;
 
-  String _formatPrice(num price) {
-    final s = price.toInt().toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return '${buf.toString()} VND';
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -673,7 +542,7 @@ class _ProductCard extends StatelessWidget {
           backgroundColor: Colors.transparent,
           builder: (_) => ProductDetailSheet(
             product: product,
-            locale: 'vi', // You can pass locale if needed, assuming 'vi' for now
+            locale: 'vi',
           ),
         );
       },

@@ -13,6 +13,22 @@ import '../../data/repositories/belumi_repository.dart';
 import '../widgets/belumi_luxury.dart';
 import 'ocr_camera_screen.dart';
 
+// ─────────────────────────────────────────────
+// Design Tokens
+// ─────────────────────────────────────────────
+class _T {
+  _T._();
+  static const canvas = Color(0xFFF6F5F4);
+  static const ink = Color(0xFF4B3228);
+  static const muted = Color(0xFF816A5C);
+  static const sand = Color(0xFFE7D8C6);
+  static const cream = Color(0xFFF6EDE4);
+  static const paper = Color(0xFFFFFAF4);
+  static const accent = Color(0xFFC9965D);
+  static const espresso = Color(0xFF6A4634);
+  static const radius = 16.0;
+}
+
 class IngredientLookupScreen extends StatefulWidget {
   const IngredientLookupScreen({super.key, required this.repository});
 
@@ -54,30 +70,18 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   @override
   Widget build(BuildContext context) {
     final t = belumiCopy(context).t;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-      children: [
-        LuxuryHero(
-          title: t('Tra cứu thành phần', 'Ingredient Lookup'),
-          subtitle: t(
-            'Tìm thành phần trong dữ liệu Belumi hoặc phân tích danh sách INCI bằng scan.',
-            'Search Belumi ingredient data or analyze a full INCI list with scan.',
-          ),
-          imageUrl:
-              'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=1200&q=80',
-        ),
-        const SizedBox(height: 18),
-        SegmentedButton<int>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(value: 0, label: Text(t('Tìm kiếm', 'Search'))),
-            ButtonSegment(value: 1, label: Text(t('Dán INCI', 'Paste INCI'))),
-            ButtonSegment(value: 2, label: Text(t('Quét ảnh', 'Scan image'))),
-          ],
-          selected: {tab},
-          onSelectionChanged: (value) => setState(() => tab = value.first),
-        ),
-        const SizedBox(height: 16),
+    return Container(
+      color: _T.canvas,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 402),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+            children: [
+              _buildHeader(t),
+              const SizedBox(height: 24),
+              _buildCustomTabBar(t),
+              const SizedBox(height: 16),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
           child: switch (tab) {
@@ -147,8 +151,98 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
           _ScanResultCard(result: scan!),
         ],
         const SizedBox(height: 22),
-        const _HowToUseCard(),
+              const SizedBox(height: 22),
+              const _HowToUseCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(dynamic t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.science, color: _T.accent, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                t('Tra cứu thành phần', 'Ingredient Lookup'),
+                style: const TextStyle(
+                  fontFamily: 'Playfair Display',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: _T.ink,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          t('Tìm kiếm thành phần hoặc phân tích danh sách INCI.', 'Search ingredients or analyze INCI.'),
+          style: const TextStyle(
+            color: _T.muted,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildCustomTabBar(dynamic t) {
+    final labels = [
+      t('Tìm kiếm', 'Search'),
+      t('Dán INCI', 'Paste'),
+      t('Quét ảnh', 'Scan'),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _T.sand.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: _T.espresso.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: List.generate(3, (index) {
+          final isSelected = tab == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => tab = index),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? _T.ink : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  labels[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : _T.muted,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -464,21 +558,44 @@ class _SearchPanel extends StatelessWidget {
         children: [
           Text(
             t('Tìm trong dữ liệu thành phần', 'Search ingredient data'),
-            style: _titleStyle,
+            style: const TextStyle(
+              fontFamily: 'Playfair Display',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: _T.ink,
+              fontStyle: FontStyle.italic,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextField(
             controller: controller,
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: _T.canvas,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.sand),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.sand),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.accent),
+              ),
+              prefixIcon: const Icon(Icons.search, color: _T.muted),
               labelText: t(
                 'Tên thành phần, INCI, danh mục',
                 'Ingredient name, INCI, category',
               ),
+              labelStyle: const TextStyle(color: _T.muted),
               hintText: 'Hyaluronic Acid, Retinol, Niacinamide...',
+              hintStyle: TextStyle(color: _T.muted.withValues(alpha: 0.5)),
               suffixIcon: IconButton(
                 onPressed: loading ? null : onSearch,
-                icon: const Icon(Icons.arrow_forward),
+                icon: const Icon(Icons.arrow_forward, color: _T.ink),
               ),
             ),
             onSubmitted: (_) => onSearch(),
@@ -509,7 +626,13 @@ class _PastePanel extends StatelessWidget {
         children: [
           Text(
             t('Dán danh sách thành phần', 'Paste full ingredient list'),
-            style: _titleStyle,
+            style: const TextStyle(
+              fontFamily: 'Playfair Display',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: _T.ink,
+              fontStyle: FontStyle.italic,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -517,24 +640,52 @@ class _PastePanel extends StatelessWidget {
               'Sao chép danh sách INCI trên nhãn sản phẩm và dán vào đây.',
               'Copy the INCI list from the product label and paste it here.',
             ),
+            style: const TextStyle(color: _T.muted, fontSize: 13),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: controller,
             minLines: 5,
             maxLines: 8,
             decoration: InputDecoration(
+              filled: true,
+              fillColor: _T.canvas,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.sand),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.sand),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(_T.radius),
+                borderSide: const BorderSide(color: _T.accent),
+              ),
               labelText: t('Danh sách INCI đầy đủ', 'Full INCI list'),
+              labelStyle: const TextStyle(color: _T.muted),
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: loading ? null : onAnalyze,
-            icon: const Icon(Icons.analytics_outlined),
-            label: Text(
-              loading
-                  ? t('Đang phân tích...', 'Analyzing...')
-                  : t('Phân tích thành phần', 'Analyze ingredients'),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: loading ? null : onAnalyze,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _T.ink,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              icon: const Icon(Icons.analytics_outlined, size: 18),
+              label: Text(
+                loading
+                    ? t('Đang phân tích...', 'Analyzing...')
+                    : t('Phân tích thành phần', 'Analyze ingredients'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ],
@@ -569,7 +720,13 @@ class _ScanPanel extends StatelessWidget {
         children: [
           Text(
             t('Quét nhãn sản phẩm', 'Scan product label'),
-            style: _titleStyle,
+            style: const TextStyle(
+              fontFamily: 'Playfair Display',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: _T.ink,
+              fontStyle: FontStyle.italic,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -577,6 +734,7 @@ class _ScanPanel extends StatelessWidget {
               'Dùng camera hoặc tải ảnh rõ nét của bảng thành phần.',
               'Use camera or upload a clear photo of the ingredient list.',
             ),
+            style: const TextStyle(color: _T.muted, fontSize: 13),
           ),
           const SizedBox(height: 14),
           if (image != null) ...[
@@ -597,34 +755,22 @@ class _ScanPanel extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withValues(alpha: 0.3),
+                color: _T.cream.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: _T.sand),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.text_snippet_outlined,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                      const Icon(Icons.text_snippet_outlined, size: 18, color: _T.ink),
                       const SizedBox(width: 8),
                       Text(
                         t('Chữ nhận diện được (OCR)', 'Detected text (OCR)'),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: _T.ink,
                           fontSize: 13,
                         ),
                       ),
@@ -633,7 +779,7 @@ class _ScanPanel extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     ocrText!,
-                    style: const TextStyle(fontSize: 13, height: 1.4),
+                    style: const TextStyle(fontSize: 13, height: 1.4, color: _T.espresso),
                     maxLines: 8,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -642,31 +788,55 @@ class _ScanPanel extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: loading ? null : onCamera,
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(t('Camera', 'Camera')),
+          SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: loading ? null : onCamera,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _T.ink,
+                      side: const BorderSide(color: _T.ink),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    ),
+                    icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                    label: Text(
+                      t('Camera', 'Camera'),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: loading ? null : onUpload,
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(t('Tải ảnh', 'Upload')),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: loading ? null : onUpload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _T.ink,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    ),
+                    icon: const Icon(Icons.upload_file, size: 18),
+                    label: Text(
+                      t('Tải ảnh', 'Upload'),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          if (image != null)
-            TextButton.icon(
-              onPressed: onClear,
-              icon: const Icon(Icons.close),
-              label: Text(t('Xóa ảnh', 'Clear image')),
+              ],
             ),
+          ),
+          if (image != null) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: onClear,
+                style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+                icon: const Icon(Icons.close, size: 16),
+                label: Text(t('Xóa ảnh', 'Clear image')),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -697,7 +867,7 @@ class _IngredientSearchResults extends StatelessWidget {
         _ToolCard(
           child: Row(
             children: [
-              const Icon(Icons.science_outlined),
+              const Icon(Icons.science_outlined, color: _T.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -705,7 +875,11 @@ class _IngredientSearchResults extends StatelessWidget {
                     'Tìm thấy ${result.total} thành phần',
                     '${result.total} ingredients found',
                   ),
-                  style: _titleStyle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _T.ink,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -734,17 +908,21 @@ class _IngredientCard extends StatelessWidget {
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         onTap: () => context.go('/ingredient-lookup/${ingredient.id}'),
-        leading: const CircleAvatar(child: Icon(Icons.science_outlined)),
+        leading: CircleAvatar(
+          backgroundColor: _T.cream,
+          child: const Icon(Icons.science_outlined, color: _T.accent, size: 20),
+        ),
         title: Text(
           ingredient.nameInc,
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: const TextStyle(fontWeight: FontWeight.w900, color: _T.ink),
         ),
         subtitle: Text(
           '${ingredient.name} - ${ingredient.category}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: _T.muted, fontSize: 13),
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right, color: _T.muted),
       ),
     );
   }
@@ -780,12 +958,29 @@ class _ScanResultCard extends StatelessWidget {
                     'Điểm an toàn ${result.safetyScore}/100',
                     'Safety score ${result.safetyScore}/100',
                   ),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontFamily: 'Playfair Display',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: _T.ink,
+                  ),
                 ),
               ),
-              Chip(label: Text(result.status.toUpperCase())),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  result.status.toUpperCase(),
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
