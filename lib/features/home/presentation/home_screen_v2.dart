@@ -2,26 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/i18n/app_strings.dart';
 import '../../../data/models/belumi_models.dart';
 import '../../../data/repositories/belumi_repository.dart';
-import '../../../presentation/widgets/belumi_luxury.dart';
+
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
 import '../../onboarding/onboarding_quiz_sheet.dart';
+import '../../../presentation/screens/skin_analysis_screen.dart';
 
+// ─────────────────────────────────────────────
+// Design Tokens
+// ─────────────────────────────────────────────
+class _T {
+  _T._();
+  static const canvas = Color(0xFFF6F5F4);
+  static const ink = Color(0xFF4B3228);
+  static const muted = Color(0xFF816A5C);
+  static const sand = Color(0xFFE7D8C6);
+  static const cream = Color(0xFFF6EDE4);
+  static const paper = Color(0xFFFFFAF4);
+  static const accent = Color(0xFFC9965D);
+  static const espresso = Color(0xFF6A4634);
+  static const radius = 16.0;
+}
+
+// ═════════════════════════════════════════════
+// HOME SCREEN V2
+// ═════════════════════════════════════════════
 class HomeScreenV2 extends ConsumerStatefulWidget {
   const HomeScreenV2({super.key, required this.repository});
 
   final BelumiRepository repository;
-
-  static const _ink = Color(0xFF4B3328);
-  static const _espresso = Color(0xFF6A4634);
-  static const _caramel = Color(0xFFC9965D);
-  static const _tan = Color(0xFFDAB58E);
-  static const _sand = Color(0xFFE7D8C6);
-  static const _paper = Color(0xFFFFFAF4);
-  static const _cream = Color(0xFFF6EDE4);
-  static const _muted = Color(0xFF816A5C);
 
   @override
   ConsumerState<HomeScreenV2> createState() => _HomeScreenV2State();
@@ -29,20 +41,16 @@ class HomeScreenV2 extends ConsumerStatefulWidget {
 
 class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
   int _refreshKey = 0;
-
-  /// Flag để tránh hiện quiz nhiều lần trong cùng 1 session.
   bool _quizCheckedForSession = false;
 
   @override
   void initState() {
     super.initState();
-    // Kiểm tra quiz sau frame đầu tiên (user có thể đã đăng nhập sẵn)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowQuiz(ref.read(authControllerProvider).valueOrNull);
     });
   }
 
-  /// Kiểm tra và hiện quiz nếu user chưa hoàn thành.
   Future<void> _maybeShowQuiz(AppUser? user) async {
     if (user == null || _quizCheckedForSession) return;
     _quizCheckedForSession = true;
@@ -51,38 +59,56 @@ class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
       if (!completed && mounted) {
         await showOnboardingQuiz(context, repository: widget.repository);
       }
-    } catch (_) {
-      // Quiz check thất bại → không block user
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleRefresh() async {
     try {
       await ref.read(authControllerProvider.notifier).restoreSession();
     } catch (_) {}
-    if (mounted) {
-      setState(() {
-        _refreshKey++;
-      });
-    }
+    if (mounted) setState(() => _refreshKey++);
+  }
+  Future<List<Product>> _loadPersonalizedProducts() async {
+    try {
+      if (ref.read(authControllerProvider).valueOrNull == null) {
+        return await widget.repository.products();
+      }
+      // Check latest skin history
+      final history = await widget.repository.getSkinHistory(page: 1, pageSize: 1);
+      if (history.isNotEmpty) {
+        final latestSkinType = history.first['skinType'] ?? history.first['skin_type'] ?? 'Normal';
+        return await widget.repository.recommendProductsBySkin(latestSkinType.toString());
+      }
+      // Or check beauty profile
+      final profile = await widget.repository.getBeautyProfile();
+      if (profile != null && profile.skinType != null) {
+        return await widget.repository.recommendProductsBySkin(profile.skinType!);
+      }
+    } catch (_) {}
+    return await widget.repository.products();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Listen auth state: khi user thay đổi (login/register) → check quiz
     ref.listen(authControllerProvider, (prev, next) {
       final prevUser = prev?.valueOrNull;
       final nextUser = next.valueOrNull;
-      // Chỉ trigger khi user mới login (từ null → có user)
       if (prevUser == null && nextUser != null) {
-        _quizCheckedForSession = false; // reset để check lại
+        _quizCheckedForSession = false;
         _maybeShowQuiz(nextUser);
       }
     });
 
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.valueOrNull;
+    ref.watch(appLocaleProvider);
+
     return FutureBuilder(
       key: ValueKey(_refreshKey),
-      future: Future.wait([widget.repository.products(), widget.repository.news()]),
+      future: Future.wait([
+        _loadPersonalizedProducts(),
+        widget.repository.news(),
+      ]),
       builder: (context, snapshot) {
         final products = snapshot.hasData
             ? snapshot.data![0] as List<Product>
@@ -91,43 +117,49 @@ class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
             ? snapshot.data![1] as List<NewsArticle>
             : const <NewsArticle>[];
 
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.topLeft,
-              radius: 1.35,
-              colors: [Color(0xFFF3E8DD), Color(0xFFFFFAF4)],
-            ),
-          ),
+        return Container(
+          color: _T.canvas,
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
-            color: HomeScreenV2._ink,
-            backgroundColor: HomeScreenV2._paper,
+            color: _T.ink,
+            backgroundColor: _T.paper,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 34),
+              padding: EdgeInsets.zero,
               children: [
                 Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1040),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _LuxuryHero(planCode: widget.repository.currentPlan),
-                        const SizedBox(height: 26),
-                        const _BeautyStartSection(),
-                        const SizedBox(height: 28),
-                        const _ServicesSection(),
-                        const SizedBox(height: 28),
-                        _ProductLaunchSection(products: products),
-                        const SizedBox(height: 28),
-                        const _TransformationSection(),
-                        const SizedBox(height: 28),
-                        _CatalogueSection(products: products),
-                        const SizedBox(height: 28),
-                        _NewsAndReviewsSection(news: news),
-                        const SizedBox(height: 28),
-                        const _HomeFooter(),
-                      ],
+                    constraints: const BoxConstraints(maxWidth: 402),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 35),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+
+
+                          // ── 2. Greeting ──
+                          _GreetingSection(user: user),
+                          const SizedBox(height: 16),
+
+                          // ── 3. AI Banner ──
+                          const _AiBanner(),
+                          const SizedBox(height: 24),
+
+                          // ── 4. Daily Beauty Tips ──
+                          const _DailyTipsSection(),
+                          const SizedBox(height: 24),
+
+                          // ── 5. Product Suggestions ──
+                          _ProductSuggestionsSection(products: products),
+                          const SizedBox(height: 24),
+
+                          // ── 6. News Feed ──
+                          _NewsFeedSection(news: news),
+                          const SizedBox(height: 16),
+
+                          // ── 7. Footer ──
+                          const _HomeFooter(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -140,108 +172,269 @@ class _HomeScreenV2State extends ConsumerState<HomeScreenV2> {
   }
 }
 
-class _LuxuryHero extends StatelessWidget {
-  const _LuxuryHero({required this.planCode});
+// ═════════════════════════════════════════════
+// 1. HEADER
+// ═════════════════════════════════════════════
+class _HomeHeader extends ConsumerWidget {
+  const _HomeHeader({required this.user});
 
-  final String planCode;
+  final AppUser? user;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (user == null) {
+      // PRE-LOGIN
+      return Row(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/belumi_logo_mark.png',
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Icon(Icons.spa, color: _T.ink),
+              ),
+              const SizedBox(width: 6),
+              Image.asset(
+                'assets/images/belumi_logo_wordmark.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Text(
+                  'belumi',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: _T.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          _HeaderButton(
+            label: 'Đăng ký ngay',
+            filled: true,
+            onTap: () => context.go('/register'),
+          ),
+          const SizedBox(width: 8),
+          _HeaderButton(
+            label: 'Đăng nhập',
+            filled: false,
+            onTap: () => context.go('/login'),
+          ),
+        ],
+      );
+    } else {
+      // POST-LOGIN
+      return Row(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/belumi_logo_mark.png',
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Icon(Icons.spa, color: _T.ink),
+              ),
+              const SizedBox(width: 6),
+              Image.asset(
+                'assets/images/belumi_logo_wordmark.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Text(
+                  'belumi',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: _T.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => context.go('/profile'),
+            child: const CircleAvatar(
+              radius: 16,
+              backgroundColor: _T.ink,
+              child: Icon(Icons.person, color: Colors.white, size: 20),
+            ),
+          ),
+        ],
+      );
+    }
+  }
+}
+
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({
+    required this.label,
+    required this.onTap,
+    this.filled = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: filled ? _T.ink : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: filled ? _T.ink : _T.ink.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: filled ? Colors.white : _T.ink,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: AspectRatio(
-        aspectRatio: isWide ? 1.95 : 0.78,
+// ═════════════════════════════════════════════
+// 2. GREETING
+// ═════════════════════════════════════════════
+class _GreetingSection extends StatelessWidget {
+  const _GreetingSection({required this.user});
+
+  final AppUser? user;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = user?.fullName ?? 'bạn mới';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Mến chào $name,',
+          style: TextStyle(
+            color: Color(0xFF44403D),
+            fontFamily: 'Mona Sans',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            fontStyle: FontStyle.italic,
+            height: 1.25,
+            letterSpacing: 0.14,
+          ),
+        ),
+        const Text(
+          'Hôm nay làn da bạn thế nào?',
+          style: TextStyle(
+            color: Color(0xFF44403D),
+            fontFamily: 'Mona Sans',
+            fontSize: 18,
+            fontWeight: FontWeight.w400,
+            fontStyle: FontStyle.normal,
+            height: 1.25,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═════════════════════════════════════════════
+// 3. AI SKINCARE BANNER
+// ═════════════════════════════════════════════
+class _AiBanner extends StatelessWidget {
+  const _AiBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.go('/skincare-ai'),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF976D48).withOpacity(0.16),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFD4D0CC), width: 1),
+        ),
+        clipBehavior: Clip.hardEdge,
         child: Stack(
-          fit: StackFit.expand,
           children: [
-            Image.asset(
-              'assets/images/belumi_home_hero.jpg',
-              fit: BoxFit.cover,
-              alignment: isWide ? Alignment.centerRight : Alignment.topCenter,
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color(0xE06A4634),
-                    Color(0xB58A604D),
-                    Color(0x2BF6EDE4),
-                  ],
-                ),
-              ),
-            ),
+            // ── Background Box (Text & Button) ──
             Padding(
-              padding: EdgeInsets.all(isWide ? 28 : 18),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _HeroPills(),
-                  const Spacer(),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: isWide ? 440 : 310),
+                  const SizedBox(
+                    width: double.infinity,
                     child: Text(
-                      t(
-                        'Chuyên gia làm đẹp AI của riêng bạn',
-                        'Transform Your Look with Expert Beauty AI',
+                      'Thử ngay một liệu trình chăm sóc da chỉ dành riêng cho bạn.',
+                      style: TextStyle(
+                        color: Color(0xFF3F2E1E),
+                        fontFamily: 'Playfair Display',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                        height: 1.2,
                       ),
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(
-                            color: Colors.white,
-                            height: 1.02,
-                            fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    constraints: const BoxConstraints(minHeight: 24),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF976D48),
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Phân tích da AI',
+                          style: TextStyle(
+                            color: Color(0xFFF6F5F4),
+                            fontFamily: 'Mona Sans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            height: 1.25,
+                            letterSpacing: 0.18,
                           ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 430),
-                    child: Text(
-                      t(
-                        'BeautyCenter cho skincare, tra cứu thành phần, trang điểm ảo và routine cá nhân hóa.',
-                        'BeautyCenter for skincare, ingredient lookup, virtual makeup and personalized routines.',
-                      ),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        height: 1.45,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _DarkButton(
-                        icon: Icons.auto_awesome,
-                        label: 'Skin AI',
-                        onTap: () => context.go('/skincare-ai'),
-                      ),
-                      _GhostButton(
-                        icon: Icons.document_scanner_outlined,
-                        label: t('Thành phần', 'Ingredients'),
-                        onTap: () => context.go('/ingredient-lookup'),
-                      ),
-                      _GhostButton(
-                        icon: Icons.face_retouching_natural,
-                        label: t('Makeup', 'Makeup'),
-                        onTap: () => context.go('/virtual-makeup'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _HeroBottomBar(planCode: planCode),
                 ],
               ),
             ),
+
+            // ── Girl image (Absolute Positioned) ──
             Positioned(
-              right: isWide ? 24 : 14,
-              top: isWide ? 112 : 92,
-              child: const _RoundPlayChip(),
+              right: 7.433,
+              bottom: -12.208,
+              width: 158.208,
+              height: 158.208,
+              child: Image.asset(
+                'assets/images/belumi_hero_girl.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox(),
+              ),
             ),
           ],
         ),
@@ -250,359 +443,167 @@ class _LuxuryHero extends StatelessWidget {
   }
 }
 
-class _HeroPills extends StatelessWidget {
-  const _HeroPills();
+// ═════════════════════════════════════════════
+// 4. DAILY BEAUTY TIPS (thay "Theo dõi liệu trình")
+// ═════════════════════════════════════════════
+class _DailyTipsSection extends StatelessWidget {
+  const _DailyTipsSection();
+
+  static const _allTips = <List<_TipData>>[
+    // Monday
+    [
+      _TipData('☀️', 'Chống nắng đúng cách',
+          'Thoa SPF 30+ trước 15 phút khi ra ngoài, bôi lại mỗi 2h.'),
+      _TipData('💧', 'Hydrate từ bên trong',
+          'Uống đủ 2 lít nước mỗi ngày giúp da căng mịn.'),
+      _TipData('🌿', 'Skincare tối giản',
+          'Chỉ cần 3 bước: sữa rửa mặt, dưỡng ẩm, chống nắng.'),
+    ],
+    // Tuesday
+    [
+      _TipData('🧴', 'Double Cleansing',
+          'Tẩy trang dầu trước, rửa mặt sau để sạch sâu.'),
+      _TipData('✨', 'Vitamin C buổi sáng',
+          'Serum Vitamin C sáng giúp chống oxy hóa hiệu quả.'),
+      _TipData('😴', 'Ngủ đủ giấc',
+          '7-8 tiếng mỗi đêm cho da tự phục hồi tốt nhất.'),
+    ],
+    // Wednesday
+    [
+      _TipData('🍊', 'Ăn nhiều trái cây',
+          'Vitamin từ trái cây giúp da sáng khỏe từ bên trong.'),
+      _TipData('🧊', 'Đắp mặt nạ lạnh',
+          'Giúp se khít lỗ chân lông và giảm sưng hiệu quả.'),
+      _TipData('🌙', 'Retinol ban đêm',
+          'Dùng retinol tối để trẻ hóa, tránh ánh nắng.'),
+    ],
+    // Thursday
+    [
+      _TipData('💆', 'Massage mặt',
+          'Massage 5 phút mỗi tối giúp lưu thông máu tốt hơn.'),
+      _TipData('🥒', 'Mặt nạ thiên nhiên',
+          'Dưa leo, mật ong - nguyên liệu đơn giản mà hiệu quả.'),
+      _TipData('🧽', 'Vệ sinh cọ makeup',
+          'Rửa cọ mỗi tuần để tránh vi khuẩn gây mụn.'),
+    ],
+    // Friday
+    [
+      _TipData('🫧', 'Tẩy tế bào chết',
+          'AHA/BHA 2 lần/tuần giúp da mịn màng, sáng hơn.'),
+      _TipData('🎭', 'Sheet mask thư giãn',
+          'Đắp mask 15 phút cuối tuần cho da căng bóng.'),
+      _TipData('💤', 'Sleeping mask',
+          'Kem ngủ qua đêm cấp ẩm sâu khi bạn ngủ.'),
+    ],
+    // Saturday
+    [
+      _TipData('🏋️', 'Tập thể dục',
+          'Ra mồ hôi giúp thải độc, da hồng hào tự nhiên.'),
+      _TipData('🥗', 'Ăn uống lành mạnh',
+          'Hạn chế đường, dầu mỡ để giảm mụn hiệu quả.'),
+      _TipData('🧘', 'Giảm stress',
+          'Thiền 10 phút/ngày giúp cortisol giảm, da khỏe hơn.'),
+    ],
+    // Sunday
+    [
+      _TipData('🛁', 'Spa tại nhà',
+          'Dành 30 phút cuối tuần chăm sóc da chuyên sâu.'),
+      _TipData('📸', 'Chụp ảnh theo dõi',
+          'Ghi lại tình trạng da mỗi tuần để thấy tiến triển.'),
+      _TipData('📝', 'Review sản phẩm',
+          'Ghi chú sản phẩm nào hợp, để tối ưu routine.'),
+    ],
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    // weekday: 1=Mon .. 7=Sun → index 0..6
+    final dayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+    final tips = _allTips[dayIndex];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _TopPill(
-          label: belumiCopy(context).t('Trang chủ', 'Home'),
-          selected: true,
-          onTap: () => context.go('/home'),
+        _SectionHeader(
+          title: 'Mẹo chăm sóc da hôm nay',
+          actionLabel: 'Xem thêm',
+          onAction: () => context.go('/news'),
         ),
-        _TopPill(
-          label: belumiCopy(context).t('Gói', 'Plans'),
-          onTap: () => context.go('/pricing'),
-        ),
-        _TopPill(label: 'Skin AI', onTap: () => context.go('/skincare-ai')),
-        _TopPill(
-          label: belumiCopy(context).t('BeautyCenter', 'BeautyCenter'),
-          onTap: () => context.go('/about'),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 145,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: tips.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, index) => _TipCard(tip: tips[index]),
+          ),
         ),
       ],
     );
   }
 }
 
-class _HeroBottomBar extends StatelessWidget {
-  const _HeroBottomBar({required this.planCode});
-
-  final String planCode;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        _MiniMetric(
-          icon: Icons.workspace_premium,
-          label: belumiCopy(context).t('Gói', 'Plan'),
-          value: planCode.toUpperCase(),
-        ),
-        const _MiniMetric(
-          icon: Icons.auto_awesome,
-          label: 'AI Score',
-          value: '94%',
-        ),
-        _MiniMetric(
-          icon: Icons.favorite,
-          label: belumiCopy(context).t('Yêu thích', 'Wishlist'),
-          value: belumiCopy(context).t('Đã chọn lọc', 'Curated'),
-        ),
-      ],
-    );
-  }
+class _TipData {
+  const _TipData(this.emoji, this.title, this.description);
+  final String emoji;
+  final String title;
+  final String description;
 }
 
-class _BeautyStartSection extends StatelessWidget {
-  const _BeautyStartSection();
+class _TipCard extends StatelessWidget {
+  const _TipCard({required this.tip});
+
+  final _TipData tip;
+
+  static const _gradients = [
+    [Color(0xFFFFF1E6), Color(0xFFFFE0CC)],
+    [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+    [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return _WhitePanel(
+    final colors = _gradients[tip.title.hashCode % _gradients.length];
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+        borderRadius: BorderRadius.circular(_T.radius),
+        border: Border.all(color: colors[1].withValues(alpha: 0.5)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(
-            eyebrow: belumiCopy(context).t('Hồ sơ làm đẹp', 'Beauty profile'),
-            title: belumiCopy(context).t(
-              'Hành trình làm đẹp bắt đầu tại đây',
-              'Your Beauty And Success Start Here',
+          Text(tip.emoji, style: const TextStyle(fontSize: 26)),
+          const SizedBox(height: 8),
+          Text(
+            tip.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _T.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
             ),
           ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 720;
-              final first = _ImageFeatureCard(
-                route: '/skincare-ai',
-                imageUrl:
-                    'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&w=900&q=80',
-                title: 'Skincare AI',
-                subtitle: belumiCopy(context).t(
-                  'Phân tích da, gợi ý routine sáng và tối.',
-                  'Analyze skin and suggest morning and night routines.',
-                ),
-              );
-              final second = _SoftTextureCard(
-                onTap: () => context.go('/ingredient-lookup'),
-              );
-              final third = _ImageFeatureCard(
-                route: '/virtual-makeup',
-                imageUrl:
-                    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
-                title: belumiCopy(context).t(
-                  'Khám phá tiềm năng vẻ đẹp',
-                  'Discover Your Beauty Potential',
-                ),
-                subtitle: belumiCopy(context).t(
-                  'Makeup theo tone da và dịp sử dụng.',
-                  'Makeup by skin tone and occasion.',
-                ),
-              );
-
-              if (!isWide) {
-                return Column(
-                  children: [
-                    first,
-                    const SizedBox(height: 12),
-                    second,
-                    const SizedBox(height: 12),
-                    third,
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: first),
-                  const SizedBox(width: 12),
-                  Expanded(child: second),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: third),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ServicesSection extends StatelessWidget {
-  const _ServicesSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    const services = [
-      _ServiceItem('Face AI', 'Deep scan and routine', Icons.auto_awesome),
-      _ServiceItem('Ingredients', 'OCR label lookup', Icons.document_scanner),
-      _ServiceItem(
-        'Makeup',
-        'Tone and occasion advice',
-        Icons.palette_outlined,
-      ),
-    ];
-
-    return _WhitePanel(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 760;
-          final list = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SectionTitle(
-                eyebrow: t('Dịch vụ', 'Services'),
-                title: t('Dịch vụ Belumi cung cấp', 'Service We Provide'),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Text(
+              tip.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: _T.ink.withValues(alpha: 0.7),
+                fontSize: 11,
+                height: 1.35,
               ),
-              const SizedBox(height: 14),
-              ...services.map((item) => _ServiceRow(item: item)),
-              const SizedBox(height: 12),
-              _OutlineTinyButton(
-                label: t('Xem dịch vụ', 'View Services'),
-                onTap: () => context.go('/skincare-ai'),
-              ),
-            ],
-          );
-
-          final visuals = Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: _ImageFeatureCard(
-                  route: '/virtual-makeup',
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=900&q=80',
-                  title: t('Tiếp cận toàn diện', 'Holistic Approach'),
-                  subtitle: t(
-                    'Makeup, skincare và gợi ý sản phẩm trong một flow.',
-                    'Makeup, skincare and product advice in one flow.',
-                  ),
-                  dark: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: _ImageTile(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=700&q=80',
-                  height: 180,
-                ),
-              ),
-            ],
-          );
-
-          if (!isWide) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [list, const SizedBox(height: 18), visuals],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: list),
-              const SizedBox(width: 18),
-              Expanded(flex: 4, child: visuals),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ProductLaunchSection extends StatelessWidget {
-  const _ProductLaunchSection({required this.products});
-
-  final List<Product> products;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    final product = products.isNotEmpty ? products.first : sampleProducts.first;
-
-    return _WhitePanel(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 760;
-          final copy = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SectionTitle(
-                eyebrow: t('Sản phẩm mới', 'Latest Product Launch'),
-                title: t('Đã có sẵn!', 'Available Now!'),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                t(
-                  'AI chọn sản phẩm phù hợp với loại da, routine và wishlist của bạn.',
-                  'AI selects products that fit your skin type, routine and wishlist.',
-                ),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: HomeScreenV2._muted,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _SmallCategory(
-                    label: t('Kem dưỡng', 'Cream'),
-                    selected: true,
-                  ),
-                  const _SmallCategory(label: 'Serum'),
-                  const _SmallCategory(label: 'Makeup'),
-                  _SmallCategory(label: t('Sữa rửa mặt', 'Cleanser')),
-                ],
-              ),
-            ],
-          );
-
-          final productCard = _CircularProduct(product: product);
-
-          if (!isWide) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [copy, const SizedBox(height: 18), productCard],
-            );
-          }
-
-          return Row(
-            children: [
-              Expanded(flex: 2, child: copy),
-              const SizedBox(width: 24),
-              Expanded(flex: 3, child: productCard),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TransformationSection extends StatelessWidget {
-  const _TransformationSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    return _WhitePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _SectionTitle(
-                  eyebrow: t('Độc quyền Belumi', 'Exclusive Beauty'),
-                  title: t('Sẵn sàng biến hóa', 'Transformation Awaits'),
-                ),
-              ),
-              _OutlineTinyButton(
-                label: t('Thêm dịch vụ', 'More Services'),
-                onTap: () => context.go('/virtual-makeup'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 210,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                SizedBox(
-                  width: 420,
-                  child: _ImageFeatureCard(
-                    route: '/virtual-makeup',
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=80',
-                    title: t('Trang điểm ảo', 'Virtual Makeup'),
-                    subtitle: t(
-                      'Thử makeup look mới trước khi mua sản phẩm.',
-                      'Try a new makeup look before buying products.',
-                    ),
-                    dark: true,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const _ImageTile(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=700&q=80',
-                  width: 170,
-                  height: 210,
-                ),
-                SizedBox(width: 12),
-                _ImageTile(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=80',
-                  width: 170,
-                  height: 210,
-                ),
-              ],
             ),
           ),
         ],
@@ -611,961 +612,452 @@ class _TransformationSection extends StatelessWidget {
   }
 }
 
-class _CatalogueSection extends StatelessWidget {
-  const _CatalogueSection({required this.products});
+// ═════════════════════════════════════════════
+// 5. PRODUCT SUGGESTIONS
+// ═════════════════════════════════════════════
+class _ProductSuggestionsSection extends StatelessWidget {
+  const _ProductSuggestionsSection({required this.products});
 
   final List<Product> products;
 
   @override
   Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    final items = products.take(3).toList();
-    final displayItems = items.isEmpty
-        ? sampleProducts.take(3).toList()
-        : items;
+    final items = products.isNotEmpty ? products : sampleProducts;
 
-    return _WhitePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _SectionTitle(
-                  eyebrow: t('Danh mục làm đẹp', 'Beauty Catalogue'),
-                  title: t(
-                    'Trải nghiệm tinh chất làm đẹp',
-                    'Experience The Beauty Essence',
-                  ),
-                ),
-              ),
-              _OutlineTinyButton(
-                label: t('Xem thêm', 'Read More'),
-                onTap: () => context.go('/wishlist'),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Gợi ý sản phẩm',
+          actionLabel: 'Xem tất cả',
+          onAction: () => context.go('/wishlist'),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 210,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length > 10 ? 10 : items.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, index) =>
+                _ProductCard(product: items[index]),
           ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 780;
-              if (!isWide) {
-                return Column(
-                  children: displayItems
-                      .map(
-                        (product) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _CatalogueCard(product: product),
-                        ),
-                      )
-                      .toList(),
-                );
-              }
-              return Row(
-                children: displayItems
-                    .map(
-                      (product) => Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: _CatalogueCard(product: product),
-                        ),
-                      ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({required this.product});
+
+  final Product product;
+
+  String _formatPrice(num price) {
+    final s = price.toInt().toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+      buf.write(s[i]);
+    }
+    return '${buf.toString()} VND';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => ProductDetailSheet(
+            product: product,
+            locale: 'vi', // You can pass locale if needed, assuming 'vi' for now
+          ),
+        );
+      },
+      child: Container(
+        width: 125,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_T.radius),
+          border: Border.all(color: _T.sand.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: _T.espresso.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // ── Product image ──
+            Container(
+              margin: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              height: 95,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: _T.canvas,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: product.thumbnailUrl != null
+                  ? Image.network(
+                      product.thumbnailUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => _productPlaceholder(),
                     )
-                    .toList(),
-              );
-            },
-          ),
-        ],
+                  : _productPlaceholder(),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Brand ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                (product.brand ?? product.categoryName ?? 'BELUMI')
+                    .toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _T.muted,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+
+            // ── Name ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _T.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _productPlaceholder() {
+    return Container(
+      color: _T.cream,
+      child: const Center(
+        child: Icon(Icons.spa_outlined, size: 32, color: _T.accent),
       ),
     );
   }
 }
 
-class _NewsAndReviewsSection extends StatelessWidget {
-  const _NewsAndReviewsSection({required this.news});
+// ═════════════════════════════════════════════
+// 6. NEWS FEED
+// ═════════════════════════════════════════════
+class _NewsFeedSection extends StatelessWidget {
+  const _NewsFeedSection({required this.news});
 
   final List<NewsArticle> news;
 
   @override
   Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    final posts = news.take(4).toList();
+    final items = news.take(3).toList();
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-    return _WhitePanel(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 760;
-          final intro = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SectionTitle(
-                eyebrow: t('Đánh giá nổi bật', 'Glowing Reviews'),
-                title: t('Câu chuyện làm đẹp', 'Beauty Stories'),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                t(
-                  'Tin làm đẹp, routine và feedback được chọn lọc cho cộng đồng Belumi.',
-                  'Beauty news, routines and feedback curated for the Belumi community.',
-                ),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: HomeScreenV2._muted,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 14),
-              _AvatarCloud(),
-              const SizedBox(height: 14),
-              _OutlineTinyButton(
-                label: t('Tin tức', 'News'),
-                onTap: () => context.go('/news'),
-              ),
-            ],
-          );
-
-          final cards = Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: posts.isEmpty
-                ? [
-                    _ReviewCard(
-                      title: t(
-                        'Routine cuối cùng cũng thật sự cá nhân hóa.',
-                        'Routine that finally feels personal.',
-                      ),
-                      author: t('Người dùng Belumi', 'Belumi user'),
-                    ),
-                    _ReviewCard(
-                      title: t(
-                        'Quét thành phần giúp tôi mua sắm tự tin hơn.',
-                        'Ingredient scan helps me buy with confidence.',
-                      ),
-                      author: t('Người yêu skincare', 'Skincare lover'),
-                    ),
-                  ]
-                : posts
-                      .map(
-                        (post) => _ReviewCard(
-                          title: post.title,
-                          author: post.author ?? 'Belumi',
-                        ),
-                      )
-                      .toList(),
-          );
-
-          if (!isWide) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [intro, const SizedBox(height: 18), cards],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: intro),
-              const SizedBox(width: 20),
-              Expanded(flex: 4, child: cards),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _WhitePanel extends StatelessWidget {
-  const _WhitePanel({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: HomeScreenV2._paper.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: HomeScreenV2._sand.withValues(alpha: 0.72)),
-        boxShadow: [
-          BoxShadow(
-            color: HomeScreenV2._espresso.withValues(alpha: 0.12),
-            blurRadius: 26,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.eyebrow, required this.title});
-
-  final String eyebrow;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          eyebrow,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: HomeScreenV2._muted,
-            fontWeight: FontWeight.w700,
-          ),
+        _SectionHeader(
+          title: 'Bảng tin',
+          actionLabel: 'Xem tất cả',
+          onAction: () => context.go('/news'),
         ),
-        const SizedBox(height: 2),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: HomeScreenV2._ink,
-            height: 1.05,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+        const SizedBox(height: 12),
+        ...items.map((article) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _NewsCard(article: article),
+            )),
       ],
     );
   }
 }
 
-class _ImageFeatureCard extends StatelessWidget {
-  const _ImageFeatureCard({
-    required this.route,
-    required this.imageUrl,
-    required this.title,
-    required this.subtitle,
-    this.dark = false,
-  });
+class _NewsCard extends StatelessWidget {
+  const _NewsCard({required this.article});
 
-  final String route;
-  final String imageUrl;
-  final String title;
-  final String subtitle;
-  final bool dark;
+  final NewsArticle article;
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () => context.go(route),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: 180,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _NetworkPhoto(imageUrl: imageUrl),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: dark ? 0.58 : 0.42),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 14,
-                right: 14,
-                bottom: 14,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Positioned(
-                right: 12,
-                top: 12,
-                child: CircleAvatar(
-                  radius: 14,
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.arrow_outward,
-                    size: 15,
-                    color: HomeScreenV2._ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _formatViews(int count) {
+    if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K lượt xem';
+    }
+    return '$count lượt xem';
   }
-}
-
-class _SoftTextureCard extends StatelessWidget {
-  const _SoftTextureCard({required this.onTap});
-
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
+    return GestureDetector(
+      onTap: () => context.push('/news/${article.slug}'),
       child: Container(
-        height: 180,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              HomeScreenV2._cream,
-              HomeScreenV2._tan,
-              HomeScreenV2._caramel,
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -20,
-              bottom: -12,
-              child: Icon(
-                Icons.spa_outlined,
-                size: 126,
-                color: Colors.white.withValues(alpha: 0.66),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              top: 16,
-              child: Text(
-                belumiCopy(
-                  context,
-                ).t('Tra cứu\nthành phần', 'Ingredient\nLookup'),
-                style: TextStyle(
-                  color: HomeScreenV2._ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  height: 1.05,
-                ),
-              ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_T.radius),
+          border: Border.all(color: _T.sand.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: _T.espresso.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ServiceRow extends StatelessWidget {
-  const _ServiceRow({required this.item});
-
-  final _ServiceItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    final displayTitle = switch (item.title) {
-      'Face AI' => t('Phân tích da AI', 'Face AI'),
-      'Ingredients' => t('Thành phần', 'Ingredients'),
-      'Makeup' => t('Trang điểm', 'Makeup'),
-      _ => item.title,
-    };
-    final displaySubtitle = switch (item.title) {
-      'Face AI' => t('Quét sâu và routine cá nhân', 'Deep scan and routine'),
-      'Ingredients' => t('Quét OCR nhãn sản phẩm', 'OCR label lookup'),
-      'Makeup' => t('Tư vấn tone da và dịp dùng', 'Tone and occasion advice'),
-      _ => item.subtitle,
-    };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: () {
-          final route = item.title == 'Face AI'
-              ? '/skincare-ai'
-              : item.title == 'Ingredients'
-              ? '/ingredient-lookup'
-              : '/virtual-makeup';
-          context.go(route);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: HomeScreenV2._sand),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 13,
-                backgroundColor: HomeScreenV2._ink,
-                child: Icon(item.icon, size: 14, color: Colors.white),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Cover image ──
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: article.coverImageUrl != null
+                    ? Image.network(
+                        article.coverImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _coverPlaceholder(),
+                      )
+                    : _coverPlaceholder(),
               ),
-              const SizedBox(width: 9),
-              Expanded(
+            ),
+            const SizedBox(width: 12),
+
+            // ── Content ──
+            Expanded(
+              child: SizedBox(
+                height: 90,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      displayTitle,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    // Tags
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        _TagChip(label: article.category, highlighted: true),
+                        if (article.tags.isNotEmpty)
+                          _TagChip(label: article.tags.first),
+                      ],
                     ),
-                    Text(
-                      displaySubtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: HomeScreenV2._muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward, size: 15),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                    const SizedBox(height: 6),
 
-class _CircularProduct extends StatelessWidget {
-  const _CircularProduct({required this.product});
-
-  final Product product;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: HomeScreenV2._sand),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: ClipOval(
-                child: product.thumbnailUrl == null
-                    ? Image.asset(
-                        'assets/images/belumi_home_hero.jpg',
-                        fit: BoxFit.cover,
-                      )
-                    : Image.network(
-                        product.thumbnailUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Image.asset(
-                          'assets/images/belumi_home_hero.jpg',
-                          fit: BoxFit.cover,
+                    // Title
+                    Expanded(
+                      child: Text(
+                        article.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _T.ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
                         ),
                       ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 18),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                product.name,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${product.price.toStringAsFixed(0)} VND',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 12),
-              _OutlineTinyButton(
-                label: belumiCopy(context).t('Thêm vào giỏ', 'Add to Cart'),
-                onTap: () => context.go('/wishlist'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CatalogueCard extends StatelessWidget {
-  const _CatalogueCard({required this.product});
-
-  final Product product;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: HomeScreenV2._cream,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: HomeScreenV2._sand),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              height: 132,
-              width: double.infinity,
-              child: product.thumbnailUrl == null
-                  ? const _NetworkPhoto(
-                      imageUrl:
-                          'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80',
-                    )
-                  : Image.network(
-                      product.thumbnailUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const _NetworkPhoto(
-                        imageUrl:
-                            'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=700&q=80',
-                      ),
                     ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            product.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${product.price.toStringAsFixed(0)} VND',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: HomeScreenV2._muted),
-                ),
-              ),
-              const CircleAvatar(
-                radius: 12,
-                backgroundColor: HomeScreenV2._ink,
-                child: Icon(Icons.add, size: 14, color: Colors.white),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({required this.title, required this.author});
-
-  final String title;
-  final String author;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 210,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: HomeScreenV2._cream,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: HomeScreenV2._sand),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: HomeScreenV2._ink,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 15,
-                  backgroundImage: NetworkImage(
-                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    author,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    // Rating + Views
+                    Row(
+                      children: [
+                        // Star rating
+                        ...List.generate(
+                          5,
+                          (i) => Icon(
+                            i < 4 ? Icons.star : Icons.star_half,
+                            size: 12,
+                            color: _T.accent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatViews(article.viewCount),
+                          style: TextStyle(
+                            color: _T.muted.withValues(alpha: 0.8),
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 10,
+                          color: _T.muted.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${article.likeCount}',
+                          style: TextStyle(
+                            color: _T.muted.withValues(alpha: 0.8),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(width: 4),
+
+            // ── Arrow button ──
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: _T.canvas,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _T.sand.withValues(alpha: 0.6)),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward,
+                  size: 14,
+                  color: _T.ink,
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ImageTile extends StatelessWidget {
-  const _ImageTile({required this.imageUrl, this.width, this.height = 180});
-
-  final String imageUrl;
-  final double? width;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: _NetworkPhoto(imageUrl: imageUrl),
+  Widget _coverPlaceholder() {
+    return Container(
+      color: _T.cream,
+      child: const Center(
+        child: Icon(Icons.article_outlined, size: 28, color: _T.accent),
       ),
     );
   }
 }
 
-class _NetworkPhoto extends StatelessWidget {
-  const _NetworkPhoto({required this.imageUrl});
-
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [HomeScreenV2._cream, HomeScreenV2._caramel],
-          ),
-        ),
-        child: const Icon(Icons.spa_outlined, color: Colors.white, size: 42),
-      ),
-    );
-  }
-}
-
-class _TopPill extends StatelessWidget {
-  const _TopPill({
-    required this.label,
-    required this.onTap,
-    this.selected = false,
-  });
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.label, this.highlighted = false});
 
   final String label;
-  final VoidCallback onTap;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.white.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? HomeScreenV2._ink : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SmallCategory extends StatelessWidget {
-  const _SmallCategory({required this.label, this.selected = false});
-
-  final String label;
-  final bool selected;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: selected ? HomeScreenV2._ink : HomeScreenV2._paper,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: HomeScreenV2._sand),
+        color: highlighted
+            ? _T.accent.withValues(alpha: 0.15)
+            : _T.canvas,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: selected ? Colors.white : HomeScreenV2._ink,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
+          color: highlighted ? _T.espresso : _T.muted,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _DarkButton extends StatelessWidget {
-  const _DarkButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(
-        backgroundColor: HomeScreenV2._ink,
-        foregroundColor: Colors.white,
-        visualDensity: VisualDensity.compact,
-      ),
-      onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(label),
-    );
-  }
-}
-
-class _GhostButton extends StatelessWidget {
-  const _GhostButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.55)),
-        visualDensity: VisualDensity.compact,
-      ),
-      onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(label),
-    );
-  }
-}
-
-class _OutlineTinyButton extends StatelessWidget {
-  const _OutlineTinyButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: HomeScreenV2._ink,
-        side: const BorderSide(color: HomeScreenV2._sand),
-        visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-      ),
-      onPressed: onTap,
-      child: Text(label),
-    );
-  }
-}
-
-class _MiniMetric extends StatelessWidget {
-  const _MiniMetric({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 6),
-          Text(
-            '$label: $value',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoundPlayChip extends StatelessWidget {
-  const _RoundPlayChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      height: 58,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
-      ),
-      child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-    );
-  }
-}
-
-class _AvatarCloud extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    const urls = [
-      'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=120&q=80',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=120&q=80',
-      'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&w=120&q=80',
-    ];
-
-    return SizedBox(
-      height: 36,
-      width: 112,
-      child: Stack(
-        children: [
-          for (var i = 0; i < urls.length; i++)
-            Positioned(
-              left: i * 24,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundImage: NetworkImage(urls[i]),
-                ),
-              ),
-            ),
-          const Positioned(
-            left: 72,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: HomeScreenV2._ink,
-              child: Icon(Icons.arrow_forward, color: Colors.white, size: 16),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+// ═════════════════════════════════════════════
+// 7. FOOTER
+// ═════════════════════════════════════════════
 class _HomeFooter extends StatelessWidget {
   const _HomeFooter();
 
   @override
   Widget build(BuildContext context) {
-    final t = belumiCopy(context).t;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              t(
-                'BeautyCenter\nAI và tư vấn làm đẹp cá nhân hóa.',
-                'BeautyCenter\nAI and personalized beauty consultation.',
-              ),
-              style: const TextStyle(
-                color: HomeScreenV2._ink,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/images/belumi_logo_mark_new.png',
+              height: 28,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Powered by Belumi',
+              style: TextStyle(
+                color: _T.muted.withValues(alpha: 0.6),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-          IconButton(
-            tooltip: t('Bảng giá', 'Pricing'),
-            onPressed: () => context.go('/pricing'),
-            icon: const Icon(Icons.workspace_premium_outlined),
-          ),
-          IconButton(
-            tooltip: t('Yêu thích', 'Wishlist'),
-            onPressed: () => context.go('/wishlist'),
-            icon: const Icon(Icons.favorite_border),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ServiceItem {
-  const _ServiceItem(this.title, this.subtitle, this.icon);
+// ═════════════════════════════════════════════
+// SHARED: Section Header
+// ═════════════════════════════════════════════
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
 
   final String title;
-  final String subtitle;
-  final IconData icon;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: _T.ink,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: onAction,
+          child: Text(
+            actionLabel,
+            style: TextStyle(
+              color: _T.muted.withValues(alpha: 0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

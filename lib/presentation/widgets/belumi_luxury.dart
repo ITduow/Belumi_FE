@@ -114,11 +114,32 @@ class _BelumiLogoState extends State<BelumiLogo> {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/belumi_logo_mark.png',
-      height: widget.height,
-      fit: BoxFit.contain,
-      color: widget.dark ? Colors.white : null,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          'assets/images/belumi_logo_mark_new.png',
+          height: widget.height,
+          fit: BoxFit.contain,
+          color: widget.dark ? Colors.white : null,
+          errorBuilder: (_, _, _) => const Icon(Icons.spa, color: Colors.brown),
+        ),
+        const SizedBox(width: 8),
+        Image.asset(
+          'assets/images/belumi_logo_wordmark_new.png',
+          height: widget.height * 0.55,
+          fit: BoxFit.contain,
+          color: widget.dark ? Colors.white : null,
+          errorBuilder: (_, _, _) => Text(
+            'belumi',
+            style: TextStyle(
+              fontSize: widget.height * 0.55,
+              fontWeight: FontWeight.w900,
+              color: widget.dark ? Colors.white : Colors.brown,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
