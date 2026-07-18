@@ -728,6 +728,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               height: 45,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
+                  minimumSize: Size.zero,
                   backgroundColor: BelumiLuxury.ink,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
