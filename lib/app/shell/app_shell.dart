@@ -34,6 +34,8 @@ class AppShell extends ConsumerWidget {
     final locale = ref.watch(appLocaleProvider);
     final strings = AppStrings(locale);
 
+    final isHome = location.startsWith('/home');
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 12,
