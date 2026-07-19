@@ -740,8 +740,8 @@ class _ScanPanel extends StatelessWidget {
           if (image != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                image!.dataUrl,
+              child: Image.memory(
+                base64Decode(image!.dataUrl.split(',').last),
                 height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
