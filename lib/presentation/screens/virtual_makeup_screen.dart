@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import '../../core/platform/picked_skin_image.dart';
 import '../../core/platform/skin_image_picker.dart';
 import '../../data/models/belumi_models.dart';
@@ -353,8 +354,8 @@ class _SelfiePanel extends StatelessWidget {
           if (selfie != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                selfie!.dataUrl,
+              child: Image.memory(
+                base64Decode(selfie!.dataUrl.split(',').last),
                 height: 190,
                 width: double.infinity,
                 fit: BoxFit.cover,
