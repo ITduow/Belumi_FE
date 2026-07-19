@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/application/auth_controller.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,16 +31,16 @@ class _T {
   static const radius = 16.0;
 }
 
-class IngredientLookupScreen extends StatefulWidget {
+class IngredientLookupScreen extends ConsumerStatefulWidget {
   const IngredientLookupScreen({super.key, required this.repository});
 
   final BelumiRepository repository;
 
   @override
-  State<IngredientLookupScreen> createState() => _IngredientLookupScreenState();
+  ConsumerState<IngredientLookupScreen> createState() => _IngredientLookupScreenState();
 }
 
-class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
+class _IngredientLookupScreenState extends ConsumerState<IngredientLookupScreen> {
   final searchController = TextEditingController();
   final pasteController = TextEditingController(
     text:
@@ -69,7 +71,80 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authControllerProvider).valueOrNull;
     final t = belumiCopy(context).t;
+    final isVi = belumiCopy(context).locale == 'vi';
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: _T.canvas,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.search_off_rounded,
+                size: 80,
+                color: _T.ink,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                isVi
+                    ? 'Yêu cầu đăng nhập'
+                    : 'Login Required',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Playfair Display',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  color: _T.ink,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isVi
+                    ? 'Vui lòng đăng nhập để sử dụng tính năng tra cứu thành phần mỹ phẩm.'
+                    : 'Please log in to use the cosmetic ingredient lookup feature.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _T.muted,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    context.go('/login');
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF976D48),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9999),
+                    ),
+                  ),
+                  child: Text(
+                    isVi ? 'Đăng nhập ngay' : 'Log in now',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       color: _T.canvas,
       child: Center(
@@ -247,6 +322,16 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
   }
 
   Future<void> _search() async {
+    final query = searchController.text.trim();
+    if (query.isNotEmpty) {
+      final allowed = await widget.repository.checkAndIncrementLimit('ingredient_scan');
+      if (!allowed) {
+        if (!mounted) return;
+        _showLimitDialog();
+        return;
+      }
+    }
+
     setState(() {
       loading = true;
       error = null;
@@ -254,7 +339,7 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
     });
     try {
       final data = await widget.repository.searchIngredients(
-        search: searchController.text.trim(),
+        search: query,
       );
       if (!mounted) return;
       setState(() => searchResult = data);
@@ -280,8 +365,11 @@ class _IngredientLookupScreenState extends State<IngredientLookupScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: BelumiLuxury.rose,
+              backgroundColor: const Color(0xFF976D48),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9999),
+              ),
             ),
             onPressed: () {
               Navigator.pop(context);

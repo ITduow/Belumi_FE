@@ -164,7 +164,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     context.go('/login');
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: _T.ink,
+                    backgroundColor: const Color(0xFF976D48),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -250,7 +250,7 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
                     }
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: _T.ink,
+                    backgroundColor: const Color(0xFF976D48),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -434,8 +434,11 @@ class _SkinAnalysisScreenState extends ConsumerState<SkinAnalysisScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _T.ink,
+                backgroundColor: const Color(0xFF976D48),
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9999),
+                ),
               ),
               onPressed: () {
                 Navigator.pop(context);
